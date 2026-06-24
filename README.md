@@ -36,6 +36,27 @@ Ombre Brain gives it persistent memory — not cold key-value storage, but a sys
 
 > 不需要 clone 代码，不需要 build。第一次完整跑通约 5 分钟。
 
+> ### ⚠️ 重要：不要用 Zeabur / Render / Railway 这类「源码构建型」PaaS 部署
+>
+> Ombre Brain 是一个**需要常驻运行 + 本地持久化存储**的有状态服务（记忆桶是磁盘上的
+> `.md` 文件 + SQLite 向量库）。Zeabur、Render 免费层、Railway 这类平台会**从源码自动
+> 构建**、容器**无持久磁盘 / 会休眠重置**，结果就是：要么 build 失败，要么记忆每次重启
+> 全丢。**请不要在这类平台上搭建**，会白忙一场还以为是 bug。
+>
+> 正确的两条路，挑一条：
+>
+> 1. **在自己的机器/服务器上部署（推荐）**：按下面的 Docker 步骤跑在你自己的电脑、
+>    NAS 或一台 VPS 上，数据落在你自己的磁盘。需要给 Claude.ai 网页版用，就用内置的
+>    **Cloudflare Tunnel** 一键拿到一个公网 `https://…` 远程 URL 填进去即可（见下方
+>    「远程访问」）。家里的电脑部署 + Tunnel 暴露链接，完全够用。
+> 2. **只是没有 API Key？去[硅基流动 SiliconFlow](https://siliconflow.cn/) 领免费额度**：
+>    它提供 OpenAI 兼容接口 + 免费的 `BAAI/bge-m3`（向量化）和对话模型，按下方「配置 →
+>    向量化 / 脱水」把 base_url 填成硅基流动、用它的 key 即可。**不想出网 / 不想要 key**
+>    的话，用本地 Ollama bge-m3（见「本地向量模型」），一样零成本。
+>
+> 一句话：**部署要在能常驻 + 有持久磁盘的地方；缺模型就用硅基流动免费层或本地 Ollama。**
+> 别在 Zeabur 上折腾。
+
 ### 第零步：装 Docker Desktop
 
 打开 [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)，下载对应你系统的版本，安装后启动。Windows 用户安装时会提示启用 WSL 2，点同意。

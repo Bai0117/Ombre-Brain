@@ -97,11 +97,18 @@ try:
     _bd = config.get("buckets_dir", "")
     if _bd and os.path.isdir(_bd):
         _has_data = False
-        # 遍历各个桃子目录，任何一个里有 .md 文件就认定早期部署位置有数据
+        # 遍历各个桶目录，任何一个里（含域子目录）有 .md 文件就认定有数据。
+        # 必须递归 os.walk：桶按域存在子目录里（permanent/<域>/x.md），
+        # 只 os.listdir 顶层只会看到域文件夹、永远判定为空 → 误报 "fresh install"
+        # （数据其实都在，breath 也读得到，纯粹是这条日志吓人）。
         for sub in ("permanent", "dynamic", "feel", "plans", "letters"):
             p = os.path.join(_bd, sub)
-            if os.path.isdir(p) and any(
-                f.endswith(".md") for f in os.listdir(p) if not f.startswith(".")
+            if not os.path.isdir(p):
+                continue
+            if any(
+                f.endswith(".md") and not f.startswith(".")
+                for _root, _dirs, _files in os.walk(p)
+                for f in _files
             ):
                 _has_data = True
                 break
@@ -959,6 +966,40 @@ if __name__ == "__main__":
                             return
                 await self.app(scope, receive, send)
 
+        class _MCPAcceptShim:
+            """补全 /mcp* 请求的 Accept 头，修复副连接器 406 Not Acceptable。
+
+            MCP SDK 的 streamable-http POST 严格要求 Accept 同时含 application/json
+            与 text/event-stream，否则 406。实测：Claude.ai 给「新加的」连接器
+            （尤其 /mcp-extra）发的首个探测 POST，Accept 有时缺 text/event-stream
+            （或只有 */*）→ 直接 406，且 Claude.ai 的连接器校验不再重试。主连接器
+            /mcp 因为是早先加的、走到了带正确 Accept 的初始化才没暴露。
+            这里对 /mcp* 统一补齐缺失的两种类型（仍走 SSE，不改响应模式），
+            让主/副连接器对各种客户端的探测都稳定可连。"""
+            _NEED = (b"application/json", b"text/event-stream")
+
+            def __init__(self, app):
+                self.app = app
+
+            async def __call__(self, scope, receive, send):
+                if scope.get("type") == "http" and scope.get("path", "").startswith("/mcp"):
+                    headers = list(scope.get("headers", []))
+                    acc_i = next((i for i, (k, _v) in enumerate(headers) if k.lower() == b"accept"), -1)
+                    cur = headers[acc_i][1].lower() if acc_i >= 0 else b""
+                    miss = [t for t in self._NEED if t not in cur]
+                    if miss:
+                        if acc_i >= 0 and headers[acc_i][1].strip():
+                            new_val = headers[acc_i][1] + b", " + b", ".join(miss)
+                            headers[acc_i] = (headers[acc_i][0], new_val)
+                        elif acc_i >= 0:
+                            headers[acc_i] = (headers[acc_i][0], b", ".join(miss))
+                        else:
+                            headers.append((b"accept", b", ".join(miss)))
+                        scope = dict(scope)
+                        scope["headers"] = headers
+                await self.app(scope, receive, send)
+
+        _app.add_middleware(_MCPAcceptShim)
         _app.add_middleware(_MCPAuthMiddleware)
         if _mcp_auth_required:
             logger.info("MCP OAuth middleware enabled / MCP OAuth 中间件已启用")

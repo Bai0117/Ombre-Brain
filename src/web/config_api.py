@@ -190,7 +190,10 @@ def register(mcp) -> None:
             if "api_format" in e:
                 emb["api_format"] = str(e["api_format"]).strip()
                 # 重建后端以应用新格式
-                from sh.embedding_engine import EmbeddingEngine as _EE
+                try:
+                    from embedding_engine import EmbeddingEngine as _EE
+                except ImportError:
+                    from ..embedding_engine import EmbeddingEngine as _EE
                 sh.embedding_engine = _EE(sh.config)
                 updated.append("embedding.api_format")
             if "backend" in e:
@@ -201,7 +204,10 @@ def register(mcp) -> None:
                     emb["backend"] = new_backend
                     # 注意：这里仅热替换运行时引擎实例，不做 embeddings.db 迁移。
                     # 如需重算所有向量，请显式调用 POST /api/embedding/migrate。
-                    from sh.embedding_engine import EmbeddingEngine
+                    try:
+                        from embedding_engine import EmbeddingEngine
+                    except ImportError:
+                        from ..embedding_engine import EmbeddingEngine
                     sh.embedding_engine = EmbeddingEngine(sh.config)
                     updated.append("embedding.backend")
 
@@ -631,7 +637,10 @@ def register(mcp) -> None:
                         sh.embedding_engine._backend = None  # type: ignore[attr-defined]
                         sh.embedding_engine.enabled = False
                     else:
-                        from sh.embedding_engine import EmbeddingEngine as _EE_hot
+                        try:
+                            from embedding_engine import EmbeddingEngine as _EE_hot
+                        except ImportError:
+                            from ..embedding_engine import EmbeddingEngine as _EE_hot
                         sh.embedding_engine = _EE_hot(sh.config)
                         # 更新 bucket_mgr / import_engine 持有的引用
                         try:

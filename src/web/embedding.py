@@ -281,9 +281,9 @@ def register(mcp) -> None:
             target_emb_cfg["model"] = str(body["model"]).strip()
 
         try:
-            from sh.embedding_engine import EmbeddingEngine  # type: ignore
+            from embedding_engine import EmbeddingEngine  # type: ignore
         except ImportError:
-            from .embedding_engine import EmbeddingEngine  # type: ignore
+            from ..embedding_engine import EmbeddingEngine  # type: ignore
         try:
             target_engine = EmbeddingEngine(target_cfg)
         except OBStartupError as oe:
