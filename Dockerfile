@@ -52,6 +52,14 @@ COPY config.example.yaml ./config.default.yaml
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
+# 面向用户的说明文档：Docker 用户本地无源码、镜像此前也不含这些文件，
+# 导致「给 Claude 的使用指南」（README）指向的 docs/CLAUDE_PROMPT.md 拿不到，
+# 出现「服务装完了但模型没拿到使用约定」的 onboarding 断点。内部设计稿
+# （docs/superpowers、docs/secrets 等）不在此列，仍被 .dockerignore 挡在外面。
+COPY docs/CLAUDE_PROMPT.md docs/INTERNALS.md docs/MULTI_OWNER.md docs/OPERATIONS.md ./docs/
+COPY README.md ./README.md
+COPY CHANGELOG.md ./CHANGELOG.md
+
 # Persistent mount point: bucket data
 # 持久化挂载点：记忆数据
 VOLUME ["/app/buckets"]

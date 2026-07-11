@@ -512,7 +512,7 @@ async def _with_notice(coro: Awaitable[str], op: str = "", args: dict | None = N
 
 
 # =============================================================
-# /breath-hook、/dream-hook —— 已拆分到 web/hooks.py
+# /breath-hook —— 已拆分到 web/hooks.py（/dream-hook 已移除：dream 不是义务，不自动触发）
 # =============================================================
 
 

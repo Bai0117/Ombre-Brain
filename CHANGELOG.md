@@ -2,6 +2,24 @@
 
 本项目版本号见根目录 `VERSION` 文件，Docker 镜像 tag 与之对应（`p0luz/ombre-brain:<VERSION>`）。
 
+## 未发布
+
+### 修复 / Fixed
+
+- 修复 `.gitignore` 里一条整目录忽略 `/tools/`，导致新脚本 `git add` 被静默吞掉、从未进仓库：pytest 12 个用例因此依赖的 `tools/vnext_preflight.py` 缺失而失败，系统诊断的 vnext_preflight 检查也永久报错。新建该 CLI（照 `tools/v3_health_report.py` 模板）并放开 `.gitignore`。
+- 补建 README「检索质量评测」一节引用、但从未存在过的 `tools/evaluate_retrieval.py`（离线关键词通道 + `--with-embedding` 混合检索，输出 Hit@K/Recall@K/MRR）。
+- 移除 `letter_write` 的过时校验实现 `src/tools/letters.py`（全仓零引用死代码，实际生效实现在 `tools/plan/core.py`，本就允许任意署名字符串），并修正 README 对 `author` 字段的过时描述。
+- 移除 `/dream-hook` 端点与 SessionStart hook 里的调用：`dream`（做梦消化）按设计哲学不是义务，不该在每次会话开始被自动触发，只应由模型在需要消化时主动调用 `dream` 工具。
+- SessionStart hook 脚本（`.claude/hooks/session_breath.py`）此前调用 `/breath-hook` 不带任何 token、遇 401/网络错误静默吞掉，看起来"运行正常"实则没有 breath；现已支持 `OMBRE_HOOK_TOKEN`（Authorization Bearer）、出错时打印可诊断信息到 stderr（不阻断会话启动）、默认 URL 改为 `http://localhost:18001`（此前误写 `:8000`，与 Docker 对外默认端口不符）。
+- Docker 快速开始路线此前存在 onboarding 断点：README 引导把 `docs/CLAUDE_PROMPT.md` 放进 system prompt，但预构建镜像的 `.dockerignore` 排除了整个 `docs/` 和所有 Markdown，Docker 用户本地无源码也拿不到该文件。现将面向用户的 `docs/CLAUDE_PROMPT.md`、`docs/INTERNALS.md`、`docs/MULTI_OWNER.md`、`docs/OPERATIONS.md`、`README.md`、`CHANGELOG.md` 放行进镜像；内部设计稿（`docs/superpowers/`、`docs/secrets/` 等）仍不进镜像。
+- 同时把 `.claude/hooks/session_breath.py`（原被整个 `.claude/` 目录忽略规则挡住、用户无处获取）放行为官方产物。
+
+### 测试 / Tests
+
+- 全量 `pytest tests/`：919 passed，7 skipped。
+- 本地 Docker 从零 `--no-cache` 构建 + 部署验证；12 个 MCP 工具逐一真机调用核对文档描述；红蓝队核查物理删除红线（`trace(delete=True)` 确认只移入 `archive/`，未物理抹除）、鉴权边界、路径穿越注入，均符合预期。
+- 验证镜像内 `docs/` 只含 4 个白名单文件（`docs/secrets`、`docs/superpowers` 确认未进镜像）；`/dream-hook` 端点已移除（404），`/breath-hook` 鉴权正常（401）。
+
 ## 2.5.3
 
 ### 修复 / Fixed
