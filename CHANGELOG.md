@@ -8,6 +8,12 @@
 - 新增 `OMBRE_MEDIA_DIR`、`OMBRE_MEDIA_MAX_BYTES`，并补齐完整环境变量清单及禁止静默改名的工程规范。
 - 永久兼容 `OMBRE_API_KEY`、`OMBRE_BASE_URL`、`PASSWORD` 等旧部署变量名，正式变量名存在时优先使用正式名称。
 
+### 修复 / Fixed
+
+- 修复 GitHub 备份配置（token/仓库/分支/路径前缀）保存后过一两个小时又被清空的问题：根因是 `config.yaml` 的保存一直用「读现有内容 → 改一个 key → 整份覆盖写」，写失败时只记日志、接口仍返回"已保存"，用户看到成功提示，但磁盘其实没落地，下次进程重启（崩溃/热更新/手动重启）就会读到没写成功的旧文件，把内存里的新配置盖掉。
+- 同一读改写模式在 `buckets.py`（采样权重、显示称呼两处设置）里还会在写失败时**静默保留"保存成功"提示**，一并修复为如实报错；`config_api.py`（主配置持久化、MCP token 重新生成、env 字段热更新、传输模式切换）与 `embedding.py`（向量化迁移后落盘，此前是 OB-W005 维度错乱复发的成因之一）四处虽然本来就会如实报错，但缺少加锁与原子写，此次一并纳入同一套机制。
+- 新增 `utils.atomic_update_config_yaml()` 作为所有 `config.yaml` 写入的唯一入口：全局锁避免多个保存接口并发写互相覆盖、临时文件 + `os.replace` 原子替换、写后回读校验，任何一步失败都如实抛出。
+
 ## 2.6.11
 
 - 修复 `breath` 工具因参数过多（9 个）导致 claude.ai 按需加载工具时常年跳过它、记忆无法自动浮现的问题：拆成 `breath()`（0 参数，日常浮现）/ `breath_search(query, domain, max_results)`（3 参数，检索）/ `breath_advanced(...)`（完整 9 参数，供 catalog/tags/importance_min/valence/arousal/max_tokens 等高级模式使用）三个 MCP 工具，共用同一套内部实现，检索/浮现逻辑本身不变。工具总数由 12 个变为 14 个。

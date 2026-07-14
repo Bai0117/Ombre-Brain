@@ -19,7 +19,6 @@ web/config_api.py — Dashboard 配置 / 环境变量 / API Key 测试 / 模型�
 import os
 import sys
 import secrets
-import yaml
 import httpx
 
 from starlette.requests import Request
@@ -34,6 +33,7 @@ try:
         get_owner_count as _get_owner_count,
         positive_float as _positive_float,
         parse_bool as _parse_bool,
+        atomic_update_config_yaml,
     )
 except ImportError:  # pragma: no cover
     from ..utils import (  # type: ignore
@@ -42,6 +42,7 @@ except ImportError:  # pragma: no cover
         get_owner_count as _get_owner_count,
         positive_float as _positive_float,
         parse_bool as _parse_bool,
+        atomic_update_config_yaml,
     )
 
 logger = sh.logger
@@ -434,14 +435,7 @@ def register(mcp) -> None:
 
         # --- Persist to config.yaml if requested ---
         if persist_requested:
-            from utils import config_file_path
-            config_path = config_file_path()
-            try:
-                save_config: dict[str, object] = {}
-                if os.path.exists(config_path):
-                    with open(config_path, "r", encoding="utf-8") as f:
-                        save_config = yaml.safe_load(f) or {}
-
+            def _mutate(save_config: dict) -> None:
                 if "dehydration" in body:
                     sc_dehy = save_config.setdefault("dehydration", {})
                     if not isinstance(sc_dehy, dict):
@@ -514,8 +508,8 @@ def register(mcp) -> None:
                             except (TypeError, ValueError):
                                 pass
 
-                with open(config_path, "w", encoding="utf-8") as f:
-                    yaml.dump(save_config, f, default_flow_style=False, allow_unicode=True)
+            try:
+                atomic_update_config_yaml(_mutate)
                 updated.append("persisted_to_yaml")
             except Exception as e:
                 return JSONResponse({"error": f"persist failed: {e}", "updated": updated}, status_code=500)
@@ -559,18 +553,8 @@ def register(mcp) -> None:
         new_token = secrets.token_urlsafe(32)
         sh.config["mcp_token"] = new_token
 
-        from utils import config_file_path
-        config_path = config_file_path()
         try:
-            save_config: dict[str, object] = {}
-            if os.path.exists(config_path):
-                with open(config_path, "r", encoding="utf-8") as f:
-                    save_config = yaml.safe_load(f) or {}
-            if not isinstance(save_config, dict):
-                save_config = {}
-            save_config["mcp_token"] = new_token
-            with open(config_path, "w", encoding="utf-8") as f:
-                yaml.dump(save_config, f, default_flow_style=False, allow_unicode=True)
+            atomic_update_config_yaml(lambda save_config: save_config.__setitem__("mcp_token", new_token))
         except Exception as e:
             return JSONResponse({"error": f"persist failed: {e}"}, status_code=500)
 
@@ -898,22 +882,18 @@ def register(mcp) -> None:
                     errors.append(f"{var}: 写 .env 失败：{e}")
                     continue
 
-            # 3. 持久化到 config.yaml（bind mount，重建不丢）
-            try:
-                from utils import config_file_path
-                _cfg_path = config_file_path()
-                _save: dict = {}
-                if os.path.exists(_cfg_path):
-                    with open(_cfg_path, "r", encoding="utf-8") as _f:
-                        _save = yaml.safe_load(_f) or {}
-                if meta["in_memory"]:
-                    section, key = meta["in_memory"]
-                    _save.setdefault(section, {})[key] = value
-                with open(_cfg_path, "w", encoding="utf-8") as _f:
-                    yaml.dump(_save, _f, allow_unicode=True, default_flow_style=False)
-            except Exception as e:
-                errors.append(f"{var}: 写 config.yaml 失败：{e}")
-                continue
+            # 3. 持久化到 config.yaml（bind mount，重建不丢）——纯 env 字段
+            #    （meta["in_memory"] 为空）在 config.yaml 里没有映射，已经在
+            #    上面 2.5 写进 .env 了，这里没有可写的东西，跳过即可。
+            if meta["in_memory"]:
+                section, key = meta["in_memory"]
+                try:
+                    atomic_update_config_yaml(
+                        lambda save_config, _section=section, _key=key: save_config.setdefault(_section, {}).__setitem__(_key, value)
+                    )
+                except Exception as e:
+                    errors.append(f"{var}: 写 config.yaml 失败：{e}")
+                    continue
 
 
             # 5. Compress 配置变更 → 同步到 dehydrator 实例，重建 client
@@ -1019,15 +999,7 @@ def register(mcp) -> None:
 
         # 3. 持久化到 config.yaml（裸机 / 无 env 覆盖时的权威来源）。
         try:
-            from utils import config_file_path
-            cfg_path = config_file_path()
-            saved: dict = {}
-            if os.path.exists(cfg_path):
-                with open(cfg_path, "r", encoding="utf-8") as f:
-                    saved = yaml.safe_load(f) or {}
-            saved["transport"] = new_t
-            with open(cfg_path, "w", encoding="utf-8") as f:
-                yaml.dump(saved, f, allow_unicode=True, default_flow_style=False)
+            atomic_update_config_yaml(lambda saved: saved.__setitem__("transport", new_t))
         except Exception as e:
             return JSONResponse({"ok": False, "error": f"写 config.yaml 失败：{e}"}, status_code=500)
 

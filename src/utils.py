@@ -32,9 +32,10 @@ import yaml
 import logging
 import math
 import tempfile
+import threading
 from pathlib import Path
 from datetime import date, datetime
-from typing import Optional
+from typing import Callable, Optional
 
 
 # ============================================================
@@ -102,6 +103,51 @@ def config_file_path() -> str:
     if os.path.exists(cwd_cfg):
         return cwd_cfg
     return os.path.join(_project_root(), "config.yaml")
+
+
+# 所有往 config.yaml 写东西的 Dashboard 接口（github/tunnel/config_api/buckets……）
+# 共用这一把锁 + 同一套原子写：谁都不能绕开它自己再开 open(path, "w") 整份覆盖。
+# 背景：github 备份配置曾经用「open(w) 直接整份覆盖、写失败只记 warning 但仍回 200」
+# 这种不安全写法，写失败时用户会看到「保存成功」、下次重启却发现配置又清空了。
+_config_yaml_lock = threading.RLock()
+
+
+def atomic_update_config_yaml(mutate: Callable[[dict], None]) -> dict:
+    """线程安全地读改写 config.yaml：加锁读现有内容，交给 ``mutate`` 原地 patch，
+    临时文件 + os.replace 原子落盘，写后回读校验内容确实落地了。
+
+    任何一步失败都直接抛异常——调用方必须把异常转成对用户如实的错误响应，
+    不能吞掉后仍然回「保存成功」，那样用户会以为配置在，其实只在内存里，
+    下次进程重启（崩溃/热更新/手动重启按钮）就会被磁盘上没写成功的旧内容盖掉。
+
+    返回值是写入后的完整 config dict（等价于重新读盘一次）。"""
+    config_path = config_file_path()
+    tmp = f"{config_path}.tmp.{os.getpid()}.{threading.get_ident()}"
+    with _config_yaml_lock:
+        save_config: dict = {}
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                save_config = yaml.safe_load(f) or {}
+        if not isinstance(save_config, dict):
+            save_config = {}
+        mutate(save_config)
+        try:
+            with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+                yaml.dump(save_config, f, allow_unicode=True, default_flow_style=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, config_path)
+            with open(config_path, "r", encoding="utf-8") as f:
+                persisted = yaml.safe_load(f) or {}
+            if persisted != save_config:
+                raise OSError("config.yaml verification failed after write")
+        finally:
+            try:
+                if os.path.exists(tmp):
+                    os.unlink(tmp)
+            except OSError:
+                pass
+        return save_config
 
 
 def parse_bool(value, *, default=...) -> bool:

@@ -13,7 +13,6 @@ web/buckets.py — 记忆桶管理 + 设置 + 锚点 + 自我认知读取
 
 import os
 import re
-import yaml
 
 from starlette.requests import Request
 from starlette.responses import Response
@@ -24,9 +23,9 @@ from . import _shared as sh
 logger = sh.logger
 
 try:
-    from utils import strip_wikilinks, parse_bool  # type: ignore
+    from utils import strip_wikilinks, parse_bool, atomic_update_config_yaml  # type: ignore
 except ImportError:  # pragma: no cover
-    from ..utils import strip_wikilinks, parse_bool  # type: ignore
+    from ..utils import strip_wikilinks, parse_bool, atomic_update_config_yaml  # type: ignore
 
 try:
     from tools._common import check_pinned_quota as _check_pinned_quota  # type: ignore
@@ -447,31 +446,27 @@ def register(mcp) -> None:
             return JSONResponse({"error": f"invalid field type: {e}"}, status_code=400)
 
         # --- 写回 config.yaml（iter 2.0 §10 U-03 修复：重启后设置不丢失）---
-        try:
-            from utils import config_file_path
-            _cfg_path = config_file_path()
-            _disk: dict[str, object] = {}
-            if os.path.exists(_cfg_path):
-                with open(_cfg_path, "r", encoding="utf-8") as _f:
-                    _disk = yaml.safe_load(_f) or {}
-            _disk_sf = _disk.setdefault("surfacing", {})
-            if not isinstance(_disk_sf, dict):
-                _disk_sf = {}
-                _disk["surfacing"] = _disk_sf
-            _disk_samp = _disk_sf.setdefault("sampling", {})
-            if not isinstance(_disk_samp, dict):
-                _disk_samp = {}
-                _disk_sf["sampling"] = _disk_samp
-            _disk_samp.update({
+        def _mutate_sampling(save_config: dict) -> None:
+            sf = save_config.setdefault("surfacing", {})
+            if not isinstance(sf, dict):
+                sf = {}
+                save_config["surfacing"] = sf
+            samp = sf.setdefault("sampling", {})
+            if not isinstance(samp, dict):
+                samp = {}
+                sf["sampling"] = samp
+            samp.update({
                 "enabled": sampling.get("enabled", False),
                 "top_k": sampling.get("top_k", 5),
                 "sample_k": sampling.get("sample_k", 2),
                 "temperature": sampling.get("temperature", 0.7),
             })
-            with open(_cfg_path, "w", encoding="utf-8") as _f:
-                yaml.dump(_disk, _f, default_flow_style=False, allow_unicode=True)
-        except Exception as _e:
-            logger.warning(f"sampling persist failed: {_e}")  # 不阻断热更新响应
+        try:
+            atomic_update_config_yaml(_mutate_sampling)
+        except Exception as e:
+            # 之前这里只 logger.warning、仍回 ok:True——用户看到"已保存"，
+            # 磁盘其实没落地，下次重启（崩溃/热更新）设置又变回旧值。如实报错。
+            return JSONResponse({"error": f"采样设置写入磁盘失败，未保存：{e}"}, status_code=500)
 
         return JSONResponse({"ok": True, **sampling})
 
@@ -507,17 +502,11 @@ def register(mcp) -> None:
             sh.dehydrator.human = human
         # 写回 config.yaml
         try:
-            from utils import config_file_path
-            _cfg_path = config_file_path()
-            _disk2: dict[str, object] = {}
-            if os.path.exists(_cfg_path):
-                with open(_cfg_path, "r", encoding="utf-8") as _f:
-                    _disk2 = yaml.safe_load(_f) or {}
-            _disk2["human"] = human
-            with open(_cfg_path, "w", encoding="utf-8") as _f:
-                yaml.dump(_disk2, _f, default_flow_style=False, allow_unicode=True)
-        except Exception as _e:
-            logger.warning(f"human name persist failed: {_e}")
+            atomic_update_config_yaml(lambda save_config: save_config.__setitem__("human", human))
+        except Exception as e:
+            # 同上：写失败不能再只记 warning 后仍回成功，否则用户以为改名生效了，
+            # 重启后又变回旧称呼。
+            return JSONResponse({"error": f"称呼写入磁盘失败，未保存：{e}"}, status_code=500)
         # 改名时把老桶里残留的旧称呼一起换成新名（name/content/why_remembered/user_name）。
         renamed = {"buckets_changed": 0, "replacements": 0}
         if old_human and old_human != human:

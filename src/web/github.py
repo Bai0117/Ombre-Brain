@@ -16,7 +16,6 @@ _github_sync_loop / _restart_github_auto_task 也读 sh.github_sync_instance，
 import os
 import time
 import zipfile
-import yaml
 
 from starlette.requests import Request
 from starlette.responses import Response
@@ -27,10 +26,20 @@ logger = sh.logger
 
 try:
     from github_sync import GitHubSync  # type: ignore
-    from utils import parse_bool  # type: ignore
+    from utils import parse_bool, atomic_update_config_yaml  # type: ignore
 except ImportError:  # pragma: no cover
     from ..github_sync import GitHubSync  # type: ignore
-    from ..utils import parse_bool  # type: ignore
+    from ..utils import parse_bool, atomic_update_config_yaml  # type: ignore
+
+
+def _save_github_config_to_disk(gh_cfg: dict) -> None:
+    """把 github_sync 这一个 key 原子写回 config.yaml，失败即抛异常。
+
+    走 utils.atomic_update_config_yaml 共用锁 + 原子写 + 读回校验，
+    不再是「open(w) 直接整份覆盖、失败只记 warning」——那样调用方会误以为保存成功，
+    内存里的新配置在下次重启（崩溃/热更新/手动重启按钮）读盘时被这份没写成功的旧文件覆盖，
+    表现为「填好过一两个小时自动清空」。"""
+    atomic_update_config_yaml(lambda save_config: save_config.__setitem__("github_sync", gh_cfg))
 
 
 def _pre_import_backup(buckets_dir: str) -> str:
@@ -107,45 +116,38 @@ def register(mcp) -> None:
             return JSONResponse({"ok": False, "error": "GitHub 配置不能包含换行"}, status_code=400)
 
         if not token and not repo:
-            # 清空配置
+            # 清空配置——同样要落盘，否则内存清空了、磁盘还留着旧 token，
+            # 下次重启（崩溃/热更新/手动重启按钮）读盘时旧 token 又原样回来。
+            gh_cfg = {"repo": "", "branch": branch, "path_prefix": path_prefix, "auto_interval_minutes": 0}
+            try:
+                _save_github_config_to_disk(gh_cfg)
+            except Exception as e:
+                logger.warning(f"[github] config.yaml 清空写入失败: {e}")
+                return JSONResponse({"ok": False, "error": f"配置写入磁盘失败，未清空：{e}"}, status_code=500)
             sh.github_sync_instance = None
             sh.restart_github_auto_task(0)
-            gh_cfg = sh.config.setdefault("github_sync", {})
-            gh_cfg["repo"] = ""
-            gh_cfg["branch"] = branch
-            gh_cfg["path_prefix"] = path_prefix
-            gh_cfg["auto_interval_minutes"] = 0
+            sh.config["github_sync"] = gh_cfg
             return JSONResponse({"ok": True, "message": "已清空 GitHub 同步配置"})
 
-        # 持久化到 config.yaml（含 token，config.yaml 是 bind mount 重启不丢）
-        gh_cfg = sh.config.setdefault("github_sync", {})
+        # 持久化到 config.yaml（含 token，config.yaml 是 bind mount 重启不丢）。
+        # 先落盘、落盘成功才更新内存里的 sh.config / github_sync_instance——
+        # 避免「内存里已经是新配置、但磁盘还是旧的」这种半保存状态在下次重启时丢数据。
+        gh_cfg = dict(sh.config.get("github_sync", {}) or {})
         if token:
             gh_cfg["token"] = token
         gh_cfg["repo"] = repo
         gh_cfg["branch"] = branch
         gh_cfg["path_prefix"] = path_prefix
         gh_cfg["auto_interval_minutes"] = auto_interval
-        from utils import config_file_path
-        config_path = config_file_path()
         try:
-            save_config: dict = {}
-            if os.path.exists(config_path):
-                with open(config_path, "r", encoding="utf-8") as f:
-                    save_config = yaml.safe_load(f) or {}
-            sc_gh = save_config.setdefault("github_sync", {})
-            if token:
-                sc_gh["token"] = token
-            sc_gh["repo"] = repo
-            sc_gh["branch"] = branch
-            sc_gh["path_prefix"] = path_prefix
-            sc_gh["auto_interval_minutes"] = auto_interval
-            with open(config_path, "w", encoding="utf-8") as f:
-                yaml.dump(save_config, f, allow_unicode=True, default_flow_style=False)
+            _save_github_config_to_disk(gh_cfg)
         except Exception as e:
             logger.warning(f"[github] config.yaml 写入失败: {e}")
+            return JSONResponse({"ok": False, "error": f"配置写入磁盘失败，未保存：{e}"}, status_code=500)
 
+        sh.config["github_sync"] = gh_cfg
         # 重建实例
-        _tok = token or sh.config.get("github_sync", {}).get("token") or os.environ.get("OMBRE_GITHUB_TOKEN", "")
+        _tok = token or gh_cfg.get("token") or os.environ.get("OMBRE_GITHUB_TOKEN", "")
         sh.github_sync_instance = GitHubSync(token=_tok, repo=repo, branch=branch, path_prefix=path_prefix)
         # 重启定时任务
         sh.restart_github_auto_task(auto_interval)

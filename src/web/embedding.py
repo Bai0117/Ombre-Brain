@@ -12,7 +12,6 @@ import asyncio
 import os
 import httpx
 import json as _json_lib
-import yaml
 
 from starlette.requests import Request
 from starlette.responses import Response
@@ -32,19 +31,21 @@ def _persist_embedding_yaml(updates: dict) -> None:
 
     迁移完成后必须调用：否则切到本地/云端只改了进程内 sh.config，重启后 config.yaml
     还是旧的 → 与 embeddings.db 里已重算的向量维度不一致 → OB-W005 / 检索失效。
+    走 utils.atomic_update_config_yaml（加锁 + 原子写 + 读回校验），不再是
+    「open(w) 整份覆盖、失败只 logger.error」——半份写坏或和其它保存接口并发写
+    互相覆盖，都会让这里辛苦写的 dim/backend 悄悄丢回旧值，正是 OB-W005 反复复发的成因。
     """
     try:
-        from utils import config_file_path
-        _cfg_path = config_file_path()
-        _save: dict = {}
-        if os.path.exists(_cfg_path):
-            with open(_cfg_path, "r", encoding="utf-8") as _f:
-                _save = yaml.safe_load(_f) or {}
-        _sec = _save.setdefault("embedding", {})
-        for k, v in updates.items():
-            _sec[k] = v
-        with open(_cfg_path, "w", encoding="utf-8") as _f:
-            yaml.dump(_save, _f, allow_unicode=True, default_flow_style=False)
+        from utils import atomic_update_config_yaml
+
+        def _mutate(save_config: dict) -> None:
+            sec = save_config.setdefault("embedding", {})
+            if not isinstance(sec, dict):
+                sec = {}
+                save_config["embedding"] = sec
+            sec.update(updates)
+
+        atomic_update_config_yaml(_mutate)
     except Exception as e:
         logger.error(f"[migration] persist embedding to config.yaml failed: {e}")
 
