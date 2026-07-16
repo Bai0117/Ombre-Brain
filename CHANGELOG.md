@@ -2,6 +2,16 @@
 
 本项目版本号见根目录 `VERSION` 文件，Docker 镜像 tag 与之对应（`p0luz/ombre-brain:<VERSION>`）。
 
+## 2.7.2
+
+### 修复 / Fixed
+
+- 澄清并锁定 `trace` 删除契约：普通记忆与 plan 的 `hard_delete` 会明确拒绝且不再被误解为顺带归档；测试桶清理必须提供非空、最多 500 字符的 `delete_reason`，并拒绝与 `delete=True` 同时使用。形式化不变量现在只依据创建事件中的不可变 `test_data` provenance 豁免合法测试清理，删除事件无法自行伪造该资格。
+
+### 版本 / Version
+
+- 根目录 `VERSION` 与热更新优先读取的 `src/VERSION` 同步更新为 `2.7.2`，Dashboard、运行时和热更新检查显示一致。
+
 ## 2.7.1
 
 ### 修复 / Fixed

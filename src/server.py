@@ -697,7 +697,18 @@ async def trace(
     hard_delete: Optional[bool] = False,
     delete_reason: Optional[str] = "",
 ) -> str:
-    """仅在明确需要修改某条已存在记忆时调用，不要猜测 bucket_id 或自行改写记忆。resolved=1=标记已放下,沉底仅在关键词触发时返回;resolved=0=重新激活;pinned=1=标记永久核心(锁 importance=10),0=取消;digested=1=标记已消化,加速淡化;content=替换桶正文并在落盘后排队重建 embedding;delete=True=移入 archive 并标记 deleted_at（只是归档，Markdown 文件不会被物理删除）;status=plan 桶状态(active/resolved/abandoned);weight=plan 承诺重量 0.0-1.0;dont_surface=1=不再出现在 breath,0=恢复;why_remembered=更新记录原因。meaning_append=追加一条新 meaning(不覆盖已有的,日常用这个);meaning_replace=整体替换 meaning 列表(仅用于纠错/清理,会丢弃所有旧条目);media_append=追加媒体引用列表(不覆盖已有的);media_replace=整体替换 media 列表(仅用于删除失效引用)。只传需要修改的字段,-1 或空串表示不改。"""
+    """仅在明确需要修改某条已存在记忆时调用，不要猜测 bucket_id 或自行改写记忆。
+
+    resolved=1 标记已放下；resolved=0 重新激活。pinned=1 标记永久核心并锁定
+    importance=10；pinned=0 取消。digested=1 标记已消化。content 会替换正文并
+    重建 embedding。status/weight 用于 plan；dont_surface 控制日常浮现；
+    why_remembered、meaning_append/replace、media_append/replace 更新相应元数据。
+
+    删除边界：delete=True 只会把 Markdown 移入 archive 并标记 deleted_at，不会
+    物理抹除。hard_delete=True 仅用于清理创建时明确标记 test_data=True 的测试桶，
+    必须单独提供非空 delete_reason；普通记忆和 plan 一律拒绝且不会顺带归档。
+    delete 与 hard_delete 不能同时使用。只传需要修改的字段，-1 或空串表示不改。
+    """
     return await _with_notice(
         _t_trace.dispatch(
             bucket_id=bucket_id, name=name, domain=domain,
@@ -715,6 +726,8 @@ async def trace(
             "valence": valence, "arousal": arousal, "importance": importance,
             "tags": tags, "resolved": resolved, "pinned": pinned, "digested": digested,
             "content_len": len(content or ""), "delete": delete, "status": status,
+            "hard_delete": hard_delete,
+            "delete_reason_len": len(str(delete_reason or "")),
             "weight": weight, "dont_surface": dont_surface,
             "why_len": len(why_remembered or ""),
             "meaning_append_len": len(meaning_append or ""),

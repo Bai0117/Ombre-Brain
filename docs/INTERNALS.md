@@ -328,7 +328,7 @@ feel 桶自身：
 - `content="..."` 替换正文并重新生成 embedding。
 - `weight` 仅对 plan 桶有意义；`dont_surface` 切换主动遗忘标记；`why_remembered` 写「为什么留着这条」自由文本。
 - `meaning_append` 日常追加一条 meaning；`meaning_replace` 仅在纠错时整体替换。`media_append` / `media_replace` 同理管理持久媒体引用。
-- `hard_delete=True` 必须同时提供 `delete_reason`，且只接受创建时已标记为可擦除测试数据的桶；真实记忆始终拒绝物理删除。
+- `hard_delete=True` 必须同时提供非空且不超过 500 字符的 `delete_reason`，不能与 `delete=True` 同时使用，且只接受创建时已标记为可擦除测试数据的桶；普通记忆与 plan 始终拒绝物理删除，拒绝时不会顺带归档。
 - **不暴露 `anchor` 字段**：anchor 切换必须走 `anchor()` / `release()` 工具（受 24 上限保护）。
 
 (返回时会按 `resolved`/`digested` 状态变化追加人话提示，如「→ 已沉底，只在关键词触发时重新浮现」。)

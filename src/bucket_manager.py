@@ -1909,7 +1909,7 @@ class BucketManager:
         return True
 
     async def hard_delete_test_bucket(self, bucket_id: str, *, reason: str = "") -> dict:
-        """Physically erase only a bucket born as explicitly erasable test data."""
+        """Erase only a bucket born as test data, with an explicit audit reason."""
         async with self._bucket_turn(bucket_id):
             return await self._hard_delete_test_bucket_locked(bucket_id, reason=reason)
 
@@ -1931,6 +1931,11 @@ class BucketManager:
                 and provenance.get("kind") == "test"
                 and provenance.get("erasable") is True):
             return {"ok": False, "error": "not_erasable_test_data"}
+        normalized_reason = str(reason or "").strip()
+        if not normalized_reason:
+            return {"ok": False, "error": "missing_delete_reason"}
+        if len(normalized_reason) > 500:
+            return {"ok": False, "error": "delete_reason_too_long"}
         bucket_type = str(post.get("type") or "dynamic")
         try:
             os.remove(file_path)
@@ -1950,7 +1955,7 @@ class BucketManager:
         self._record_ledger_event(
             "TraceHardDeleted", bucket_id, bucket_type, "",
             {"provenance": {"kind": "test", "erasable": True}},
-            {"reason": str(reason).strip()[:500], "content_erased": True},
+            {"reason": normalized_reason, "content_erased": True},
         )
         logger.warning("Physically erased test bucket: %s", bucket_id)
         return {"ok": True, "deleted": bucket_id}
