@@ -82,6 +82,7 @@ _DUP_TOPK = 10                         # 检索前 N 个候选以判重复
 _PLAN_VECTOR_TOPK = 20                 # plan 判定的向量预筛范围
 _PLAN_VECTOR_THRESHOLD = 0.7           # 超过才交给 LLM 判定是否已完成
 _PLAN_LLM_CONFIDENCE_MIN = 0.7         # LLM judgement.confidence 下限
+_SAME_EVENT_CONFIDENCE_MIN = 0.85      # 自动合并必须高置信，疑似时新建
 _PLAN_FALLBACK_CAP = 10                # 无向量时直接送 LLM 的 plan 上限（防止过多 LLM 调用）
 
 # --- 字段截断长度（下游存储 / 日志可读性）---
@@ -768,6 +769,30 @@ async def _merge_or_create_inner(
                         break
                     snapshot_content = str(bucket.get("content") or "")
                     snapshot_metadata = deepcopy(metadata)
+
+                    if not exact_storage_match:
+                        judge = getattr(rt.dehydrator, "judge_same_event", None)
+                        if not callable(judge):
+                            rt.logger.warning(
+                                "Same-event judge unavailable; creating new bucket / "
+                                "同一事件判定器不可用，保守新建"
+                            )
+                            break
+                        judgement = await judge(snapshot_content, content)
+                        same_event = parse_bool(
+                            judgement.get("same_event", False), default=False
+                        )
+                        try:
+                            confidence = float(judgement.get("confidence", 0.0))
+                        except (TypeError, ValueError):
+                            confidence = 0.0
+                        if not same_event or confidence < _SAME_EVENT_CONFIDENCE_MIN:
+                            rt.logger.info(
+                                "op=merge_or_create phase=branch branch=separate_event "
+                                f"bucket_id={candidate_id} confidence={confidence:.3f} "
+                                f"reason={str(judgement.get('reason', ''))[:_LOG_REASON_PREVIEW]}"
+                            )
+                            break
 
                     if raw_merge or exact_storage_match:
                         old_text = snapshot_content.rstrip()

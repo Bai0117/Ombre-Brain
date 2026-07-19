@@ -111,6 +111,9 @@ async def test_hold_merge_appends_raw_text_and_never_calls_llm_merge(tmp_path, m
         return [bucket]
 
     class NoCompression:
+        async def judge_same_event(self, *_args, **_kwargs):
+            return {"same_event": True, "confidence": 0.99, "reason": "同一事件补充"}
+
         async def merge(self, *_args, **_kwargs):
             raise AssertionError("hold must never call LLM merge")
 
@@ -140,6 +143,56 @@ async def test_hold_merge_appends_raw_text_and_never_calls_llm_merge(tmp_path, m
     assert result_id == bucket_id
     assert bucket is not None
     assert bucket["content"] == f"{old}\n\n---\n{new}"
+
+
+@pytest.mark.asyncio
+async def test_hold_similar_but_cross_date_event_does_not_merge(tmp_path, monkeypatch):
+    manager = BucketManager(
+        {"buckets_dir": str(tmp_path / "vault")}, embedding_engine=None
+    )
+    old = "2026年7月18日晚上，我们在客厅玩游戏并聊了很久。"
+    new = "2026年7月19日凌晨，我在卧室玩了另一局游戏。"
+    bucket_id = await manager.create(
+        content=old, source_tool="hold", allow_embedding_fallback=True
+    )
+
+    async def fake_search(*_args, **_kwargs):
+        bucket = await manager.get(bucket_id)
+        assert bucket is not None
+        bucket["score"] = 96
+        return [bucket]
+
+    class ConservativeJudge:
+        async def judge_same_event(self, *_args, **_kwargs):
+            return {"same_event": False, "confidence": 0.99, "reason": "日期和场景均不同"}
+
+        def invalidate_cache(self, _content):
+            pass
+
+    monkeypatch.setattr(manager, "search", fake_search)
+    monkeypatch.setattr(rt, "bucket_mgr", manager, raising=False)
+    monkeypatch.setattr(rt, "embedding_engine", None, raising=False)
+    monkeypatch.setattr(rt, "dehydrator", ConservativeJudge(), raising=False)
+    monkeypatch.setattr(rt, "config", {"merge_threshold": 75}, raising=False)
+    monkeypatch.setattr(rt, "logger", _Logger(), raising=False)
+
+    result_id, merged, _warning = await common.merge_or_create(
+        content=new,
+        tags=["游戏", "聊天"],
+        importance=5,
+        domain=["游戏"],
+        valence=0.7,
+        arousal=0.4,
+        raw_merge=True,
+        source_tool="hold",
+    )
+
+    assert merged is False
+    assert result_id != bucket_id
+    original = await manager.get(bucket_id)
+    created = await manager.get(result_id)
+    assert original is not None and original["content"] == old
+    assert created is not None and created["content"] == new
 
 
 @pytest.mark.asyncio

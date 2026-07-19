@@ -2,6 +2,29 @@
 
 本项目版本号见根目录 `VERSION` 文件，Docker 镜像 tag 与之对应（`p0luz/ombre-brain:<VERSION>`）。
 
+## 2.8.0
+
+### 修复 / Fixed
+
+- 保留 `hold` 与 `grow(items=...)` 的自动合并能力，同时在相似候选之后增加保守的“同一具体事件”判定；仅主题、人物或情绪相似，日期、场景或关键动作不同的独立事件不再串入旧桶，完全相同正文继续保持幂等。
+- 修复 `breath_advanced(catalog=True)` 忽略 `tags` 与 `max_results`：目录模式现在执行 tags AND 过滤并遵守返回上限，仍保持 0 LLM、只读元数据。
+- `breath_search` 与 `breath_advanced` 新增 `date_from/date_to` 创建日期过滤，支持 `YYYY-MM-DD` 与 ISO 8601；自由联想也受同一日期范围约束，避免按日期检索时漂出范围外旧桶。
+- 为语义检索补充不记录查询原文的诊断日志，包含查询哈希、向量候选与得分、embedding 引擎和耐久 outbox 状态，便于区分索引未更新、服务不可用和排序结果问题。
+- OAuth 授权页增加提交中状态、重复提交保护、30 秒超时提示与诊断编号；服务端按同一编号记录提交、密码失败和跳转阶段，便于定位授权页面卡住。
+
+### 行为说明 / Behavior
+
+- 保留检索命中不足时浮现 3–5 条低权重旧记忆的自由联想设计，并以“非检索命中”独立分区明确标记。
+- 保留核心准则无条件注入设计；传入 tags 时会明确说明 tags 只过滤普通浮现记忆。
+
+### 部署 / Deployment
+
+- 新建并验证 Zeabur 一键部署模板 `WB5ZKE`，README 部署按钮已指向新模板，同时保留 Deploy from GitHub 备用流程。
+
+### 版本 / Version
+
+- 根目录 `VERSION` 与热更新优先读取的 `src/VERSION` 同步更新为 `2.8.0`。
+
 ## 2.7.9
 
 ### 修复 / Fixed

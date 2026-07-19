@@ -570,7 +570,12 @@ Render 自带 HTTPS，可直接在 Claude.ai 添加，无需额外 Tunnel。
 
 ### Zeabur
 
-[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/OMBRE-BRAIN)
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/WB5ZKE?referralCode=P0luz)
+
+> **模板状态（2026-07-19）**：新版一键部署模板代码为 `WB5ZKE`，已在
+> Zeabur 公开模板目录验证可检索。若平台模板服务临时不可用，仍可按下方
+> **Deploy from GitHub** 步骤部署；仓库 Dockerfile 已完成实际构建和容器
+> bootstrap 验证，不需要改用其他构建方式。
 
 1. Fork 本仓库 → Zeabur **New Project** → **Deploy from GitHub**；根目录 Dockerfile 会被自动识别。
 2. Variables 只填模型所需的 Key（至少 `OMBRE_COMPRESS_API_KEY`）；不要额外设置 `OMBRE_MCP_REQUIRE_AUTH`，避免它覆盖 Dashboard。

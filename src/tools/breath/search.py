@@ -12,7 +12,7 @@ tools/breath/search.py — 有 query 的检索模式
 - 向量通道阈值 sim>=0.65；domain/tags/type 过滤与关键词通道完全一致
 - 命中正文不经过 LLM 摘要、改写或压缩，直接返回当前存储的 content
 - 命中后调 touch()，但不修改本次返回的正文或元数据
-- 检索结果 < 3 时 40% 概率从低权重旧桶里随机漂出 1-3 条「忽然想起来」
+- 检索结果不足时，从低权重旧桶里随机漂出 3-5 条「忽然想起来」
 - 命中 0 条时回 webhook 报空，并给出可操作的引导文案
 
 不做什么（边界）：
@@ -26,11 +26,14 @@ tools/breath/search.py — 有 query 的检索模式
 """
 
 import asyncio
+import hashlib
 import random
+from datetime import datetime, time
 
 from ombrebrain.policy.surfacing import SurfacePolicyVM
 from .. import _runtime as rt
 from ._verbatim import render_stored_bucket
+from utils import parse_iso_datetime
 
 _SURFACE_POLICY = SurfacePolicyVM.default()
 
@@ -49,6 +52,39 @@ def _bucket_has_tags(meta: dict, tag_filter: list) -> bool:
 
 def _can_surface_search(bucket: dict) -> bool:
     return _SURFACE_POLICY.evaluate_bucket(bucket, mode="search").allowed
+
+
+def _parse_date_bound(value: str, *, upper: bool) -> datetime | None:
+    """解析创建时间边界；YYYY-MM-DD 的上界包含当天全日。"""
+    raw = value.strip()
+    if not raw:
+        return None
+    parsed = parse_iso_datetime(raw)
+    if len(raw) == 10:
+        day = parsed.date()
+        return datetime.combine(day, time.max if upper else time.min)
+    return parsed
+
+
+def _bucket_in_created_range(
+    bucket: dict,
+    created_from: datetime | None,
+    created_to: datetime | None,
+) -> bool:
+    if created_from is None and created_to is None:
+        return True
+    raw_created = str(bucket.get("metadata", {}).get("created") or "").strip()
+    if not raw_created:
+        return False
+    try:
+        created = parse_iso_datetime(raw_created)
+    except (TypeError, ValueError):
+        return False
+    if created_from is not None and created < created_from:
+        return False
+    if created_to is not None and created > created_to:
+        return False
+    return True
 
 
 async def _semantic_scores(query: str, top_k: int) -> tuple[dict[str, float], str]:
@@ -73,6 +109,62 @@ async def _semantic_scores(query: str, top_k: int) -> tuple[dict[str, float], st
         return {}, _SEMANTIC_DISABLED_NOTE
 
 
+def _semantic_diagnostics(
+    query: str,
+    vector_scores: dict[str, float],
+    semantic_notice: str,
+) -> dict:
+    """收集本次检索的可重建索引状态；不记录查询原文。"""
+    engine_status: dict = {}
+    status_reader = getattr(rt.embedding_engine, "status", None)
+    if callable(status_reader):
+        try:
+            raw_status = status_reader()
+            if isinstance(raw_status, dict):
+                engine_status = dict(raw_status)
+        except Exception as exc:
+            engine_status = {"status_error": f"{type(exc).__name__}: {exc}"}
+
+    outbox_status: dict = {}
+    status_reader = getattr(getattr(rt, "embedding_outbox", None), "status", None)
+    if callable(status_reader):
+        try:
+            raw_status = status_reader()
+            if isinstance(raw_status, dict):
+                outbox_status = dict(raw_status)
+        except Exception as exc:
+            outbox_status = {"status_error": f"{type(exc).__name__}: {exc}"}
+
+    ranked = sorted(vector_scores.items(), key=lambda item: item[1], reverse=True)
+    return {
+        "query_hash": hashlib.sha256(
+            query.encode("utf-8", errors="replace")
+        ).hexdigest()[:12],
+        "semantic_available": not bool(semantic_notice),
+        "vector_candidates": len(vector_scores),
+        "vector_top": [
+            {"bucket_id": bucket_id, "score": round(score, 6)}
+            for bucket_id, score in ranked[:5]
+        ],
+        "engine": {
+            key: engine_status.get(key)
+            for key in (
+                "enabled", "backend", "model", "vector_dim",
+                "embedding_count", "status_error",
+            )
+            if key in engine_status
+        },
+        "outbox": {
+            key: outbox_status.get(key)
+            for key in (
+                "running", "provider_ready", "pending", "retrying",
+                "last_success", "last_error", "status_error",
+            )
+            if key in outbox_status
+        },
+    }
+
+
 async def surface_search(
     query: str,
     max_results: int,
@@ -81,10 +173,19 @@ async def surface_search(
     valence: float,
     arousal: float,
     tag_filter: list,
+    date_from: str = "",
+    date_to: str = "",
 ) -> str:
     domain_filter = [d.strip() for d in domain.split(",") if d.strip()] or None
     q_valence = valence if 0 <= valence <= 1 else None
     q_arousal = arousal if 0 <= arousal <= 1 else None
+    try:
+        created_from = _parse_date_bound(date_from, upper=False)
+        created_to = _parse_date_bound(date_to, upper=True)
+    except (TypeError, ValueError):
+        return "日期格式无效，请使用 YYYY-MM-DD 或 ISO 8601 时间。"
+    if created_from and created_to and created_from > created_to:
+        return "date_from 不能晚于 date_to。"
 
     # A full bucket id is an address, not a semantic query.  Resolve it before
     # embedding/BM25 work so callers can reliably read the on-disk source text
@@ -108,6 +209,7 @@ async def surface_search(
             and meta.get("type") not in ("feel", "plan", "letter")
             and _can_surface_search(exact_bucket)
             and _bucket_has_tags(meta, tag_filter)
+            and _bucket_in_created_range(exact_bucket, created_from, created_to)
         ):
             rendered, entry_tokens = render_stored_bucket(
                 exact_bucket,
@@ -128,6 +230,8 @@ async def surface_search(
     vector_scores, semantic_notice = await _semantic_scores(
         query, top_k=max(max_results, _VECTOR_QUERY_TOPK)
     )
+    semantic_diag = _semantic_diagnostics(query, vector_scores, semantic_notice)
+    rt.logger.info("op=breath_search phase=semantic diagnostics=%s", semantic_diag)
 
     try:
         matches = await rt.bucket_mgr.search(
@@ -148,7 +252,17 @@ async def surface_search(
         and b["metadata"].get("type") not in ("feel", "plan", "letter")
     ]
     matches = [b for b in matches if _bucket_has_tags(b["metadata"], tag_filter)]
+    matches = [
+        b for b in matches
+        if _bucket_in_created_range(b, created_from, created_to)
+    ]
     matches = matches[:max_results]
+    rt.logger.info(
+        "op=breath_search phase=ranking query_hash=%s matches=%s ids=%s",
+        semantic_diag["query_hash"],
+        len(matches),
+        [bucket.get("id") for bucket in matches],
+    )
 
     results = []
     token_used = 0
@@ -177,8 +291,9 @@ async def surface_search(
     if touched_ids:
         asyncio.create_task(rt.bucket_mgr.touch_many(touched_ids, ripple=False))
 
-    # --- 检索结果 < 3 时 40% 概率随机浮现 ---
-    if not budget_blocked and len(matches) < min(3, max_results) and random.random() < 0.4:
+    # 检索命中不足时保留设计上的自由联想；用独立分区明确标记，
+    # 避免调用方把随机旧桶误当成查询命中。
+    if not budget_blocked and len(matches) < min(3, max_results):
         try:
             all_buckets = await rt.bucket_mgr.list_all(include_archive=False)
             matched_ids = {b["id"] for b in matches}
@@ -187,18 +302,19 @@ async def surface_search(
                 if b["id"] not in matched_ids
                 and b["metadata"].get("type") not in ("feel", "plan", "letter")
                 and rt.decay_engine.calculate_score(b["metadata"]) < 2.0
+                and _bucket_in_created_range(b, created_from, created_to)
             ]
-            if low_weight:
-                remaining_slots = max(0, max_results - len(matches))
+            remaining_slots = max(0, max_results - len(matches))
+            if low_weight and remaining_slots:
                 drifted = random.sample(
                     low_weight,
-                    min(random.randint(1, 3), len(low_weight), remaining_slots),
+                    min(random.randint(3, 5), len(low_weight), remaining_slots),
                 )
                 drift_results = []
                 for b in drifted:
                     rendered, entry_tokens = render_stored_bucket(
                         b,
-                        f"[surface_type: random] [bucket_id:{b['id']}]",
+                        f"[联想浮现·非检索命中] [bucket_id:{b['id']}]",
                     )
                     if token_used + entry_tokens > max_tokens:
                         budget_blocked = True
@@ -206,7 +322,7 @@ async def surface_search(
                     drift_results.append(rendered)
                     token_used += entry_tokens
                 if drift_results:
-                    results.append("--- 忽然想起来 ---\n" + "\n---\n".join(drift_results))
+                    results.append("=== 忽然想起来（非检索命中） ===\n" + "\n---\n".join(drift_results))
         except Exception as e:
             rt.logger.warning(f"Random surfacing failed / 随机浮现失败: {e}")
 

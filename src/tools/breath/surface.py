@@ -83,6 +83,9 @@ async def surface_default(max_results: int, max_tokens: int, tag_filter: list) -
         and b["metadata"].get("type") != "letter"
         and not b["metadata"].get("anchor", False)  # 防御：anchor 是坐标系，永不主动浮现，即使 pinned
     ]
+    core_filter_notice = ""
+    if tag_filter and pinned_buckets:
+        core_filter_notice = "[说明：tags 仅过滤普通浮现记忆；核心准则按设计始终注入。]"
     pinned_ids = {b["id"] for b in pinned_buckets}
     pinned_results = []
     token_budget = max_tokens
@@ -332,6 +335,8 @@ async def surface_default(max_results: int, max_tokens: int, tag_filter: list) -
             rt.logger.warning(f"Dream surface block failed / 偶遇模块异常: {e}")
 
     parts = []
+    if core_filter_notice:
+        parts.append(core_filter_notice)
     if pinned_results:
         parts.append("=== 核心准则 ===\n" + "\n---\n".join(pinned_results))
     if dynamic_results:
