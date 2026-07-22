@@ -3,6 +3,7 @@ import json
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from starlette.applications import Starlette
 
@@ -10,14 +11,31 @@ from server_app import (
     DEFAULT_MAX_MANAGEMENT_REQUEST_BYTES,
     DEFAULT_MAX_MCP_REQUEST_BYTES,
     HTTPRuntimeSettings,
-    MCPAcceptShim,
+    MCPJSONAcceptShim,
     MCPAuthMiddleware,
     NgrokHeaderMiddleware,
     OriginCSRFGuardMiddleware,
     RuntimeLifecycle,
     build_http_app,
     install_runtime_lifespan,
-    merge_mcp_tool_registries,
+)
+
+
+EXPECTED_PUBLIC_MCP_TOOLS = (
+    "breath",
+    "breath_search",
+    "breath_advanced",
+    "hold",
+    "grow",
+    "trace",
+    "dream",
+    "anchor",
+    "release",
+    "pulse",
+    "plan",
+    "letter_write",
+    "letter_read",
+    "I",
 )
 
 
@@ -98,52 +116,252 @@ def test_management_request_limit_is_normalized(raw, expected):
     assert settings.max_management_request_bytes == expected
 
 
-def test_merge_mcp_tool_registries_keeps_one_public_manifest():
-    primary = SimpleNamespace(
-        _tool_manager=SimpleNamespace(_tools={"breath": object()})
-    )
-    extra = SimpleNamespace(
-        _tool_manager=SimpleNamespace(_tools={"dream": object(), "pulse": object()})
-    )
-
-    count = merge_mcp_tool_registries(primary, extra)
-
-    assert count == 2
-    assert set(primary._tool_manager._tools) == {"breath", "dream", "pulse"}
-
-
 @pytest.mark.asyncio
-async def test_accept_shim_adds_both_mcp_media_types():
+@pytest.mark.parametrize(
+    ("accept_headers", "expected"),
+    [
+        ([], b"application/json"),
+        ([(b"accept", b"*/*")], b"*/*, application/json"),
+        (
+            [(b"accept", b"text/event-stream, */*")],
+            b"text/event-stream, */*, application/json",
+        ),
+        (
+            [(b"accept", b"application/*; q=0.8")],
+            b"application/*; q=0.8, application/json",
+        ),
+    ],
+)
+async def test_json_accept_shim_normalizes_missing_or_wildcard_accept(
+    accept_headers,
+    expected,
+):
     downstream = RecordingASGIApp()
-    middleware = MCPAcceptShim(downstream)
-    messages = []
+    middleware = MCPJSONAcceptShim(downstream)
     scope = {
         "type": "http",
         "path": "/mcp",
-        "headers": [(b"accept", b"application/json")],
+        "headers": [(b"content-type", b"application/json"), *accept_headers],
     }
 
-    await middleware(scope, _empty_receive, _collect_into(messages))
+    await middleware(scope, _empty_receive, _discard_send)
 
-    forwarded = dict(downstream.scopes[0]["headers"])[b"accept"]
-    assert b"application/json" in forwarded
-    assert b"text/event-stream" in forwarded
+    forwarded = dict(downstream.scopes[0]["headers"])
+    assert forwarded[b"accept"] == expected
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("path", ["/health", "/mcp-extra", "/mcp-retired"])
-async def test_accept_shim_leaves_non_mcp_routes_unchanged(path):
+@pytest.mark.parametrize(
+    ("path", "accept"),
+    [
+        ("/mcp", b"application/json"),
+        ("/mcp", b"text/event-stream"),
+        ("/mcp", b"*/*;q=0"),
+        ("/health", b"*/*"),
+    ],
+)
+async def test_json_accept_shim_preserves_explicit_or_non_mcp_accept(path, accept):
     downstream = RecordingASGIApp()
-    middleware = MCPAcceptShim(downstream)
+    middleware = MCPJSONAcceptShim(downstream)
     scope = {
         "type": "http",
         "path": path,
-        "headers": [(b"accept", b"application/json")],
+        "headers": [(b"accept", accept)],
     }
 
     await middleware(scope, _empty_receive, _discard_send)
 
     assert downstream.scopes[0] is scope
+
+
+@pytest.mark.asyncio
+async def test_kelivo_compatible_stateless_json_handshake_lists_all_tools():
+    """Kelivo 风格多请求握手不应依赖会话头或 SSE 解析。"""
+
+    import server
+
+    assert server.mcp.settings.json_response is True
+    assert server.mcp.settings.stateless_http is True
+    registered = await server.mcp.list_tools()
+    assert [tool.name for tool in registered] == list(EXPECTED_PUBLIC_MCP_TOOLS)
+
+    app = build_http_app(
+        server.mcp,
+        "streamable-http",
+        settings=HTTPRuntimeSettings(
+            auth_required=False,
+            max_request_bytes=DEFAULT_MAX_MCP_REQUEST_BYTES,
+        ),
+        token_validator=lambda *_args, **_kwargs: False,
+        lifecycle=RuntimeLifecycle(logger=RecordingLogger()),
+    )
+    headers = {
+        # 一些简化客户端沿用 HTTP 库默认值；生产中间件需把通配范围落到 JSON。
+        "accept": "*/*",
+        "content-type": "application/json",
+    }
+    protocol_versions = (
+        "2024-11-05",
+        "2025-03-26",
+        "2025-06-18",
+        "2025-11-25",
+    )
+
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://localhost",
+        ) as client:
+            for index, protocol_version in enumerate(protocol_versions, start=1):
+                initialize = await client.post(
+                    "/mcp",
+                    headers=headers,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": index * 10,
+                        "method": "initialize",
+                        "params": {
+                            "protocolVersion": protocol_version,
+                            "capabilities": {},
+                            "clientInfo": {
+                                "name": "Kelivo MCP",
+                                "version": "1.1.17",
+                            },
+                        },
+                    },
+                )
+                assert initialize.status_code == 200
+                assert initialize.headers["content-type"].startswith(
+                    "application/json"
+                )
+                assert "mcp-session-id" not in initialize.headers
+                initialize_payload = initialize.json()
+                assert (
+                    initialize_payload["result"]["protocolVersion"]
+                    == protocol_version
+                )
+                capabilities = initialize_payload["result"]["capabilities"]
+                assert isinstance(capabilities.get("tools"), dict)
+
+                negotiated = initialize_payload["result"]["protocolVersion"]
+                post_init_headers = dict(headers)
+                if negotiated >= "2025-06-18":
+                    post_init_headers["mcp-protocol-version"] = negotiated
+
+                initialized = await client.post(
+                    "/mcp",
+                    headers=post_init_headers,
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "notifications/initialized",
+                        "params": {},
+                    },
+                )
+                assert initialized.status_code == 202
+                assert "mcp-session-id" not in initialized.headers
+
+                tools_response = await client.post(
+                    "/mcp",
+                    headers=post_init_headers,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": index * 10 + 1,
+                        "method": "tools/list",
+                        "params": {},
+                    },
+                )
+                assert tools_response.status_code == 200
+                assert tools_response.headers["content-type"].startswith(
+                    "application/json"
+                )
+                assert "mcp-session-id" not in tools_response.headers
+                tools = tools_response.json()["result"]["tools"]
+                assert [tool["name"] for tool in tools] == list(
+                    EXPECTED_PUBLIC_MCP_TOOLS
+                )
+                assert all(isinstance(tool.get("inputSchema"), dict) for tool in tools)
+
+
+@pytest.mark.asyncio
+async def test_legacy_sse_official_client_lists_all_tools():
+    """Streamable HTTP 的兼容改动不能破坏旧版 SSE 发现路径。"""
+
+    import socket
+
+    import uvicorn
+    from mcp import ClientSession
+    from mcp.client.sse import sse_client
+
+    import server
+
+    app = build_http_app(
+        server.mcp,
+        "sse",
+        settings=HTTPRuntimeSettings(
+            auth_required=False,
+            max_request_bytes=DEFAULT_MAX_MCP_REQUEST_BYTES,
+        ),
+        token_validator=lambda *_args, **_kwargs: False,
+        lifecycle=RuntimeLifecycle(logger=RecordingLogger()),
+    )
+    requests = []
+
+    async def recording_app(scope, receive, send):
+        if scope["type"] == "http":
+            requests.append((scope["method"], scope["path"]))
+        await app(scope, receive, send)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("127.0.0.1", 0))
+    sock.listen()
+    port = sock.getsockname()[1]
+    uvicorn_server = uvicorn.Server(
+        uvicorn.Config(
+            recording_app,
+            log_level="warning",
+            lifespan="on",
+        )
+    )
+    server_task = asyncio.create_task(uvicorn_server.serve(sockets=[sock]))
+
+    async def wait_until_started():
+        while not uvicorn_server.started:
+            if server_task.done():
+                await server_task
+            await asyncio.sleep(0.01)
+
+    try:
+        await asyncio.wait_for(wait_until_started(), timeout=10)
+        async with sse_client(
+            f"http://127.0.0.1:{port}/sse",
+            timeout=5,
+            sse_read_timeout=10,
+        ) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                initialized = await asyncio.wait_for(
+                    session.initialize(),
+                    timeout=10,
+                )
+                listed = await asyncio.wait_for(
+                    session.list_tools(),
+                    timeout=10,
+                )
+
+        assert initialized.protocolVersion
+        assert [tool.name for tool in listed.tools] == list(
+            EXPECTED_PUBLIC_MCP_TOOLS
+        )
+        assert ("GET", "/sse") in requests
+        assert any(
+            method == "POST" and path.rstrip("/") == "/messages"
+            for method, path in requests
+        )
+    finally:
+        uvicorn_server.should_exit = True
+        await asyncio.wait_for(server_task, timeout=10)
+        sock.close()
 
 
 @pytest.mark.asyncio
@@ -897,10 +1115,12 @@ def test_build_http_app_uses_same_managed_stack_for_both_http_transports(transpo
         "OriginCSRFGuardMiddleware",
         "MCPRequestBodyLimitMiddleware",
         "ManagementRequestBodyLimitMiddleware",
-        "MCPAcceptShim",
         "MCPAuthMiddleware",
         "NgrokHeaderMiddleware",
     }
+    assert ("MCPJSONAcceptShim" in middleware_names) is (
+        transport == "streamable-http"
+    )
     csrf_middleware = next(
         item
         for item in app.user_middleware
@@ -911,6 +1131,14 @@ def test_build_http_app_uses_same_managed_stack_for_both_http_transports(transpo
     assert middleware_order.index("CORSMiddleware") < middleware_order.index(
         "MCPAuthMiddleware"
     )
+    cors_middleware = next(
+        item for item in app.user_middleware if item.cls.__name__ == "CORSMiddleware"
+    )
+    assert set(cors_middleware.kwargs["expose_headers"]) >= {
+        "Mcp-Session-Id",
+        "WWW-Authenticate",
+        "Ngrok-Skip-Browser-Warning",
+    }
     assert app.state.ombre_http_settings is settings
     assert app.state.ombre_runtime_lifecycle is lifecycle
 

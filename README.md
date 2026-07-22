@@ -373,6 +373,26 @@ Authorization: Bearer 你的Token
 Ombre-MCP-Token: 你的Token
 ```
 
+在 **Kelivo** 里请选 `Streamable HTTP`，导入 JSON 时使用它要求的 `baseUrl`（不是其他客户端常用的 `url`）：
+
+```json
+{
+  "mcpServers": {
+    "ombre-brain": {
+      "name": "Ombre Brain",
+      "type": "streamableHttp",
+      "isActive": true,
+      "baseUrl": "https://ombre.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer <OMBRE_MCP_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+截至 Kelivo v1.1.17，常规远程 MCP 配置没有接入交互式 OAuth 授权流程，因此建议 OB 选“静态 Token 鉴权”（除非你自行获取并维护 OAuth access token）。连接后还要在 Kelivo 中把该 MCP 服务分配给当前助手/会话；否则服务可以显示已连接，但模型不会获得其工具。
+
 （不支持把 Token 放进 URL 查询参数——`/mcp` 能读写全部记忆，查询参数更容易被隧道/反代/浏览器历史记录留痕。）
 
 > ⚠️ **安全提醒**：静态 Token 等同万能密钥，泄露后果和关闭鉴权一样。请勿把服务直接暴露公网，妥善保管并定期轮换该 Token。
@@ -383,7 +403,7 @@ Ombre-MCP-Token: 你的Token
 
 适合：在手机上用 **Operit** 等本地 MCP 客户端，通过 **Termux / Proot** 跑 Ombre Brain，客户端灯常亮黄、连不上 `/mcp`。
 
-先说结论：**streamable-http 传输本身在 Proot 下没有已知的不兼容**——它就是普通的 HTTP + SSE，Proot 对回环 HTTP 是透明的。能用 bash 存进记忆，说明 Python、依赖、磁盘、端口都是好的；黄灯几乎都卡在 `/mcp` 的**握手环节**。按下面三步逐个对齐，基本能覆盖：
+先说结论：**streamable-http 传输本身在 Proot 下没有已知的不兼容**——它是普通 HTTP + JSON-RPC（协议也允许 SSE，但 OB 2.8.5 的 `/mcp` 直接返回 JSON），Proot 对回环 HTTP 是透明的。能用 bash 存进记忆，说明 Python、依赖、磁盘、端口都是好的；黄灯几乎都卡在 `/mcp` 的**握手环节**。按下面三步逐个对齐，基本能覆盖：
 
 1. **transport 必须是 `streamable-http`**
    默认是 `stdio`——**stdio 根本不开 HTTP 服务**，本地桥自然连不上。config.yaml 里写 `transport: streamable-http`，或设环境变量 `OMBRE_TRANSPORT=streamable-http`，然后重启。

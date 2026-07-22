@@ -39,6 +39,22 @@ EXPECTED_TOOLS = {
     "I",
     "dream",
 }
+EXPECTED_TOOL_ORDER = (
+    "breath",
+    "breath_search",
+    "breath_advanced",
+    "hold",
+    "grow",
+    "trace",
+    "dream",
+    "anchor",
+    "release",
+    "pulse",
+    "plan",
+    "letter_write",
+    "letter_read",
+    "I",
+)
 
 EXPECTED_TOOL_PROPERTIES = {
     "breath": set(),
@@ -123,8 +139,8 @@ class MCPClient:
     def __init__(self, url: str):
         self.url = url
         self.client = httpx.Client(timeout=30.0, trust_env=False)
-        self.session_id = ""
         self.request_id = 0
+        self.protocol_version = ""
 
     def close(self):
         self.client.close()
@@ -142,28 +158,32 @@ class MCPClient:
 
     def _post(self, payload: dict, *, expect_body: bool = True) -> dict:
         headers = {
-            "Accept": "application/json, text/event-stream",
+            # Kelivo 兼容路径：只接受 JSON，不保存或回传会话头。
+            "Accept": "application/json",
             "Content-Type": "application/json",
         }
-        if self.session_id:
-            headers["Mcp-Session-Id"] = self.session_id
+        if self.protocol_version >= "2025-06-18":
+            headers["MCP-Protocol-Version"] = self.protocol_version
         response = self.client.post(self.url, headers=headers, json=payload)
-        self.session_id = response.headers.get("mcp-session-id", self.session_id)
+        assert "mcp-session-id" not in response.headers
         if not expect_body:
             assert response.status_code in (200, 202, 204)
             return {}
+        assert response.headers.get("content-type", "").startswith("application/json")
         return self._decode(response)
 
-    def initialize(self):
+    def initialize(self, protocol_version: str = "2025-03-26"):
         payload = self.request(
             "initialize",
             {
-                "protocolVersion": "2025-03-26",
+                "protocolVersion": protocol_version,
                 "capabilities": {},
                 "clientInfo": {"name": "ombre-docker-audit", "version": "1.0"},
             },
         )
         assert payload["result"]["serverInfo"]["name"]
+        assert payload["result"]["protocolVersion"] == protocol_version
+        self.protocol_version = payload["result"]["protocolVersion"]
         self._post(
             {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
             expect_body=False,
@@ -249,8 +269,24 @@ def _hold(mcp_client: MCPClient, marker: str, **overrides) -> str:
     )
 
 
+@pytest.mark.parametrize(
+    "protocol_version",
+    ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"),
+)
+def test_kelivo_handshake_versions_list_all_tools_without_session_header(
+    protocol_version,
+):
+    client = MCPClient(MCP_URL)
+    try:
+        client.initialize(protocol_version)
+        assert {tool["name"] for tool in client.list_tools()} == EXPECTED_TOOLS
+    finally:
+        client.close()
+
+
 def test_manifest_exposes_exactly_the_documented_14_tools(mcp_client):
     tools = mcp_client.list_tools()
+    assert [tool["name"] for tool in tools] == list(EXPECTED_TOOL_ORDER)
     tools_by_name = {tool["name"]: tool for tool in tools}
     assert set(tools_by_name) == EXPECTED_TOOLS
 
