@@ -8,7 +8,8 @@ tools/breath/surface.py — 无 query 浮现模式
 
 关键行为：
 - 排除 anchor 桶（anchor 是坐标系，不主动出现）
-- pinned/protected 桶始终作为「核心准则」置顶（letter 桶即使 importance=10 也不置顶）
+- 排除 digested 桶（已消化记忆只允许显式检索/审计找回）
+- 通过主动浮现策略的 pinned/protected 桶作为「核心准则」置顶（digested、dont_surface、anchor 优先隐藏；letter 桶也不置顶）
 - 未解决桶按 calculate_score 排序；冷启动桶（从未访问且 importance>=8）插队前 2
 - 配置开关 surfacing.sampling.enabled 启用后做加权无放回采样，否则
   保留 top1 + top20 内随机洗牌

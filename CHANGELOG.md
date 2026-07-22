@@ -2,6 +2,16 @@
 
 本项目版本号见根目录 `VERSION` 文件，Docker 镜像 tag 与之对应（`p0luz/ombre-brain:<VERSION>`）。
 
+## 2.8.4
+
+### 修复 / Fixed
+
+- 修复 `digested=1` 只改变字段却仍会出现在无参 `breath()` 的问题：spontaneous/dream 策略现在硬过滤已消化桶，不再受 importance、pinned 或 3% 偶遇影响；带 query 的真实命中、importance 审计和 catalog 目录仍可显式找回。查询结果不足时追加的“非检索命中”随机漂浮也改用 spontaneous 策略，不再旁带 digested、dont_surface 或 anchor 桶。
+
+### 版本 / Version
+
+- 根目录 `VERSION` 与热更新优先读取的 `src/VERSION` 同步更新为 `2.8.4`，Dashboard、运行时与热更新检查显示一致。
+
 ## 2.8.3
 
 ### 修复 / Fixed

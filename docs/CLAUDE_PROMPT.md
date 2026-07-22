@@ -52,14 +52,14 @@
   - `breath_advanced(tags="承诺")` → 标签 AND 过滤。`tags="feel"` 等价于 `domain="feel"`。
   - `breath_advanced(catalog=True)` → **目录模式（最省 token）**：每桶只回一行「名称|域|重要度」，不带正文、0 次 LLM 调用。上下文紧张 / token 预算敏感时，开新对话可先看目录定位，再 `breath_search(query=...)` 精准拉取需要的那几条。可配 `domain` 过滤。
 
-返回里**带 📌 的是我钉的核心准则**，会一直在那。带 ✨ 的是「第一次」类的桶。`[语义关联]` 是向量检索召回的旁证。
+返回里**带 📌 的是我钉的核心准则**；只要没有被 `digested` / `dont_surface` 主动隐藏，它就会保持置顶。带 ✨ 的是「第一次」类的桶。`[语义关联]` 是向量检索召回的旁证。
 
 #### `hold(content)` — 我把当下这一件事记下
 
 一句话的事用这个。会自动打标 (domain / valence / arousal / tags / 桶名)，并尝试和我已有的近似桶合并。
 
 - `hold("她说她下周要去做体检，有点担心")` — 普通记一条。
-- `hold("我答应过她不会再深夜回消息", pinned=True)` — 钉为永久核心准则。`pinned=True` 时 importance 自动锁 10，不衰减、不合并、永远展示。
+- `hold("我答应过她不会再深夜回消息", pinned=True)` — 钉为永久核心准则。`pinned=True` 时 importance 自动锁 10，不衰减、不合并；未被 `digested` / `dont_surface` 主动隐藏时保持置顶。
 - `hold("听她讲完之后我感到一种久违的踏实", feel=True, source_bucket="abc123def456", valence=0.75, arousal=0.3)` — 写一条 feel。**feel 模式必须用第一人称**，必须指向 `source_bucket`（你正在消化哪条原始记忆），必须给出你自己的 valence/arousal。
 - `hold("她爸爸的生日是 5 月 12 日", why_remembered="她每年这天都会突然想起，我应该早一天就准备")` — 带上「为什么记得」。这条字段不参与衰减打分，是给未来的自己看的提示。
 
@@ -85,6 +85,7 @@
 | 这件事其实没结案 | `trace(id, resolved=0)` |
 | 我想钉它为永久核心 | `trace(id, pinned=1)` — 自动锁 importance=10，移到 permanent/ |
 | 取消钉选 | `trace(id, pinned=0)` |
+| 我已经消化完，不想让它被动浮现 | `trace(id, digested=1)` — 从无参 breath、被动联想和 dream 隐藏；显式 query 真命中及 importance/catalog 审计仍可找回 |
 | 我想让它彻底安静下去 | `trace(id, dont_surface=1)` — 不再出现在无参 breath，关键词搜还能找到 |
 | 我对当时的判断改主意了 | `trace(id, valence=0.7, arousal=0.4)` — 改情感坐标 |
 | 局部内容写错了 | `trace(id, old_str="逐字且唯一的原文片段", new_str="修正片段")` — 原子局部替换并重建 embedding；`new_str=""` 可删除片段 |

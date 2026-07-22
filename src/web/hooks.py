@@ -25,10 +25,12 @@ import time
 from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
 
+from ombrebrain.policy.surfacing import SurfacePolicyVM
 
 from . import _shared as sh
 
 logger = sh.logger
+_SURFACE_POLICY = SurfacePolicyVM.default()
 
 _HOOK_CONCURRENCY = 2
 _HOOK_RATE_WINDOW_SECONDS = 60.0
@@ -272,8 +274,13 @@ def register(mcp) -> None:
                 all_buckets = await sh.bucket_mgr.list_all(include_archive=False)
                 pinned = [
                     bucket for bucket in all_buckets
-                    if bucket["metadata"].get("pinned")
-                    or bucket["metadata"].get("protected")
+                    if (
+                        bucket["metadata"].get("pinned")
+                        or bucket["metadata"].get("protected")
+                    )
+                    and _SURFACE_POLICY.evaluate_bucket(
+                        bucket, mode="spontaneous"
+                    ).allowed
                 ]
                 pinned.sort(
                     key=lambda bucket: (
@@ -289,7 +296,9 @@ def register(mcp) -> None:
                     not in ("permanent", "feel", "plan", "letter", "self", "i")
                     and not bucket["metadata"].get("pinned")
                     and not bucket["metadata"].get("protected")
-                    and not bucket["metadata"].get("dont_surface", False)
+                    and _SURFACE_POLICY.evaluate_bucket(
+                        bucket, mode="spontaneous"
+                    ).allowed
                 ]
                 scored = sorted(
                     unresolved,

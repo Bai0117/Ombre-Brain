@@ -18,7 +18,7 @@ tools/breath/search.py — 有 query 的检索模式
 不做什么（边界）：
 - 不返回 feel/plan/letter（专用通道有自己的入口）
 - pinned/protected/permanent 仍可被检索（也是记忆，只是同时在浮现模式置顶）
-- dont_surface=True 在检索中保留——主动遗忘只限制无参浮现
+- dont_surface/digested 在真实检索命中中保留；只限制无参浮现和非命中随机漂浮
 
 对外暴露：surface_search(query, max_results, max_tokens, domain, valence,
                           arousal, tag_filter) → str
@@ -387,6 +387,9 @@ async def surface_search(
             low_weight = [
                 b for b in all_buckets
                 if b["id"] not in matched_ids
+                and _SURFACE_POLICY.evaluate_bucket(
+                    b, mode="spontaneous"
+                ).allowed
                 and b["metadata"].get("type") not in ("feel", "plan", "letter")
                 and rt.decay_engine.calculate_score(b["metadata"]) < 2.0
                 and _bucket_in_created_range(b, created_from, created_to)

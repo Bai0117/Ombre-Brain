@@ -552,9 +552,9 @@ async def trace_core(
         changed += f" → {resolved_hint(bool(updates['resolved']))}"
     if "digested" in updates:
         if updates["digested"]:
-            changed += " → 已隐藏，保留但不再浮现"
+            changed += " → 已从默认/被动浮现与 dream 隐藏，显式检索/审计仍可找回"
         else:
-            changed += " → 已取消隐藏，重新参与浮现"
+            changed += " → 已取消消化隐藏；若无其他隐藏策略，将重新参与默认浮现与 dream"
     if cascaded:
         changed += f" → 同步把 {len(cascaded)} 个关联事件桶也标为已放下（{', '.join(cascaded)}）"
     return f"已修改记忆桶 {bucket_id}: {changed}"
