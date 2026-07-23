@@ -3219,23 +3219,129 @@ function setHwSwitch(cbId, state) {
 // ========================================
 // Auth system / 认证系统
 // ========================================
+var _dashboardAuthGeneration = 0;
+var _authenticatedDashboardInitPromise = null;
+var _authenticatedDashboardInitGeneration = -1;
+var _heartbeatPollTimer = null;
+var _anchorPollTimer = null;
+var _errorAlertTimer = null;
+
+function waitForDashboardDOM() {
+  if (document.readyState !== 'loading') return Promise.resolve();
+  return new Promise(function(resolve) {
+    document.addEventListener('DOMContentLoaded', resolve, { once: true });
+  });
+}
+
+function startAuthenticatedDashboardPolling() {
+  if (_heartbeatPollTimer === null) {
+    _heartbeatPollTimer = setInterval(pollHeartbeat, 15000);
+  }
+  if (_anchorPollTimer === null) {
+    _anchorPollTimer = setInterval(refreshAnchorCounter, 30000);
+  }
+  if (_errorAlertTimer === null) {
+    _errorAlertTimer = setInterval(pollCriticalErrors, 60000);
+  }
+}
+
+function stopAuthenticatedDashboardPolling() {
+  if (_heartbeatPollTimer !== null) clearInterval(_heartbeatPollTimer);
+  if (_anchorPollTimer !== null) clearInterval(_anchorPollTimer);
+  if (_errorAlertTimer !== null) clearInterval(_errorAlertTimer);
+  _heartbeatPollTimer = null;
+  _anchorPollTimer = null;
+  _errorAlertTimer = null;
+}
+
+function invalidateAuthenticatedDashboardSession() {
+  _dashboardAuthGeneration += 1;
+  stopAuthenticatedDashboardPolling();
+}
+
+function initializeAuthenticatedDashboard(generation) {
+  if (generation === undefined) generation = _dashboardAuthGeneration;
+  if (
+    _authenticatedDashboardInitPromise
+    && _authenticatedDashboardInitGeneration === generation
+  ) return _authenticatedDashboardInitPromise;
+
+  var previous = _authenticatedDashboardInitPromise;
+  var ready = previous
+    ? previous.catch(function() { return null; })
+    : Promise.resolve();
+  var run = ready.then(waitForDashboardDOM).then(function() {
+    if (generation !== _dashboardAuthGeneration) return [];
+    startAuthenticatedDashboardPolling();
+    var tasks = [
+      loadBuckets(),
+      loadStatusBanner(),
+      syncRestartRequirement(),
+      refreshAnchorCounter(),
+      checkEmptyMemoryBanner(),
+      loadOwnerBadge(),
+      pollHeartbeat(),
+      pollCriticalErrors(),
+      maybeShowOnboarding(),
+    ];
+    if (typeof initSelfFab === 'function') tasks.push(initSelfFab());
+    if (typeof refreshAuthenticatedActiveView === 'function') {
+      tasks.push(Promise.resolve().then(refreshAuthenticatedActiveView));
+    }
+    return Promise.allSettled(tasks);
+  });
+  _authenticatedDashboardInitPromise = run;
+  _authenticatedDashboardInitGeneration = generation;
+  run.then(function() {
+    if (_authenticatedDashboardInitPromise === run) {
+      _authenticatedDashboardInitPromise = null;
+      _authenticatedDashboardInitGeneration = -1;
+    }
+  }, function() {
+    if (_authenticatedDashboardInitPromise === run) {
+      _authenticatedDashboardInitPromise = null;
+      _authenticatedDashboardInitGeneration = -1;
+    }
+  });
+  return run;
+}
+
+function beginAuthenticatedDashboardSession() {
+  _dashboardAuthGeneration += 1;
+  return initializeAuthenticatedDashboard(_dashboardAuthGeneration);
+}
+
+async function finishDashboardAuthentication() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  await beginAuthenticatedDashboardSession();
+}
+
 async function checkAuth() {
+  var requestedGeneration = _dashboardAuthGeneration;
   try {
     const resp = await fetch('/auth/status');
     const data = await resp.json();
+    if (requestedGeneration !== _dashboardAuthGeneration) return false;
     if (data.setup_needed) {
+      invalidateAuthenticatedDashboardSession();
       document.getElementById('auth-subtitle').textContent = '首次设置 / First-time setup';
       document.getElementById('auth-setup-form').style.display = 'block';
+      document.getElementById('auth-login-form').style.display = 'none';
+      document.getElementById('auth-recovery-form').style.display = 'none';
+      document.getElementById('auth-overlay').style.display = 'flex';
       return false;
     } else if (data.authenticated) {
       document.getElementById('auth-overlay').style.display = 'none';
       return true;
     } else {
+      invalidateAuthenticatedDashboardSession();
       document.getElementById('auth-subtitle').textContent = '请输入访问密码 / Enter access password';
       document.getElementById('auth-login-form').style.display = 'block';
+      document.getElementById('auth-overlay').style.display = 'flex';
       return false;
     }
   } catch {
+    if (requestedGeneration !== _dashboardAuthGeneration) return false;
     document.getElementById('auth-overlay').style.display = 'none';
     return true;
   }
@@ -3261,9 +3367,11 @@ async function doSetup() {
   const q = (document.getElementById('auth-setup-q')?.value || '').trim();
   const a = (document.getElementById('auth-setup-a')?.value || '').trim();
   if (q && a) {
-    await fetch('/auth/security-question', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: q, answer: a}) });
+    try {
+      await fetch('/auth/security-question', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: q, answer: a}) });
+    } catch (_) { /* 会话已经建立；可选安全问题保存失败不应卡住 Dashboard。 */ }
   }
-  document.getElementById('auth-overlay').style.display = 'none';
+  await finishDashboardAuthentication();
 }
 
 function showLogin() {
@@ -3290,7 +3398,7 @@ async function doRecover() {
   if (newPwd.length < 6) return showAuthError('新密码至少6位');
   const resp = await fetch('/auth/recover', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({answer, new_password: newPwd}) });
   if (resp.ok) {
-    document.getElementById('auth-overlay').style.display = 'none';
+    await finishDashboardAuthentication();
   } else {
     const d = await resp.json().catch(() => ({}));
     showAuthError(d.error || '验证失败');
@@ -3301,7 +3409,7 @@ async function doLogin() {
   const pwd = document.getElementById('auth-login-pwd').value;
   const resp = await fetch('/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: pwd}) });
   if (resp.ok) {
-    document.getElementById('auth-overlay').style.display = 'none';
+    await finishDashboardAuthentication();
   } else {
     const d = await resp.json().catch(() => ({}));
     showAuthError(d.detail || '密码错误');
@@ -3310,6 +3418,7 @@ async function doLogin() {
 
 async function doLogout() {
   await fetch('/auth/logout', { method: 'POST' });
+  invalidateAuthenticatedDashboardSession();
   document.getElementById('auth-setup-form').style.display = 'none';
   document.getElementById('auth-login-form').style.display = 'none';
   document.getElementById('auth-login-form').style.display = 'block';
@@ -4300,11 +4409,11 @@ async function hardDeleteSelectedTests() {
   await loadBuckets();
 }
 
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
+function activateDashboardTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     const target = tab.dataset.tab;
+    const pending = [];
     document.getElementById('list-view').style.display = target === 'list' ? '' : 'none';
     document.getElementById('breath-view').style.display = target === 'breath' ? '' : 'none';
     document.getElementById('network-view').style.display = target === 'network' ? '' : 'none';
@@ -4318,31 +4427,39 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.getElementById('anchors-view').style.display = target === 'anchors' ? '' : 'none';
     document.getElementById('about-view').style.display = target === 'about' ? '' : 'none';
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
-    if (target === 'network') loadNetwork();
-    if (target === 'plan') loadPlans();
-    if (target === 'import') { pollImportStatus(); loadImportResults(); }
-    if (target === 'logs') { loadLogs(); loadOBErrors(); }
-    if (target === 'v3-debug') loadV3Debug();
+    if (target === 'network') pending.push(loadNetwork());
+    if (target === 'plan') pending.push(loadPlans());
+    if (target === 'import') pending.push(pollImportStatus(), loadImportResults());
+    if (target === 'logs') pending.push(loadLogs(), loadOBErrors());
+    if (target === 'v3-debug') pending.push(loadV3Debug());
     if (target === 'settings') {
       // 任务D：合并 config + settings 后，切换到「设置」时一次性加载所有面板数据
-      loadSettingsStatus();
-      loadSystemDiagnostics();
-      loadHumanName();
-      loadConfig();
-      refreshEnvConfig();
-      loadGithubStatus();
-      loadSamplingSettings();
-      loadEnvVars();
-      loadHostVault();
-      loadLocalEmbStatus();
+      pending.push(
+        loadSettingsStatus(),
+        loadSystemDiagnostics(),
+        loadHumanName(),
+        loadConfig(),
+        refreshEnvConfig(),
+        loadGithubStatus(),
+        loadSamplingSettings(),
+        loadEnvVars(),
+        loadHostVault(),
+        loadLocalEmbStatus()
+      );
       // MCP 面板同步初始化（不依赖异步请求）
       const _mcpOriginEl = document.getElementById('mcp-local-origin');
       if (_mcpOriginEl) _mcpOriginEl.textContent = location.origin;
       renderMcpUrls();
     }
-    if (target === 'letters') loadLetters();
-    if (target === 'anchors') loadAnchorsView();
-    if (target === 'about') loadAbout();
+    if (target === 'letters') pending.push(loadLetters());
+    if (target === 'anchors') pending.push(loadAnchorsView());
+    if (target === 'about') pending.push(loadAbout());
+    return Promise.allSettled(pending);
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activateDashboardTab(tab);
   });
 });
 
@@ -7182,7 +7299,7 @@ async function saveConfig(persist) {
   }
 }
 
-checkAuth().then(authed => { if (authed) { loadBuckets(); loadStatusBanner(); } });
+checkAuth().then(authed => { if (authed) return beginAuthenticatedDashboardSession(); });
 
 // ====== iter 1.7: version badge, plan kanban, about page ======
 var _obLocalVersion = null;
@@ -7617,17 +7734,9 @@ async function loadAbout() {
 
 // Re-render Lucide icons whenever DOM is ready (covers static markup)
 window.addEventListener('DOMContentLoaded', function() {
-  syncRestartRequirement();
   if (window.lucide) lucide.createIcons();
-  // iter 2.0: refresh anchor counter on first load + every 30s
-  if (typeof refreshAnchorCounter === 'function') {
-    refreshAnchorCounter();
-    setInterval(refreshAnchorCounter, 30000);
-  }
   updateChick(0);              // 小黄鸡蛋初始（loadBuckets 后会按真实总数更新）
   startPlaceholderRotation();  // 搜索框随机 placeholder
-  checkEmptyMemoryBanner();    // 零记忆时红色提示「可从 GitHub 恢复」
-  loadOwnerBadge();            // 多人共用时顶部显示记忆归属徽标（单人隐藏）
 });
 
 // 更新/换机后发现一条记忆都没有 → 顶部红色横幅，引导从 GitHub 恢复。
@@ -8063,7 +8172,6 @@ async function pollHeartbeat() {
     txt.title = e.message;
   }
 }
-setInterval(pollHeartbeat, 15000);
 
 async function loadLogs() {
   const out = document.getElementById('logs-output');
@@ -9046,7 +9154,6 @@ async function deleteLetter(id) {
 // ── E/F 级错误自动弹窗 ────────────────────────────────────────
 // 每 60s 轮询 /api/errors/recent?min_level=E，若有新条目则弹窗提示。
 // 用 localStorage 存最后确认时间戳，避免重复打扰。
-var _errorAlertTimer = null;
 
 async function pollCriticalErrors() {
   try {
@@ -9106,15 +9213,16 @@ function goToLogsTab() {
   if (t) t.click();
 }
 
-// 启动后挂载
-pollHeartbeat();
-pollCriticalErrors();
-_errorAlertTimer = setInterval(pollCriticalErrors, 60000);
-maybeShowOnboarding();
-// 支持 #letters 锚点直达（老书签从 /letters → / #letters 时自动切换）
-if (location.hash === '#letters') {
-  const t = document.querySelector('.tab[data-tab="letters"]');
-  if (t) t.click();
+// 认证完成后刷新当前视图；也支持 #letters 老书签直达。
+// 这里不能在脚本解析阶段直接 click，否则未登录访问会抢跑受保护接口。
+function refreshAuthenticatedActiveView() {
+  let target = null;
+  if (location.hash === '#letters') {
+    target = document.querySelector('.tab[data-tab="letters"]');
+  }
+  if (!target) target = document.querySelector('.tab.active');
+  if (target) return activateDashboardTab(target);
+  return Promise.resolve([]);
 }
 
 // ── 给作者反馈 ──────────────────────────────────────────────
@@ -9358,19 +9466,19 @@ function renderSelfEntries() {
   }).join('');
 }
 
-// 初始化：检测是否有条目，给 FAB 加小圆点
-(async function initSelfFab() {
+// 认证成功后检测是否有条目，给 FAB 加小圆点
+async function initSelfFab() {
   try {
     const res = await authFetch('/api/self');
     if (res && res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        document.getElementById('self-fab').classList.add('has-entries');
-        _selfEntries = data;
-      }
+      const hasEntries = Array.isArray(data) && data.length > 0;
+      const fab = document.getElementById('self-fab');
+      if (fab) fab.classList.toggle('has-entries', hasEntries);
+      _selfEntries = hasEntries ? data : [];
     }
   } catch (_) {}
-})();
+}
 </script>
 
 </body>
