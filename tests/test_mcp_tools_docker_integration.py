@@ -41,6 +41,7 @@ EXPECTED_TOOLS = {
     "feel",
     "I",
     "dream",
+    "now",
 }
 EXPECTED_TOOL_ORDER = (
     "breath",
@@ -59,6 +60,7 @@ EXPECTED_TOOL_ORDER = (
     "letter_read",
     "feel",
     "I",
+    "now",
 )
 
 EXPECTED_TOOL_PROPERTIES = {
@@ -162,6 +164,8 @@ EXPECTED_TOOL_PROPERTIES = {
     # supersedes：3.6.6 的「声明取代即挂起旧条目」。
     "I": {"content", "aspect", "read", "limit", "promote", "supersedes"},
     "dream": {"window_hours"},
+    # 0 参数报时：读服务器时钟，按 config.yaml 的 timezone 换算。
+    "now": set(),
 }
 
 EXPECTED_REQUIRED_PROPERTIES = {

@@ -8,8 +8,8 @@ DecayEngine / EmbeddingEngine / ImportEngine，把它们注入 tools._runtime �
 web._shared，然后以 @mcp.tool() 注册薄封装（真正的实现在 src/tools/<工具>/ 下面）。
 
 关键行为：
-- 启动后在唯一连接器 `/mcp` 上暴露 16 个基础 MCP 工具（含
-  letter_write/letter_lock_update/letter_read）；每个入口
+- 启动后在唯一连接器 `/mcp` 上暴露 17 个基础 MCP 工具（含
+  letter_write/letter_lock_update/letter_read 与 0 参数报时的 now）；每个入口
   ≤ 10 行，只负责转发。breath 拆成 breath()(0 参数)+breath_search(3 参数)+
   breath_advanced(9 参数) 三级，是因为 claude.ai 按需加载工具时会跳过参数
   复杂的工具，全塞一个 breath() 会导致它常年加载不上（见 issue #17）。
@@ -23,7 +23,7 @@ web._shared，然后以 @mcp.tool() 注册薄封装（真正的实现在 src/too
 - 不写 HTTP 路由处理（全在 web/* 下）；不写 LLM prompt（dehydrator 负责）
 - 不直接读写桶文件（bucket_manager 负责）
 
-对外暴露：唯一连接器 `mcp`，16 个基础工具（含 3.4.0 并回的信件三件套）
+对外暴露：唯一连接器 `mcp`，17 个基础工具（含 3.4.0 并回的信件三件套、报时的 now）
           + 可选的 You / Them（各按自己的持久开关动态挂载）；HTTP 路由在 src/web/*
 ========================================
 """
@@ -72,6 +72,7 @@ from tools import anchor as _t_anchor
 from tools import plan as _t_plan
 from tools import dream as _t_dream
 from tools import i as _t_i
+from tools import now as _t_now
 from tools import them as _t_them
 from tools import you as _t_you
 
@@ -344,7 +345,7 @@ _gh_auto_interval: int = int(_gh_cfg.get("auto_interval_minutes") or 0)
 # host="0.0.0.0" so Docker container's HTTP endpoint is externally reachable
 # stdio mode ignores host (no network)
 #
-# 唯一连接器 /mcp 直接注册全部 16 个工具（信件三件套 3.4.0 已并回）。
+# 唯一连接器 /mcp 直接注册全部 17 个工具（信件三件套 3.4.0 已并回，另有报时的 now）。
 # 不依赖 FastMCP 私有注册表的启动期合并，导入式 ASGI 启动也能稳定暴露
 # 完整工具清单。
 #
@@ -387,7 +388,7 @@ mcp = FastMCP(
 # 参数校验、体积限制和鉴权三处边界（3.2.0 的发布说明里就列了这三处），任何
 # 一处漏跟就是一个静默旁路，而 `letter_write` 是能创建记忆的写工具。
 #
-# 一个连接器一套边界。信件回到 `@mcp.tool()`，主连接器 16 个工具。
+# 一个连接器一套边界。信件回到 `@mcp.tool()`，主连接器 16 个工具（后来又加了报时的 now，共 17 个）。
 
 
 # =============================================================
@@ -1286,6 +1287,12 @@ async def I(
     )
 
 
+@mcp.tool()
+async def now() -> str:
+    """无参数,看一眼现在几点:返回日期、星期、时刻、时段(凌晨/清晨/上午/中午/下午/晚上/深夜)和 ISO 8601 时间戳。时区取 config.yaml 的 timezone(默认 Asia/Shanghai),读的是服务器自己的时钟,不需要用户位置。需要知道时间时就调——她几点醒、该不该睡了、离约好的时间还有多久、要不要说早安或晚安。不读写任何记忆。0 参数是刻意设计,claude.ai 按需加载时会跳过参数复杂的工具。"""
+    return await _with_notice(_t_now.dispatch(), op="now", args={})
+
+
 # Pydantic 默认的 ``extra=ignore`` 会让拼错的 MCP 参数看似调用成功；
 # 写工具甚至会在未应用客户端目标字段时仍创建记忆。breath 和 trace
 # 已有严格适配层，其余公开工具使用相同边界，并同步 FastMCP
@@ -1321,6 +1328,7 @@ for _strict_tool_name in (
     "letter_read",
     "feel",
     "I",
+    "now",
 ):
     try:
         _forbid_unknown_tool_arguments(_strict_tool_name)
@@ -1345,8 +1353,8 @@ except Exception as _harden_exc:  # noqa: BLE001 - 压不平也要能起服务
 
 
 # You 与 Them 是仅有的两个动态工具：各自按持久开关在唯一连接器 /mcp 上
-# 挂载或摘除。基础工具固定 16 个（含 3.4.0 并回的信件三件套），只开一个是
-# 17，两个都开是 18。
+# 挂载或摘除。基础工具固定 17 个（含 3.4.0 并回的信件三件套、报时的 now），只开
+# 一个是 18，两个都开是 19。
 #
 # 关掉时必须**完全消失**而不是留一个返回「已关闭」的壳——留着的话，
 # 模块开没开就变成了模型能看见的信息。
@@ -1487,7 +1495,7 @@ if __name__ == "__main__":
         )
         if transport == "streamable-http":
             logger.info(
-                "MCP /mcp：16 个基础工具（单连接器），You / Them 各按独立开关动态显隐"
+                "MCP /mcp：17 个基础工具（单连接器），You / Them 各按独立开关动态显隐"
             )
         logger.info("CORS middleware enabled for remote transport / 已启用 CORS 中间件")
         logger.info(
@@ -1527,7 +1535,7 @@ if __name__ == "__main__":
             logger.warning(
                 "=" * 60 + "\n"
                 "⚠️  MCP 认证已关闭 (mcp_require_auth: false)：/mcp 无需任何令牌即可直连，\n"
-                "    16 个基础工具及当前已启用的可选工具均对外开放——任何能访问本端口的人都能读写你的全部记忆。\n"
+                "    17 个基础工具及当前已启用的可选工具均对外开放——任何能访问本端口的人都能读写你的全部记忆。\n"
                 f"    本服务进程监听 {_BIND_HOST}，若端口暴露到局域网/公网，请务必用反代鉴权、防火墙\n"
                 "    或仅绑定 127.0.0.1 保护；免鉴权只建议用于已确认的本机回环连接。\n"
                 + "=" * 60
@@ -1574,7 +1582,7 @@ if __name__ == "__main__":
             proxy_headers=False,
         )
     elif transport == "stdio":
-        # stdio：唯一实例提供 16 个基础工具，You / Them 各按独立开关显隐；启动成功边界由
+        # stdio：唯一实例提供 17 个基础工具，You / Them 各按独立开关显隐；启动成功边界由
         # FastMCP public lifespan 触发。向量队列必须与 HTTP 一样纳入生命周期，
         # 否则正文落盘后会退回同步索引，让慢 provider 拖住工具回包。
         _stdio_runtime_lifecycle = RuntimeLifecycle(
