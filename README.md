@@ -54,9 +54,9 @@ Ombre Brain 的使用者是**模型自己**，不是它背后的人。所以这�
 
 ---
 
-## 16 个基础工具（13 + 3）+ 可选 You / them / 16 Core Tools (13 + 3) + Optional You / them
+## 17 个基础工具（14 + 3）+ 可选 You / them / 17 Core Tools (14 + 3) + Optional You / them
 
-16 个基础工具全在一个 MCP 连接器 `/mcp` 上，只配这一个即可。
+17 个基础工具全在一个 MCP 连接器 `/mcp` 上，只配这一个即可。
 `You`（我对**你**的认识）与 `them`（我对**其他人**的认识）各自默认关闭、各有一个独立开关；
 只有在人类从 Ombre 设置页打开之后，主连接器 `/mcp` 才额外暴露对应的工具。两者都是**可读回、
 可写入、可撤回**的——写下的是模型自己的判断，不经 LLM 转述。这两个开关不修改 MCP 鉴权，
@@ -74,11 +74,12 @@ Ombre Brain 的使用者是**模型自己**，不是它背后的人。所以这�
 | `trace` | 唯一的元数据写入口：resolved / pinned / 改情感坐标 / 替换正文 / 删除到档案 / 改 plan 状态。长正文可用 `old_str/new_str` 做唯一片段的原子局部替换；发现后端自动建的桶间关系连错了，用 `unlink` 双向断开、`relink`+`relation_type` 改类型；只传要改的字段。 |
 | `dream` | 做梦消化最近窗口（默认 48h）有变动的记忆。**不是义务**，需要消化时再调。 |
 
-### 低频 9 个
+### 低频 10 个
 
 | 工具 | 一句话 |
 |---|---|
 | `feel` | 按关键词找回以前留下的感受。**`query` 必填**——feel 不是列表，是「我此刻在想的这件事，我以前怎么感受的」。关键词走向量检索（候选只在 feel 桶内，相似度 ≥ 0.65 才算命中），换个说法也能找回；向量不可用时退回字面匹配并明说降级。命中后逐字返回，不摘要；未命中的不返回，也不用低相关的凑数。写入感受仍走 `hold(feel=True, source_bucket=...)`。 |
+| `now` | 报时。**0 参数**，返回日期、星期、时刻、时段和 ISO 8601 时间戳。读服务器自己的时钟，按 `config.yaml` 的 `timezone`（默认 `Asia/Shanghai`）换算，不需要用户共享位置；不读写任何记忆。 |
 | `pulse` | 自检：桶数量、占用、衰减引擎状态、全部桶摘要；anchor 带 `⚓ [anchor]`。「为什么搜不到 X」时第一个调它。 |
 | `plan` | 登记一个承诺 / 待办。不衰减、不参与普通浮现；在 `dream` 末尾出现，也可用 `breath_advanced(domain="plan")` 随时读出全部 active plan 的正文。后续写新事件会自动判断它是否已闭环。 |
 | `anchor` / `release` | 把**已存在的**桶设 / 解为「坐标系」。anchor 是带 `⚓ [anchor]` 显示标记的冷参考：不主动浮现但可被显式检索命中，硬上限 24。必须先 `hold` 再 `anchor`。 |
@@ -91,7 +92,7 @@ Dashboard 原有的 Letter 编辑继续保留：历史信、无锁信以及当�
 旧版历史 Letter 默认继续公开且不可补锁。Dashboard 可按单封信执行一次“转换为新版 Letter”：正文与原始元数据不变，只从现有 `AI_NAME` 补写实际关系名，并把锁控制权固定交给 AI；转换后由 AI 通过 `letter_lock_update` 管理锁，human 不获得锁权限。该转换不批量执行，也不根据旧 `author` 推断身份。
 | `I` | 自我认知：「我是什么」（本质 / 规律 / 立场 / 局限…）。**是沉淀物，不是日记**——写下的「我觉得……」先落成一条普通记忆（候选），会浮现也会衰减，每次 `dream` 都跟相关记忆摆在一起碰撞；被 3 次不同日期的 `dream` 见证后还站得住，才用 `I(promote="桶ID")` 升级成正式条目。改主意时用 `I(content="...", supersedes="旧条目ID")`：旧条目立刻不再作为当前信念读出去（一个字不删，随时可查，质疑撤了它就回来），而新的仍要照常攒够见证。正式条目不随普通 `breath` 浮现，每次对话开头自动附最近 3 条。 |
 
-可选的 `You` 与 `them` 不属于这 16 个基础工具。开启时返回的是**模型自己写下的正文**——
+可选的 `You` 与 `them` 不属于这 17 个基础工具。开启时返回的是**模型自己写下的正文**——
 3.4.x 之前那层「把认识磨成语义零件再还给模型」的 LLM 已经整个拿掉了：模型写的判断，
 没有理由让另一个模型改写一遍才还给它。原文复制检查仍在，管的是写入那一侧——不许照抄
 记忆桶原文。不开启时，它们不在工具清单和 tool search 中出现。
@@ -249,9 +250,9 @@ curl http://localhost:18001/health
 }
 ```
 
-重启 Claude Desktop，工具列表里会出现全部 16 个工具：`breath` / `breath_search` / `breath_advanced` / `hold` / `grow` / `trace` / `dream` / `feel` / `anchor` / `release` / `pulse` / `plan` / `letter_write` / `letter_lock_update` / `letter_read` / `I`。
+重启 Claude Desktop，工具列表里会出现全部 17 个工具：`breath` / `breath_search` / `breath_advanced` / `hold` / `grow` / `trace` / `dream` / `feel` / `anchor` / `release` / `pulse` / `plan` / `letter_write` / `letter_lock_update` / `letter_read` / `I` / `now`。
 
-> 16 个工具全在同一连接器 `/mcp` 暴露，只配这一个即可。信件 3.2.0 曾拆到
+> 17 个工具全在同一连接器 `/mcp` 暴露，只配这一个即可。信件 3.2.0 曾拆到
 > `/mcp-extra`，3.4.0 并回主链路；那个端点现在返回 404，不要再单独添加。
 
 在 Ombre 设置页开启 `You` / `them` 后，`/mcp` 会额外出现对应的工具：只开一个是 17 个，
@@ -332,11 +333,11 @@ Claude.ai                    Ombre Brain 服务器
 
 #### 步骤 3：连接端点
 
-16 个基础工具全在一个 MCP 端点上；可选的 `You` 与 `them` 同样只属于 `/mcp`：
+17 个基础工具全在一个 MCP 端点上；可选的 `You` 与 `them` 同样只属于 `/mcp`：
 
 | 端点 | 工具 | 说明 |
 |---|---|---|
-| `/mcp` | `breath` `breath_search` `breath_advanced` `hold` `grow` `dream` `feel` `trace` `anchor` `release` `pulse` `plan` `letter_write` `letter_lock_update` `letter_read` `I`；开关开启时另有 `You` / `Them` | 16 个工具（各开一个 +1，全开 18 个）|
+| `/mcp` | `breath` `breath_search` `breath_advanced` `hold` `grow` `dream` `feel` `trace` `anchor` `release` `pulse` `plan` `letter_write` `letter_lock_update` `letter_read` `I` `now`；开关开启时另有 `You` / `Them` | 17 个工具（各开一个 +1，全开 19 个）|
 
 > 曾经存在第二连接器 `/mcp-extra`（2.8.5 退役 → 3.2.0 随信件恢复 → 3.4.0 随信件
 > 并回主链路再次退役）。该端点返回 `404`，不要再单独添加。
@@ -877,7 +878,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 新用户最常踩、但文档里分散各处的点，集中提醒一下：
 
-- **只有一条连接器**：`/mcp` 提供全部 16 个工具（含信件三件套），以及开关控制的可选 `You` 与 `Them`。信件 3.2.0 曾拆到 `/mcp-extra`，3.4.0 并回主链路，该端点现在返回 404。
+- **只有一条连接器**：`/mcp` 提供全部 17 个工具（含信件三件套与报时的 `now`），以及开关控制的可选 `You` 与 `Them`。信件 3.2.0 曾拆到 `/mcp-extra`，3.4.0 并回主链路，该端点现在返回 404。
 - **反代/隧道要整主机名转发**：Cloudflare Tunnel / Nginx 按域名整体转发到 `localhost:端口`，覆盖所有路径即可。
 - **OpenAI 兼容向量化两个坑**：base_url 末尾要带 `/v1`（漏了 404）、model 要带完整前缀（如 `BAAI/bge-m3`，漏了报 Model does not exist）。填完用向量化区的「测试」按钮确认。
 - **改完 key / 配置点「保存」后再「测试」**：压缩和向量化各有独立的「测试」按钮，能用就用，别凭感觉。

@@ -900,6 +900,7 @@ async def test_mcp_exception_secrets_never_reach_response_persistence_or_logs(
         "letter_lock_update",
         "letter_read",
         "I",
+        "now",
     ),
 )
 def test_all_public_mcp_argument_models_forbid_unknown_fields(tool_name):
