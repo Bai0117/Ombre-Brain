@@ -57,6 +57,27 @@ def register(mcp) -> None:
                 status_code=404,
             )
 
+    # 家用版：只管翻记忆、搜记忆、改记忆的手机优先页面。完整后台仍在 /。
+    # 页面本身不含任何数据；所有数据都走已有的、要求登录的 /api/* 端点。
+    @mcp.custom_route("/home", methods=["GET"])
+    async def home_page(request: Request) -> Response:
+        from starlette.responses import HTMLResponse
+        home_path = os.path.join(sh.repo_root, "frontend", "home.html")
+        try:
+            with open(home_path, "r", encoding="utf-8") as f:
+                html = f.read()
+        except FileNotFoundError:
+            return HTMLResponse(
+                "<h1>home.html not found</h1><p>Update the checkout and restart.</p>",
+                status_code=404,
+            )
+        for asset in ("/static/favicon.svg", "/static/manifest.json"):
+            html = html.replace(asset, f"{asset}?v={sh.version}")
+        return HTMLResponse(
+            html,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
     # iter 1.7 §C/§H: serve frontend static assets (icon.svg, favicon.svg, manifest.json)
     # 安全要点：必须白名单过滤文件名，绝不能让 request 直接拼路径，
     # 否则会被 ?name=../../etc/passwd 这种「目录穿越」攻击拿走任意文件。

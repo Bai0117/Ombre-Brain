@@ -27,7 +27,7 @@ from .. import _runtime as rt
 from .._common import is_importance_audit_candidate
 from ..plan.core import is_letter_bucket
 from ._date_range import bucket_in_created_range
-from ._shared import bucket_has_tags, footprint_reader
+from ._shared import bucket_has_tags, created_label, footprint_reader
 from ._verbatim import render_stored_bucket
 from errors import safe_error_detail
 
@@ -148,7 +148,7 @@ async def surface_by_importance(
             imp = b["metadata"].get("importance", 0)
             rendered, entry_tokens = render_stored_bucket(
                 b,
-                f"[importance:{imp}] [bucket_id:{b['id']}]",
+                f"[importance:{imp}] [bucket_id:{b['id']}]{created_label(b)}",
                 _footprint(b),
             )
             if token_used + entry_tokens > max_tokens:

@@ -40,7 +40,12 @@ from .. import _runtime as rt
 from ..plan.core import is_letter_bucket
 from utils import parse_bool, parse_iso_datetime
 from ._date_range import bucket_in_created_range
-from ._shared import bucket_has_tags, footprint_reader, render_within_budget
+from ._shared import (
+    bucket_has_tags,
+    created_label,
+    footprint_reader,
+    render_within_budget,
+)
 from ._verbatim import render_stored_bucket
 
 # U-07 fix: throttle the sampling-fallback INFO log to once per 5 minutes.
@@ -263,7 +268,7 @@ async def surface_default(
         try:
             rendered, entry_tokens = render_stored_bucket(
                 b,
-                f"📌 [核心准则] [bucket_id:{b['id']}]",
+                f"📌 [核心准则] [bucket_id:{b['id']}]{created_label(b)}",
                 _footprint(b),
             )
             pinned_required_tokens += entry_tokens
@@ -408,7 +413,7 @@ async def surface_default(
             score = rt.decay_engine.calculate_score(b["metadata"])
             rendered, entry_tokens = render_stored_bucket(
                 b,
-                f"[权重:{score:.2f}] [bucket_id:{b['id']}]",
+                f"[权重:{score:.2f}] [bucket_id:{b['id']}]{created_label(b)}",
                 _footprint(b),
             )
             if entry_tokens > token_budget:
@@ -492,7 +497,7 @@ async def surface_default(
                 try:
                     rendered, entry_tokens = render_stored_bucket(
                         b,
-                        f"💤 [久未浮现] [bucket_id:{b['id']}]",
+                        f"💤 [久未浮现] [bucket_id:{b['id']}]{created_label(b)}",
                         _footprint(b),
                     )
                     if entry_tokens > token_budget:
@@ -529,7 +534,7 @@ async def surface_default(
                     try:
                         rendered, entry_tokens = render_stored_bucket(
                             b,
-                            f"✨ [偶遇] [bucket_id:{b['id']}]",
+                            f"✨ [偶遇] [bucket_id:{b['id']}]{created_label(b)}",
                             _footprint(b),
                         )
                         if entry_tokens > token_budget:

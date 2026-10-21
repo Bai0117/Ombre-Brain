@@ -49,6 +49,30 @@ def footprint_reader() -> FootprintReader:
     return FootprintReader(snapshot)
 
 
+def created_label(bucket: dict) -> str:
+    """` [2026-10-22 03:14]`——这条记忆是哪天写下的；读不出来就返回空串。
+
+    浮现时不带日期，读的人只能从正文里猜「这是哪天的事」，旧事很容易被当成
+    新事讲。带偏移的时间换算到 config 的时区（搬到海外 VPS 后容器是 UTC，
+    不换算的话凌晨的事会被记成前一天下午）；没有偏移的旧值按原样显示，因为它
+    本来就是写入时服务器的当地时间。
+    """
+    raw = str((bucket.get("metadata") or {}).get("created") or "").strip()
+    if not raw:
+        return ""
+    try:
+        from datetime import datetime
+
+        from utils import get_tzinfo
+
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(get_tzinfo())
+        return f" [{parsed:%Y-%m-%d %H:%M}]"
+    except (TypeError, ValueError):
+        return ""
+
+
 def bucket_has_tags(meta: dict, tag_filter: list) -> bool:
     """tag 过滤是 AND：给了几个就必须全都有。"""
     if not tag_filter:

@@ -40,7 +40,7 @@ from ..plan.core import is_letter_bucket
 from ombrebrain.storage.attribution import names_from_config
 from ombrebrain.storage.quote_store import quotes_from_metadata, render_quotes
 from ._date_range import bucket_in_created_range, parse_created_range
-from ._shared import bucket_has_tags, footprint_reader
+from ._shared import bucket_has_tags, created_label, footprint_reader
 from ._verbatim import render_stored_bucket
 from utils import count_tokens_approx, parse_bool
 
@@ -293,7 +293,7 @@ async def surface_search(
             rendered, entry_tokens = render_stored_bucket(
                 exact_bucket,
                 f"{protected_mark}[exact_bucket_id:true] "
-                f"[bucket_id:{exact_bucket['id']}]",
+                f"[bucket_id:{exact_bucket['id']}]{created_label(exact_bucket)}",
                 _footprint(exact_bucket),
             )
             if entry_tokens > max_tokens:
@@ -381,22 +381,22 @@ async def surface_search(
         if _is_archived(bucket):
             rendered, entry_tokens = _render_archived_hit(bucket, _footprint(bucket))
         elif parse_bool(meta.get("protected"), default=False):
-            header = f"🛡️ [受保护记忆] [bucket_id:{bucket_id}]"
+            header = f"🛡️ [受保护记忆] [bucket_id:{bucket_id}]{created_label(bucket)}"
             rendered, entry_tokens = render_stored_bucket(
                 bucket, header, _footprint(bucket)
             )
         elif meta.get("pinned") or meta.get("type") == "permanent":
-            header = f"📌 [核心准则] [bucket_id:{bucket_id}]"
+            header = f"📌 [核心准则] [bucket_id:{bucket_id}]{created_label(bucket)}"
             rendered, entry_tokens = render_stored_bucket(
                 bucket, header, _footprint(bucket)
             )
         elif bucket.get("vector_match"):
-            header = f"[语义关联] [bucket_id:{bucket_id}]"
+            header = f"[语义关联] [bucket_id:{bucket_id}]{created_label(bucket)}"
             rendered, entry_tokens = render_stored_bucket(
                 bucket, header, _footprint(bucket)
             )
         else:
-            header = f"[bucket_id:{bucket_id}]"
+            header = f"[bucket_id:{bucket_id}]{created_label(bucket)}"
             rendered, entry_tokens = render_stored_bucket(
                 bucket, header, _footprint(bucket)
             )
@@ -463,7 +463,7 @@ async def surface_search(
                 for b in drifted:
                     rendered, entry_tokens = render_stored_bucket(
                         b,
-                        f"[联想浮现·非检索命中] [bucket_id:{b['id']}]",
+                        f"[联想浮现·非检索命中] [bucket_id:{b['id']}]{created_label(b)}",
                         _footprint(b),
                     )
                     if token_used + entry_tokens > max_tokens:

@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181C" media="(prefers-color-scheme: dark)">
+<title>记忆</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/static/manifest.json">
+<style>
+:root {
+  --paper: #F3F4F6;
+  --surface: #FBFBFC;
+  --line: #DDE0E5;
+  --line-strong: #C4C9D1;
+  --ink: #24272C;
+  --ink-dim: #6A707A;
+  --ink-faint: #9AA0A9;
+  --moon: #7F8AA0;
+  --moon-wash: #E6E9EF;
+  --danger: #A0503C;
+  --danger-wash: #F4E7E3;
+  --ok: #4F7A62;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --num: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", serif;
+  --top: env(safe-area-inset-top, 0px);
+  --bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16181C;
+    --surface: #1D2025;
+    --line: #2C3037;
+    --line-strong: #3B4049;
+    --ink: #E3E5E9;
+    --ink-dim: #A2A8B2;
+    --ink-faint: #6E747E;
+    --moon: #A9B3C6;
+    --moon-wash: #262A32;
+    --danger: #D88A75;
+    --danger-wash: #33241F;
+    --ok: #8CB89D;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+body.locked { overflow: hidden; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--moon); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+
+/* ---------- top bar ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 5;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: saturate(1.2) blur(12px);
+  -webkit-backdrop-filter: saturate(1.2) blur(12px);
+  padding: calc(var(--top) + 10px) 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.bar-row { display: flex; align-items: center; gap: 10px; max-width: 720px; margin: 0 auto; }
+.bar h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: 0.02em; flex: 1; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent;
+  display: grid; place-items: center; color: var(--ink-dim);
+}
+.icon-btn:active { background: var(--moon-wash); }
+.icon-btn svg { width: 20px; height: 20px; }
+.search {
+  display: flex; align-items: center; gap: 8px; max-width: 720px; margin: 10px auto 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 12px;
+}
+.search svg { width: 16px; height: 16px; color: var(--ink-faint); flex: none; }
+.search input { flex: 1; border: 0; background: transparent; padding: 9px 0; outline: none; font-size: 16px; }
+.search input::placeholder { color: var(--ink-faint); }
+.search .clear { border: 0; background: none; color: var(--ink-faint); padding: 4px; font-size: 14px; }
+.filters {
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  max-width: 720px; margin: 10px auto 0; padding-bottom: 10px;
+}
+.filters::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 1px solid var(--line); background: transparent; color: var(--ink-dim);
+  border-radius: 999px; padding: 4px 13px; font-size: 14px;
+}
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.chip .n { font-family: var(--num); font-variant-numeric: tabular-nums; margin-left: 4px; opacity: 0.7; }
+
+/* ---------- list ---------- */
+main { max-width: 720px; margin: 0 auto; padding: 4px 16px calc(var(--bottom) + 48px); }
+.status-line { color: var(--ink-faint); font-size: 13px; padding: 12px 0 2px; }
+.day { display: grid; grid-template-columns: 58px 1fr; column-gap: 12px; padding: 16px 0 6px; border-bottom: 1px solid var(--line); }
+.day:last-child { border-bottom: 0; }
+.date { position: sticky; top: calc(var(--barh, 132px) + 12px); align-self: start; padding-top: 2px; }
+.date .md { font-family: var(--num); font-size: 26px; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: lining-nums; color: var(--ink); }
+.date .wd { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+.date .yr { font-family: var(--num); font-size: 12px; color: var(--ink-faint); }
+.entries { min-width: 0; }
+.entry {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  padding: 0 0 14px; margin: 0;
+}
+.entry + .entry { border-top: 1px dashed var(--line); padding-top: 12px; }
+.entry .text {
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 15px; line-height: 1.7; color: var(--ink); word-break: break-word;
+}
+.entry .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; font-size: 12px; color: var(--ink-faint); }
+.entry .meta .time { font-family: var(--num); font-variant-numeric: tabular-nums; }
+.tag { color: var(--moon); }
+.flag { padding: 0 7px; border-radius: 999px; background: var(--moon-wash); color: var(--ink-dim); }
+.flag.warn { background: var(--danger-wash); color: var(--danger); }
+.entry.quiet .text { color: var(--ink-dim); }
+.empty { text-align: center; color: var(--ink-dim); padding: 64px 12px; font-size: 15px; }
+.empty button { margin-top: 14px; }
+
+/* ---------- buttons ---------- */
+.btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 10px; padding: 8px 16px; font-size: 15px; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); font-weight: 600; }
+.btn.primary:disabled { opacity: 0.35; }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); background: transparent; }
+.text-btn { border: 0; background: none; color: var(--ink-dim); padding: 8px 4px; font-size: 16px; }
+
+/* ---------- editor sheet ---------- */
+.sheet {
+  position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100dvh); z-index: 20;
+  background: var(--paper); display: flex; flex-direction: column;
+  transform: translateY(100%); transition: transform 0.28s cubic-bezier(.2,.8,.2,1);
+  visibility: hidden;
+}
+.sheet.open { transform: none; visibility: visible; }
+@media (prefers-reduced-motion: reduce) { .sheet { transition: none; } }
+.sheet-bar {
+  flex: none; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+  padding: calc(var(--top) + 8px) 12px 8px; border-bottom: 1px solid var(--line); background: var(--paper);
+}
+.sheet-title { text-align: center; min-width: 0; }
+.sheet-title .when { font-family: var(--num); font-size: 15px; font-variant-numeric: tabular-nums; }
+.sheet-title .what { font-size: 12px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.sheet-inner { max-width: 720px; margin: 0 auto; padding: 14px 16px calc(var(--bottom) + 40px); }
+.notice { font-size: 13px; color: var(--ink-dim); background: var(--moon-wash); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
+.notice.warn { background: var(--danger-wash); color: var(--danger); }
+textarea.content {
+  display: block; width: 100%; min-height: 32vh; resize: none; border: 0; outline: none; background: transparent;
+  font-size: 17px; line-height: 1.8; padding: 0; color: var(--ink); word-break: break-word;
+}
+.fields { margin-top: 18px; border-top: 1px solid var(--line); }
+.field { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.field > span { font-size: 14px; color: var(--ink-dim); }
+.field input[type="text"] { width: 100%; border: 0; background: transparent; outline: none; padding: 4px 0; font-size: 16px; }
+.field input[type="range"] { width: 100%; accent-color: var(--moon); }
+.imp { display: flex; align-items: center; gap: 12px; }
+.imp output { font-family: var(--num); font-size: 18px; width: 22px; text-align: right; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggles .chip { font-size: 14px; padding: 5px 14px; }
+.hint { font-size: 12px; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.5; }
+.danger-zone { margin-top: 28px; }
+.danger-zone textarea { width: 100%; min-height: 72px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 8px 10px; font-size: 15px; resize: vertical; margin: 8px 0; }
+.ids { margin-top: 24px; font-size: 12px; color: var(--ink-faint); word-break: break-all; }
+
+/* ---------- login ---------- */
+.login { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.login form { width: 100%; max-width: 320px; }
+.login h1 { font-family: var(--num); font-weight: 400; font-size: 34px; margin: 0 0 4px; letter-spacing: 0.02em; }
+.login p { color: var(--ink-dim); margin: 0 0 24px; font-size: 14px; }
+.login input { width: 100%; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 12px; padding: 12px 14px; font-size: 16px; outline: none; }
+.login input:focus { border-color: var(--moon); }
+.login .btn { width: 100%; margin-top: 12px; padding: 12px; }
+.login .err { color: var(--danger); font-size: 14px; min-height: 22px; margin-top: 10px; }
+.login a { color: var(--ink-dim); font-size: 13px; }
+
+/* ---------- toast (top, away from the browser's bottom bar) ---------- */
+.toast {
+  position: fixed; left: 50%; top: calc(var(--top) + 12px); z-index: 40;
+  transform: translate(-50%, -140%); transition: transform 0.25s ease;
+  background: var(--ink); color: var(--paper); border-radius: 999px; padding: 8px 18px; font-size: 14px;
+  max-width: calc(100vw - 32px); text-align: center;
+}
+.toast.show { transform: translate(-50%, 0); }
+.toast.bad { background: var(--danger); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+.menu { position: absolute; right: 12px; top: calc(var(--top) + 52px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px; min-width: 168px; box-shadow: 0 10px 30px rgba(20, 24, 32, 0.12); z-index: 10; }
+.menu a, .menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: 0; background: none; color: var(--ink); text-decoration: none; font-size: 15px; border-radius: 8px; }
+.menu a:active, .menu button:active { background: var(--moon-wash); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ============ login ============ -->
+<section class="login" id="login" hidden>
+  <form id="loginForm" autocomplete="on">
+    <h1>Ombre</h1>
+    <p>输入后台密码，打开记忆。</p>
+    <input type="password" id="pw" name="password" autocomplete="current-password" placeholder="密码" required>
+    <button class="btn primary" type="submit">打开</button>
+    <div class="err" id="loginErr"></div>
+    <a href="/">需要设置密码或改设置？去完整版后台</a>
+  </form>
+</section>
+
+<!-- ============ app ============ -->
+<div id="app" hidden>
+  <header class="bar">
+    <div class="bar-row">
+      <h1>记忆</h1>
+      <button class="icon-btn" id="refreshBtn" aria-label="刷新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+      </button>
+      <button class="icon-btn" id="menuBtn" aria-label="更多" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+      </button>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="q" placeholder="找一条记忆" enterkeyhint="search" autocomplete="off">
+      <button class="clear" type="button" id="clearQ" hidden aria-label="清空">清空</button>
+    </label>
+    <nav class="filters" id="filters" aria-label="筛选"></nav>
+  </header>
+  <div class="menu" id="menu" hidden>
+    <a href="/">完整版后台</a>
+    <button type="button" id="logoutBtn">退出登录</button>
+  </div>
+  <main>
+    <div class="status-line" id="statusLine"></div>
+    <div id="list"></div>
+  </main>
+</div>
+
+<!-- ============ editor ============ -->
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetWhen">
+  <div class="sheet-bar">
+    <button class="text-btn" id="closeBtn" type="button">取消</button>
+    <div class="sheet-title">
+      <div class="when" id="sheetWhen"></div>
+      <div class="what" id="sheetWhat"></div>
+    </div>
+    <button class="btn primary" id="saveBtn" type="button" disabled>保存</button>
+  </div>
+  <div class="sheet-body" id="sheetBody">
+    <div class="sheet-inner">
+      <div id="sheetNotice"></div>
+      <textarea class="content" id="content" aria-label="记忆正文" spellcheck="false"></textarea>
+      <div class="fields" id="fields">
+        <label class="field"><span>标签</span><input type="text" id="fTags" placeholder="用逗号隔开" autocomplete="off"></label>
+        <div class="field"><span>重要度</span>
+          <div class="imp"><input type="range" id="fImp" min="1" max="10" step="1" aria-label="重要度"><output id="fImpOut"></output></div>
+        </div>
+        <div class="field"><span>状态</span>
+          <div>
+            <div class="toggles">
+              <button type="button" class="chip" id="tPinned" aria-pressed="false">钉住</button>
+              <button type="button" class="chip" id="tResolved" aria-pressed="false">已放下</button>
+              <button type="button" class="chip" id="tQuiet" aria-pressed="false">不主动浮现</button>
+            </div>
+            <p class="hint">钉住会一直出现在醒来时的核心准则里。已放下和不主动浮现的记忆，搜索时仍然找得到。</p>
+          </div>
+        </div>
+      </div>
+      <div class="danger-zone" id="dangerZone">
+        <button class="btn danger" type="button" id="delOpen">请求删除这条记忆</button>
+        <div id="delForm" hidden>
+          <p class="hint">删除需要写一个理由，交给 Luar 下次醒来时确认。</p>
+          <textarea id="delReason" placeholder="为什么要删掉它？比如：重复了、写错了、是测试"></textarea>
+          <button class="btn danger" type="button" id="delSend">发送删除请求</button>
+        </div>
+      </div>
+      <div class="ids" id="sheetId"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const WEEK = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const TYPE_LABEL = { dynamic: "", permanent: "", feel: "感受", letter: "信", plan: "计划", self: "自我", i: "自我" };
+  const FILTERS = [
+    { key: "all", label: "全部", test: (b) => true },
+    { key: "pinned", label: "钉住", test: (b) => b.pinned },
+    { key: "feel", label: "感受", test: (b) => b.type === "feel" },
+    { key: "letter", label: "信", test: (b) => b.type === "letter" },
+    { key: "resolved", label: "已放下", test: (b) => b.resolved || b.dont_surface || b.digested },
+    { key: "pending", label: "待删除", test: (b) => b.deletion_request && b.deletion_request.status === "pending" },
+  ];
+
+  const state = { all: [], byId: new Map(), filter: "all", query: "", searchIds: null, current: null, original: null, draft: null };
+
+  // ---------- helpers ----------
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { credentials: "same-origin", ...opts });
+    let data = null;
+    try { data = await res.json(); } catch (_) { /* non-JSON */ }
+    if (res.status === 401 && !opts.isLogin) { showLogin(); throw new Error("登录过期了，请重新输入密码"); }
+    if (!res.ok || (data && data.ok === false)) {
+      const msg = (data && (data.error || data.message)) || `出错了（${res.status}）`;
+      const err = new Error(msg); err.data = data; err.status = res.status; throw err;
+    }
+    return data;
+  }
+  let toastTimer;
+  function toast(msg, bad = false) {
+    const t = $("toast");
+    t.textContent = msg; t.classList.toggle("bad", bad); t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), bad ? 4200 : 2200);
+  }
+  function parseDate(b) {
+    if (b.created_epoch_ms) return new Date(b.created_epoch_ms);
+    const d = b.created ? new Date(b.created) : null;
+    return d && !isNaN(d) ? d : null;
+  }
+  const pad = (n) => String(n).padStart(2, "0");
+  const dayKey = (d) => d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "unknown";
+  const hm = (d) => d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : "";
+  function previewText(b) {
+    return String(b.content_preview || b.name || "").replace(/\s+/g, " ").trim();
+  }
+  function subtitle(b) {
+    const parts = [];
+    if (b.pinned) parts.push("钉住");
+    const tl = TYPE_LABEL[b.type]; if (tl) parts.push(tl);
+    for (const t of (b.tags || []).slice(0, 3)) parts.push(`#${t}`);
+    return parts.join("  ");
+  }
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  // ---------- auth ----------
+  function showLogin() { $("app").hidden = true; $("login").hidden = false; closeSheet(true); setTimeout(() => $("pw").focus(), 50); }
+  function showApp() { $("login").hidden = true; $("app").hidden = false; }
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("loginErr").textContent = "";
+    try {
+      await api("/auth/login", { isLogin: true, method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: $("pw").value }) });
+      $("pw").value = "";
+      showApp(); load();
+    } catch (err) { $("loginErr").textContent = err.message; }
+  });
+  $("logoutBtn").addEventListener("click", async () => {
+    try { await api("/auth/logout", { method: "POST" }); } catch (_) {}
+    toggleMenu(false); showLogin();
+  });
+
+  // ---------- list ----------
+  async function load() {
+    $("statusLine").textContent = "正在读取…";
+    try {
+      const rows = await api("/api/buckets?sort=created_desc");
+      state.all = (Array.isArray(rows) ? rows : []).filter((b) => b.type !== "archived");
+      state.byId = new Map(state.all.map((b) => [b.id, b]));
+      renderFilters(); render();
+    } catch (err) {
+      $("statusLine").textContent = "";
+      $("list").replaceChildren(emptyBox(`没读到记忆：${err.message}`, "再试一次", load));
+    }
+  }
+  function renderFilters() {
+    const nav = $("filters"); nav.replaceChildren();
+    for (const f of FILTERS) {
+      const count = state.all.filter(f.test).length;
+      if (f.key === "pending" && !count) continue;
+      const b = el("button", "chip", f.label);
+      b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === f.key));
+      const n = el("span", "n", String(count)); b.appendChild(n);
+      b.addEventListener("click", () => { state.filter = f.key; renderFilters(); render(); window.scrollTo({ top: 0 }); });
+      nav.appendChild(b);
+    }
+  }
+  function emptyBox(msg, actionLabel, action) {
+    const box = el("div", "empty", msg);
+    if (actionLabel) { const b = el("button", "btn", actionLabel); b.type = "button"; b.addEventListener("click", action); box.appendChild(el("br")); box.appendChild(b); }
+    return box;
+  }
+  function visible() {
+    const f = FILTERS.find((x) => x.key === state.filter) || FILTERS[0];
+    let rows = state.all.filter(f.test);
+    const q = state.query.trim().toLowerCase();
+    if (q) {
+      const local = (b) => [b.name, b.content_preview, (b.tags || []).join(" "), b.id].join(" ").toLowerCase().includes(q);
+      rows = rows.filter((b) => local(b) || (state.searchIds && state.searchIds.has(b.id)));
+    }
+    return rows;
+  }
+  function render() {
+    const rows = visible();
+    const list = $("list");
+    const q = state.query.trim();
+    $("statusLine").textContent = q ? `找到 ${rows.length} 条` : `${rows.length} 条，最新的在最上面`;
+    if (!rows.length) {
+      list.replaceChildren(q ? emptyBox(`没有找到“${q}”。换个词试试，或者搜它的一小段原话。`) : emptyBox("这里还没有记忆。"));
+      return;
+    }
+    const thisYear = new Date().getFullYear();
+    const frag = document.createDocumentFragment();
+    let group = null, groupKey = null;
+    for (const b of rows) {
+      const d = parseDate(b);
+      const key = dayKey(d);
+      if (key !== groupKey) {
+        groupKey = key;
+        group = el("section", "day");
+        const date = el("div", "date");
+        if (d) {
+          date.appendChild(el("div", "md", `${d.getMonth() + 1}.${d.getDate()}`));
+          if (d.getFullYear() !== thisYear) date.appendChild(el("div", "yr", String(d.getFullYear())));
+          date.appendChild(el("div", "wd", WEEK[d.getDay()]));
+        } else {
+          date.appendChild(el("div", "md", "—"));
+          date.appendChild(el("div", "wd", "日期不明"));
+        }
+        group.appendChild(date);
+        group.appendChild(el("div", "entries"));
+        frag.appendChild(group);
+      }
+      group.lastChild.appendChild(entryRow(b, d));
+    }
+    list.replaceChildren(frag);
+  }
+  function entryRow(b, d) {
+    const row = el("button", "entry");
+    row.type = "button";
+    if (b.resolved || b.dont_surface || b.digested) row.classList.add("quiet");
+    row.appendChild(el("div", "text", b.letter_locked ? "这封信还锁着。" : previewText(b)));
+    const meta = el("div", "meta");
+    if (d) meta.appendChild(el("span", "time", hm(d)));
+    if (b.pinned) meta.appendChild(el("span", "flag", "钉住"));
+    const tl = TYPE_LABEL[b.type]; if (tl) meta.appendChild(el("span", "flag", tl));
+    if (b.resolved) meta.appendChild(el("span", "flag", "已放下"));
+    if (b.dont_surface) meta.appendChild(el("span", "flag", "不主动浮现"));
+    if (b.deletion_request && b.deletion_request.status === "pending") meta.appendChild(el("span", "flag warn", "等待删除确认"));
+    for (const t of (b.tags || []).slice(0, 3)) meta.appendChild(el("span", "tag", `#${t}`));
+    row.appendChild(meta);
+    row.addEventListener("click", () => openSheet(b.id));
+    return row;
+  }
+
+  // ---------- search ----------
+  let searchTimer, searchSeq = 0;
+  $("q").addEventListener("input", () => {
+    state.query = $("q").value; state.searchIds = null;
+    $("clearQ").hidden = !state.query; render();
+    clearTimeout(searchTimer);
+    if (state.query.trim().length >= 2) searchTimer = setTimeout(deepSearch, 450);
+  });
+  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") { clearTimeout(searchTimer); deepSearch(); $("q").blur(); } });
+  $("clearQ").addEventListener("click", () => { $("q").value = ""; state.query = ""; state.searchIds = null; $("clearQ").hidden = true; render(); });
+  async function deepSearch() {
+    const q = state.query.trim(); if (!q) return;
+    const seq = ++searchSeq;
+    try {
+      const res = await api(`/api/search?q=${encodeURIComponent(q)}`);
+      if (seq !== searchSeq) return;
+      const items = Array.isArray(res) ? res : (res.results || res.items || []);
+      state.searchIds = new Set(items.map((x) => x.id));
+      render();
+    } catch (_) { /* local filter already shown */ }
+  }
+
+  // ---------- editor ----------
+  const fieldsOf = (meta, content) => ({
+    content: content || "",
+    tags: (Array.isArray(meta.tags) ? meta.tags : String(meta.tags || "").split(",")).map((s) => String(s).trim()).filter(Boolean).join(", "),
+    importance: Number(meta.importance || 5),
+    pinned: !!meta.pinned,
+    resolved: !!meta.resolved,
+    dont_surface: !!meta.dont_surface,
+  });
+  function setToggle(id, on) { $(id).setAttribute("aria-pressed", String(!!on)); }
+  function readForm() {
+    return {
+      content: $("content").value,
+      tags: $("fTags").value.split(/[,，]/).map((s) => s.trim()).filter(Boolean).join(", "),
+      importance: Number($("fImp").value),
+      pinned: $("tPinned").getAttribute("aria-pressed") === "true",
+      resolved: $("tResolved").getAttribute("aria-pressed") === "true",
+      dont_surface: $("tQuiet").getAttribute("aria-pressed") === "true",
+    };
+  }
+  function changes() {
+    if (!state.original) return {};
+    const now = readForm(), out = {};
+    for (const k of Object.keys(now)) if (now[k] !== state.original[k]) out[k] = now[k];
+    if ("tags" in out) out.tags = now.tags ? now.tags.split(", ") : [];
+    return out;
+  }
+  function refreshDirty() {
+    const editable = state.current && state.current.editable;
+    $("saveBtn").disabled = !editable || !Object.keys(changes()).length;
+    $("fImpOut").textContent = $("fImp").value;
+  }
+  function autosize() {
+    const ta = $("content"); ta.style.height = "auto"; ta.style.height = Math.max(ta.scrollHeight, window.innerHeight * 0.32) + "px";
+  }
+  async function openSheet(id) {
+    const row = state.byId.get(id) || {};
+    const d = parseDate(row);
+    $("sheetWhen").textContent = d ? `${d.getMonth() + 1}月${d.getDate()}日 ${WEEK[d.getDay()]} ${hm(d)}` : "日期不明";
+    $("sheetWhat").textContent = subtitle(row);
+    $("sheetId").textContent = `bucket_id: ${id}`;
+    $("sheetNotice").replaceChildren();
+    $("content").value = "读取中…"; $("content").readOnly = true;
+    $("delForm").hidden = true; $("delReason").value = "";
+    state.current = { id, editable: false }; state.original = null;
+    refreshDirty();
+    $("sheet").classList.add("open"); document.body.classList.add("locked");
+    $("sheetBody").scrollTop = 0;
+    try {
+      const data = await api(`/api/bucket/${encodeURIComponent(id)}`);
+      if (!state.current || state.current.id !== id) return;
+      const meta = data.metadata || {};
+      const locked = !!data.letter_locked;
+      const archived = String(meta.type || "").toLowerCase() === "archived";
+      state.current.editable = !locked && !archived;
+      state.original = fieldsOf(meta, data.content);
+      $("content").value = locked ? (data.display_content || "这封信还锁着。") : state.original.content;
+      $("content").readOnly = !state.current.editable;
+      $("fTags").value = state.original.tags;
+      $("fImp").value = state.original.importance;
+      setToggle("tPinned", state.original.pinned);
+      setToggle("tResolved", state.original.resolved);
+      setToggle("tQuiet", state.original.dont_surface);
+      $("fields").hidden = locked;
+      $("dangerZone").hidden = locked || archived;
+      const notes = [];
+      if (locked) notes.push(["这封信还锁着，到时间才能读。", ""]);
+      if (archived) notes.push(["这条已经归档了，只能看不能改。", ""]);
+      if (meta.type === "feel") notes.push(["这是一条感受，是 Luar 自己写下的痕迹。", ""]);
+      const dr = data.deletion_request;
+      if (dr && dr.status === "pending") notes.push([`已经请求删除，等 Luar 确认。理由：${dr.human_reason || "（没写）"}`, "warn"]);
+      for (const [msg, cls] of notes) $("sheetNotice").appendChild(el("div", "notice " + cls, msg));
+      if (dr && dr.status === "pending") $("dangerZone").hidden = true;
+      autosize(); refreshDirty();
+    } catch (err) {
+      $("content").value = "";
+      $("sheetNotice").replaceChildren(el("div", "notice warn", `打不开这条记忆：${err.message}`));
+    }
+  }
+  function closeSheet(force = false) {
+    if (!force && Object.keys(changes()).length && !confirm("改动还没保存，确定要关掉吗？")) return;
+    $("sheet").classList.remove("open"); document.body.classList.remove("locked");
+    $("content").blur();
+    state.current = null; state.original = null;
+  }
+  $("closeBtn").addEventListener("click", () => closeSheet());
+  for (const id of ["content", "fTags", "fImp"]) $(id).addEventListener("input", () => { if (id === "content") autosize(); refreshDirty(); });
+  for (const id of ["tPinned", "tResolved", "tQuiet"]) {
+    $(id).addEventListener("click", () => {
+      if (!state.current || !state.current.editable) return;
+      setToggle(id, $(id).getAttribute("aria-pressed") !== "true"); refreshDirty();
+    });
+  }
+  $("saveBtn").addEventListener("click", async () => {
+    const diff = changes();
+    if (!Object.keys(diff).length || !state.current) return;
+    if ("content" in diff && !diff.content.trim()) { toast("正文不能是空的", true); return; }
+    const id = state.current.id;
+    $("saveBtn").disabled = true; $("saveBtn").textContent = "保存中";
+    try {
+      await api(`/api/bucket/${encodeURIComponent(id)}/edit`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(diff) });
+      state.original = readForm();
+      toast("已保存");
+      await load();
+    } catch (err) {
+      toast(`没保存成功：${err.message}`, true);
+    } finally {
+      $("saveBtn").textContent = "保存"; refreshDirty();
+    }
+  });
+  $("delOpen").addEventListener("click", () => { $("delForm").hidden = false; $("delReason").focus(); });
+  $("delSend").addEventListener("click", async () => {
+    const reason = $("delReason").value.trim();
+    if (!reason) { toast("写一句理由吧", true); $("delReason").focus(); return; }
+    const id = state.current && state.current.id; if (!id) return;
+    try {
+      const res = await api(`/api/bucket/${encodeURIComponent(id)}?confirm=true`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason }) });
+      toast(res && res.pending ? "删除请求已发送，等 Luar 确认" : "已删除");
+      closeSheet(true); load();
+    } catch (err) {
+      const code = err.data && err.data.code;
+      const msg = { pending_exists: "这条已经在等待删除确认了", daily_limit: "今天的删除请求已经用完了，明天再来", lifetime_limit: "这条记忆的删除请求次数用完了" }[code] || err.message;
+      toast(msg, true);
+    }
+  });
+
+  // ---------- chrome ----------
+  function toggleMenu(open) { $("menu").hidden = !open; $("menuBtn").setAttribute("aria-expanded", String(open)); }
+  $("menuBtn").addEventListener("click", (e) => { e.stopPropagation(); toggleMenu($("menu").hidden); });
+  document.addEventListener("click", (e) => { if (!$("menu").hidden && !$("menu").contains(e.target)) toggleMenu(false); });
+  $("refreshBtn").addEventListener("click", () => { load(); toast("已刷新"); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("sheet").classList.contains("open")) closeSheet(); });
+  window.addEventListener("beforeunload", (e) => { if (Object.keys(changes()).length) { e.preventDefault(); e.returnValue = ""; } });
+  // Keep the editor's top bar pinned above the on-screen keyboard (iOS Safari).
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const fit = () => {
+      document.documentElement.style.setProperty("--vvh", vv.height + "px");
+      document.documentElement.style.setProperty("--vvt", vv.offsetTop + "px");
+    };
+    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit); fit();
+  }
+
+  const bar = document.querySelector(".bar");
+  const setBarH = () => document.documentElement.style.setProperty("--barh", bar.offsetHeight + "px");
+  if (window.ResizeObserver) new ResizeObserver(setBarH).observe(bar);
+
+  // ---------- boot ----------
+  (async () => {
+    try {
+      const s = await fetch("/auth/status", { credentials: "same-origin" }).then((r) => r.json());
+      if (s.authenticated) { showApp(); load(); } else { showLogin(); if (s.setup_needed) $("loginErr").textContent = "还没有设置后台密码，先去完整版后台设置。"; }
+    } catch (_) { showLogin(); $("loginErr").textContent = "连不上服务器，检查一下网络。"; }
+  })();
+})();
+</script>
+</body>
+</html>
