@@ -1,0 +1,11 @@
+# Caddy 反代：自动 HTTPS（Let's Encrypt），把所有请求转给 OB。
+# OMBRE_SITE_ADDRESS 由 install.sh 写进 .env：
+#   有域名 → 你的域名；没有域名 → <公网IP用短横线>.sslip.io（免费，自动解析到这台机器）
+
+{$OMBRE_SITE_ADDRESS} {
+	reverse_proxy ombre-brain:8000 {
+		# MCP 是流式响应，立刻转发，不要缓冲
+		flush_interval -1
+		# Caddy 默认会保留原始 Host，并附带 X-Forwarded-For / -Proto / -Host
+	}
+}

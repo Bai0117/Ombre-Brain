@@ -1,0 +1,77 @@
+# Ombre Brain — VPS 一键部署（源码构建 + Caddy 自动 HTTPS）
+#
+# 一般不需要手动用这个文件：直接跑 deploy/vps/install.sh，它会生成 .env 并启动。
+# 手动启动 / 更新：
+#   cd /opt/ombre-brain
+#   docker compose -f deploy/vps/docker-compose.vps.yml --env-file deploy/vps/.env up -d --build
+#
+# 结构：
+#   公网 443 ──> caddy（自动申请 Let's Encrypt 证书）──> ombre-brain:8000（只在内部网络）
+#   宿主 127.0.0.1:18001 也映射到 OB，方便在 SSH 里 curl 自检，不对公网开放。
+#
+# 记忆数据放在仓库目录之外（默认 /opt/ombre-data），git pull / 重建镜像都不会碰到它。
+
+name: ombre
+
+services:
+  ombre-brain:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: ombre-brain
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OMBRE_HOST_PORT:-18001}:8000"
+    environment:
+      - OMBRE_TRANSPORT=streamable-http
+      - OMBRE_BIND_ADDRESS=127.0.0.1
+      - OMBRE_ALLOW_INSECURE_MCP=false
+      - OMBRE_MCP_AUTH_MODE=${OMBRE_MCP_AUTH_MODE:-}
+      - OMBRE_MCP_TOKEN=${OMBRE_MCP_TOKEN:-}
+      - OMBRE_CONFIG_PATH=/app/buckets/config.yaml
+      - OMBRE_EMBED_BACKEND=api
+      - OMBRE_COMPRESS_API_KEY=${OMBRE_COMPRESS_API_KEY:-}
+      - OMBRE_COMPRESS_BASE_URL=${OMBRE_COMPRESS_BASE_URL:-}
+      - OMBRE_COMPRESS_MODEL=${OMBRE_COMPRESS_MODEL:-}
+      - OMBRE_EMBED_API_KEY=${OMBRE_EMBED_API_KEY:-}
+      - OMBRE_EMBED_BASE_URL=${OMBRE_EMBED_BASE_URL:-}
+      - OMBRE_EMBED_MODEL=${OMBRE_EMBED_MODEL:-}
+      - OMBRE_DASHBOARD_PASSWORD=${OMBRE_DASHBOARD_PASSWORD:?OMBRE_DASHBOARD_PASSWORD is required}
+      - AI_NAME=${AI_NAME:-}
+      # 只信任 Caddy 所在的内部网段（见下方 networks），绝不用 0.0.0.0/0。
+      - "OMBRE_TRUSTED_PROXY_CIDRS=172.31.88.0/24"
+      - OMBRE_HOST_VAULT_DIR=${OMBRE_HOST_VAULT_DIR:-/opt/ombre-data}
+    volumes:
+      - type: bind
+        source: ${OMBRE_HOST_VAULT_DIR:-/opt/ombre-data}
+        target: /app/buckets
+    networks:
+      - ombre
+
+  caddy:
+    image: caddy:2
+    container_name: ombre-caddy
+    restart: unless-stopped
+    depends_on:
+      - ombre-brain
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - OMBRE_SITE_ADDRESS=${OMBRE_SITE_ADDRESS:?OMBRE_SITE_ADDRESS is required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - ombre
+
+networks:
+  ombre:
+    ipam:
+      config:
+        - subnet: 172.31.88.0/24
+
+volumes:
+  caddy-data:
+  caddy-config:
