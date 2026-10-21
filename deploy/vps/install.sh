@@ -93,7 +93,9 @@ ok "Docker 就绪"
 # ---------- 4. 代码 ----------
 say "获取 Ombre Brain 代码"
 if [ -d "$APP_DIR/.git" ]; then
-  git -C "$APP_DIR" fetch --depth 1 origin "$REPO_BRANCH"
+  # 显式 refspec：VPS 上是 --branch main 的单分支浅克隆，不写全的话换到别的分支时
+  # origin/<分支> 这个引用根本不会生成，下一行 reset 直接失败、旧版本继续跑。
+  git -C "$APP_DIR" fetch --depth 1 origin "+refs/heads/$REPO_BRANCH:refs/remotes/origin/$REPO_BRANCH"
   git -C "$APP_DIR" reset --hard "origin/$REPO_BRANCH"
   ok "已更新到最新版本"
 else
