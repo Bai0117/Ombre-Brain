@@ -181,6 +181,17 @@ if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: a
 fi
 
 # ---------- 7. 构建并启动 ----------
+# 可选 WARP 出口：.env 里有 OMBRE_USE_WARP='1' 时启用（Gemini 报地区不支持时用）
+if [ "$(envget OMBRE_USE_WARP)" = "1" ]; then
+  export COMPOSE_PROFILES=warp
+  export OMBRE_EGRESS_PROXY="http://warp:25345"
+  mkdir -p /opt/ombre-warp
+  ok "已启用 WARP 出口（Gemini 请求经 Cloudflare 转发）"
+else
+  export COMPOSE_PROFILES=""
+  export OMBRE_EGRESS_PROXY=""
+fi
+
 say "构建并启动（第一次要几分钟，屏幕会滚很多字，别关窗口）"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
 

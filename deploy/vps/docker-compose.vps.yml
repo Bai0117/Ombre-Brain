@@ -41,6 +41,11 @@ services:
       # 只信任 Caddy 所在的内部网段（见下方 networks），绝不用 0.0.0.0/0。
       - "OMBRE_TRUSTED_PROXY_CIDRS=172.31.88.0/24"
       - OMBRE_HOST_VAULT_DIR=${OMBRE_HOST_VAULT_DIR:-/opt/ombre-data}
+      # 可选 WARP 出口（install.sh 在 .env 有 OMBRE_USE_WARP='1' 时自动设置）。
+      # 为空时不走代理。DeepSeek / GitHub / 内部服务始终直连。
+      - HTTPS_PROXY=${OMBRE_EGRESS_PROXY:-}
+      - HTTP_PROXY=${OMBRE_EGRESS_PROXY:-}
+      - NO_PROXY=localhost,127.0.0.1,::1,ombre-brain,caddy,warp,deepseek.com,api.deepseek.com,github.com,api.github.com,raw.githubusercontent.com,codeload.github.com,objects.githubusercontent.com
     volumes:
       - type: bind
         source: ${OMBRE_HOST_VAULT_DIR:-/opt/ombre-data}
@@ -63,6 +68,21 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    networks:
+      - ombre
+
+  # 可选：Cloudflare WARP 出口代理，解决 Gemini "User location is not supported"。
+  # 只在 COMPOSE_PROFILES=warp 时启动；不对外暴露端口，只在内部网络提供 warp:25345。
+  warp:
+    build:
+      context: ./warp
+    container_name: ombre-warp
+    restart: unless-stopped
+    profiles: ["warp"]
+    volumes:
+      - type: bind
+        source: ${OMBRE_WARP_DIR:-/opt/ombre-warp}
+        target: /data
     networks:
       - ombre
 
