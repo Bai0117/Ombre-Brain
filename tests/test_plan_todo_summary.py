@@ -222,3 +222,31 @@ async def test_summary_fields_survive_a_real_bucket_update(test_config):
     meta = (await manager.get(bid))["metadata"]
     assert meta["todo_summary"] == "聊天后端加锁"
     assert meta["todo_summary_of"] == fp
+
+
+def test_writing_a_summary_is_not_a_footprint_step():
+    """摘要只是后台补的展示字段；足迹里不该多出一次「更新」。"""
+    from ombrebrain.eventsourcing.footprint import FootprintSnapshot
+
+    created = {
+        "trace_id": "p1", "event_type": "TraceCreated", "trace_kind": "plan",
+        "payload": {"source_tool": "plan", "event_actor": "llm"},
+    }
+    status = {
+        "trace_id": "p1", "event_type": "TraceUpdated", "trace_kind": "plan",
+        "payload": {"changed_fields": ["change_log", "status"]},
+    }
+    summary = {
+        "trace_id": "p1", "event_type": "TraceUpdated", "trace_kind": "plan",
+        "payload": {"changed_fields": ["todo_summary", "todo_summary_of"]},
+    }
+    edit = {
+        "trace_id": "p1", "event_type": "TraceUpdated", "trace_kind": "plan",
+        "payload": {"changed_fields": ["content", "todo_summary"]},
+    }
+
+    snap = FootprintSnapshot.from_events([created, status, summary])
+    assert snap.summary("p1") == "👣 Footprint：LLM经plan创建 → 更新"
+    # 正文真的被改了，就算同一次顺带写了摘要，也照常记下
+    snap = FootprintSnapshot.from_events([created, status, summary, edit])
+    assert snap.summary("p1").endswith("→ 正文重构")

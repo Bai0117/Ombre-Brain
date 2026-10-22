@@ -57,8 +57,8 @@
     },
     {
       "path": "src/dehydrator.py",
-      "sha256": "afc1a1cfb56b08ff57c9b60c322f8f25af3f727a5d8b350d60b276870c7e2eca",
-      "size": 65109
+      "sha256": "435684a4758183f06782c0b323254adb10cadbf0ad70dd54b37a9106b73df656",
+      "size": 65252
     },
     {
       "path": "src/deletion_requests.py",
@@ -192,8 +192,8 @@
     },
     {
       "path": "src/ombrebrain/eventsourcing/footprint.py",
-      "sha256": "d577d3987631212601a86fc5c936330f9e7ba15e59911628e3101e9b6e7d991b",
-      "size": 4597
+      "sha256": "74ac78358a10b477509649d8ff901025ba6647681de303aaaf376821534cdf34",
+      "size": 5062
     },
     {
       "path": "src/ombrebrain/eventsourcing/ledger_mirror.py",

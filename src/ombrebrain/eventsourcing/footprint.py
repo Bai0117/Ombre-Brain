@@ -13,6 +13,11 @@ from typing import Any, Iterable
 
 _ARCHIVED_KINDS = {"archived", "deleted", "tombstone"}
 
+# 后台派生、只供展示的字段。只改了这些的 TraceUpdated 不算这条记忆的经历：
+# 待办摘要（tools/plan/summary.py）写进去时正文一个字没动，记成「更新」
+# 会让人以为有谁改过这条 plan。
+_DERIVED_ONLY_FIELDS = frozenset({"todo_summary", "todo_summary_of"})
+
 _ACTOR_LABELS = {
     "llm": "LLM",
     "human": "用户",
@@ -96,6 +101,8 @@ def _event_label(event: dict[str, Any]) -> str:
         return ""  # TraceTouched 和未知技术事件不占 breath token。
 
     fields = {str(item) for item in payload.get("changed_fields") or []}
+    if fields and fields <= _DERIVED_ONLY_FIELDS:
+        return ""  # 只是后台补了展示用的派生字段，这条记忆本身没被动过。
     if "last_merged_by" in fields:
         return "事件补充"
     if "dont_surface" in fields:

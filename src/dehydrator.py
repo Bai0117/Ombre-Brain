@@ -103,7 +103,9 @@ _SAME_EVENT_MAX_TOKENS = 1024   # 仅返回紧凑 JSON
 _SAME_EVENT_TEMPERATURE = 0.0   # 事件边界判定需确定性
 _DIGEST_TEMPERATURE = 0.0       # 拆条需确定性
 _PLAN_SUMMARY_INPUT_LIMIT = 1500
-_PLAN_SUMMARY_MAX_TOKENS = 1024  # 输出只有一行，但 thinking 模型要留推理余量
+# 输出只有一行，但 thinking 模型（如 deepseek-flash）先想再答，推理也算在这个
+# 额度里。1024 在真机上被长一点的 plan 吃光：finish_reason=length、content 为空。
+_PLAN_SUMMARY_MAX_TOKENS = 4096
 _PLAN_SUMMARY_TEMPERATURE = 0.2
 PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这里兜底
 
