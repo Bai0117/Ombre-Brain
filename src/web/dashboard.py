@@ -17,6 +17,26 @@ from starlette.responses import Response
 
 from . import _shared as sh
 
+_ICON_ASSETS = ("icon.svg", "favicon.svg", "favicon-64.png", "apple-touch-icon.png")
+
+
+def _bust_static(html: str, names) -> str:
+    """给 /static/<name> 加 ?v=<文件内容指纹>。
+
+    以前用的是版本号：换了图标但版本号没变（3.6.14 → 3.6.14），URL 一模一样，
+    Safari 就一直显示缓存里的旧图标。改成按文件内容算，文件一变 URL 就变。
+    """
+    import hashlib
+
+    for name in names:
+        try:
+            with open(os.path.join(sh.repo_root, "frontend", name), "rb") as f:
+                ver = hashlib.sha256(f.read()).hexdigest()[:10]
+        except FileNotFoundError:
+            ver = sh.version
+        html = html.replace(f"/static/{name}", f"/static/{name}?v={ver}")
+    return html
+
 
 def register(mcp) -> None:
 
@@ -33,10 +53,9 @@ def register(mcp) -> None:
         try:
             with open(dashboard_path, "r", encoding="utf-8") as f:
                 html = f.read()
-            # U-09 fix: cache-bust static SVG assets so logo updates are visible
-            # without manual hard-refresh after upgrade. 只动字面量 /static/*.svg URL。
-            for asset in ("/static/icon.svg", "/static/favicon.svg", "/static/apple-touch-icon.png"):
-                html = html.replace(asset, f"{asset}?v={sh.version}")
+            # U-09 fix: cache-bust static icon assets so logo updates are visible
+            # without manual hard-refresh after upgrade. 只动字面量 /static/ URL。
+            html = _bust_static(html, _ICON_ASSETS)
             # 别让浏览器缓存仪表板 HTML：否则改了 dashboard.html 重新下发后，
             # 用户看到的还是旧版面（U-09 只 cache-bust 了 SVG，HTML 本身没设）。
             # HTML 很小、又是每次从磁盘读，禁缓存代价可忽略，省掉「为什么改了没生效」。
@@ -71,8 +90,7 @@ def register(mcp) -> None:
                 "<h1>home.html not found</h1><p>Update the checkout and restart.</p>",
                 status_code=404,
             )
-        for asset in ("/static/favicon.svg", "/static/manifest.json", "/static/apple-touch-icon.png"):
-            html = html.replace(asset, f"{asset}?v={sh.version}")
+        html = _bust_static(html, _ICON_ASSETS + ("manifest.json",))
         return HTMLResponse(
             html,
             headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
@@ -90,6 +108,7 @@ def register(mcp) -> None:
             "favicon.svg": "image/svg+xml",
             # iPhone 主屏幕图标只认 PNG；manifest 也给 PNG（白画的猫猫月月）
             "apple-touch-icon.png": "image/png",
+            "favicon-64.png": "image/png",
             "icon-192.png": "image/png",
             "icon-512.png": "image/png",
             "manifest.json": "application/manifest+json",
@@ -107,8 +126,15 @@ def register(mcp) -> None:
     # 浏览器打开任意页都会自动请求 /favicon.ico，301 永久重定向到 SVG 版本。
     @mcp.custom_route("/favicon.ico", methods=["GET"])
     async def favicon_redirect(request: Request) -> Response:
-        from starlette.responses import RedirectResponse
-        return RedirectResponse(url="/static/favicon.svg", status_code=301)
+        # 以前是 301 永久跳到 favicon.svg：Safari 不认 SVG 图标，而且 301 会被永久缓存。
+        # 现在直接给 PNG，短缓存，换图标后很快就能看到。
+        from starlette.responses import Response as _Resp, JSONResponse
+        try:
+            with open(os.path.join(sh.repo_root, "frontend", "favicon-64.png"), "rb") as f:
+                return _Resp(f.read(), media_type="image/png",
+                             headers={"Cache-Control": "public, max-age=3600"})
+        except FileNotFoundError:
+            return JSONResponse({"error": "not found"}, status_code=404)
 
     @mcp.custom_route("/health", methods=["GET"])
     async def health_check(request: Request) -> Response:
