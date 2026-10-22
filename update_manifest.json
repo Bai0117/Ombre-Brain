@@ -6,29 +6,44 @@
       "size": 3264764
     },
     {
+      "path": "frontend/apple-touch-icon.png",
+      "sha256": "e4d134241613917cabdc9fa62107d71fd3c1b67558d3437535363ef1501f2993",
+      "size": 9257
+    },
+    {
       "path": "frontend/dashboard.html",
-      "sha256": "76e1e10e1a66d632b1ff46cf6ff2029219ccf272c46e2e3c9d8dac5a650acfc8",
-      "size": 582066
+      "sha256": "41b5ad5a0086595f7a84f7b64f303d915ab1c19a81d311ff36dfeb52db272f8a",
+      "size": 582098
     },
     {
       "path": "frontend/favicon.svg",
-      "sha256": "98d8894785aff636f71702b922590db479f5b363d6e7c892fceec0d9c35195ff",
-      "size": 658
+      "sha256": "f4893f2addb8b5e2bfd0a32112d0526209dd238297c7f5165193859b7c7db854",
+      "size": 8550
     },
     {
       "path": "frontend/home.html",
-      "sha256": "c6811539e193e3646bd2a4c155aa3c8ff00ec7d007a807b3d6b4ba93d466fb49",
-      "size": 39447
+      "sha256": "d0f26c10a8006898b9deb853d6481cd23b48ebb9e3f60adbd8966ed863f866f1",
+      "size": 39513
+    },
+    {
+      "path": "frontend/icon-192.png",
+      "sha256": "8dc6330b06e8cd82d013271bab0fc42dadda69271336d6aa4d37cbd561dbdec0",
+      "size": 10169
+    },
+    {
+      "path": "frontend/icon-512.png",
+      "sha256": "dc02ebaa341c51ebc5e90db0d1b55e1add9c13c553a82dbb6179c299dcf164f9",
+      "size": 35294
     },
     {
       "path": "frontend/icon.svg",
-      "sha256": "4eaf4ca023e969fe2fd617be08ab8537ff30486cac89e2b4617731bccdbc0813",
-      "size": 1474
+      "sha256": "41e6ca1160f113818e393f0cc65fac2ec063d7bcd9ec701355b24cb9e1a9fcf5",
+      "size": 32088
     },
     {
       "path": "frontend/manifest.json",
-      "sha256": "998c9a1548cd68bc4b15523a52c1b37561f394e92d7278c6139099465e42007f",
-      "size": 370
+      "sha256": "167fa8580faf28bdd92629381b893e0ee4e7ca2be44563f2e0119e324346142a",
+      "size": 554
     },
     {
       "path": "frontend/onboarding.html",
@@ -827,8 +842,8 @@
     },
     {
       "path": "src/web/dashboard.py",
-      "sha256": "26ec75b5ba7acb547afeff37407207c10bdb3b0a6d6ba21a1beff85ab3c681d7",
-      "size": 5719
+      "sha256": "705923a9ad7e7ad7784aee0ca1a12adff3162f969ca3877ab6725ab27c5aba37",
+      "size": 6010
     },
     {
       "path": "src/web/embedding.py",

@@ -35,7 +35,7 @@ def register(mcp) -> None:
                 html = f.read()
             # U-09 fix: cache-bust static SVG assets so logo updates are visible
             # without manual hard-refresh after upgrade. 只动字面量 /static/*.svg URL。
-            for asset in ("/static/icon.svg", "/static/favicon.svg"):
+            for asset in ("/static/icon.svg", "/static/favicon.svg", "/static/apple-touch-icon.png"):
                 html = html.replace(asset, f"{asset}?v={sh.version}")
             # 别让浏览器缓存仪表板 HTML：否则改了 dashboard.html 重新下发后，
             # 用户看到的还是旧版面（U-09 只 cache-bust 了 SVG，HTML 本身没设）。
@@ -71,7 +71,7 @@ def register(mcp) -> None:
                 "<h1>home.html not found</h1><p>Update the checkout and restart.</p>",
                 status_code=404,
             )
-        for asset in ("/static/favicon.svg", "/static/manifest.json"):
+        for asset in ("/static/favicon.svg", "/static/manifest.json", "/static/apple-touch-icon.png"):
             html = html.replace(asset, f"{asset}?v={sh.version}")
         return HTMLResponse(
             html,
@@ -88,6 +88,10 @@ def register(mcp) -> None:
         allowed = {
             "icon.svg": "image/svg+xml",
             "favicon.svg": "image/svg+xml",
+            # iPhone 主屏幕图标只认 PNG；manifest 也给 PNG（白画的猫猫月月）
+            "apple-touch-icon.png": "image/png",
+            "icon-192.png": "image/png",
+            "icon-512.png": "image/png",
             "manifest.json": "application/manifest+json",
             "RRPL.ttf": "font/truetype",
         }
