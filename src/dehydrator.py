@@ -107,10 +107,12 @@ _PLAN_SUMMARY_INPUT_LIMIT = 1500
 # 额度里。1024 在真机上被长一点的 plan 吃光：finish_reason=length、content 为空。
 _PLAN_SUMMARY_MAX_TOKENS = 4096
 _PLAN_SUMMARY_TEMPERATURE = 0.2
-PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这里兜底
+# 硬上限；prompt 要求 30 字以内。v3 不许写成电报后，模型常写到 40 出头——
+# 原来的 40 会把句子拦腰切断（「……不碰不压不转耳钉…」），放宽到 60，超了在逗号处断。
+PLAN_SUMMARY_MAX_CHARS = 60
 # 改了 summarize_plan 的 prompt 就把它加一：版本混进摘要指纹，旧摘要会在下一次
 # breath 时自动按新 prompt 重写一遍（tools/plan/summary.py）。
-PLAN_SUMMARY_VERSION = 3
+PLAN_SUMMARY_VERSION = 4
 # breath「这几天」的每日摘要（tools/breath/recent_digest.py）。改 prompt 就加一，旧摘要自动重写。
 DAY_DIGEST_VERSION = 3
 # 字数跟着当天记忆条数走：1 条 ~150 字，十几条最多 450 字。v1 一律 200 字、
@@ -1406,7 +1408,9 @@ class Dehydrator:
             if not line:
                 continue
             if len(line) > PLAN_SUMMARY_MAX_CHARS:
-                line = line[:PLAN_SUMMARY_MAX_CHARS] + "…"
+                head = line[:PLAN_SUMMARY_MAX_CHARS]
+                cut = max(head.rfind(p) for p in "，；、,;")
+                line = head[:cut] if cut >= PLAN_SUMMARY_MAX_CHARS // 2 else head + "…"
             return line
         return ""
 
