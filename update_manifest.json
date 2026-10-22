@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "2d941f7ad37aa511deff8adf5a5aa39f22e5622351554a2f6a8b5f784c5eb937",
-      "size": 585602
+      "sha256": "6fd15758adc552b005e947cfc82e790830a0d26347415628acfa56e1448c4509",
+      "size": 590853
     },
     {
       "path": "frontend/favicon-64.png",
@@ -67,8 +67,8 @@
     },
     {
       "path": "src/bucket_manager.py",
-      "sha256": "4d87395bdec2354e0e303f8f42aabb43b5d34dd2097d241b941c10137e84f344",
-      "size": 192572
+      "sha256": "2fdbea73acfdf5b6d48ceacb0d119a50c1890161db242370cf69213d23afee78",
+      "size": 188849
     },
     {
       "path": "src/decay_engine.py",
@@ -212,8 +212,8 @@
     },
     {
       "path": "src/ombrebrain/eventsourcing/footprint.py",
-      "sha256": "74ac78358a10b477509649d8ff901025ba6647681de303aaaf376821534cdf34",
-      "size": 5062
+      "sha256": "7371067287bbfbba91f1165dc677507f49ad13a08330aca689af25a70e7dd3c4",
+      "size": 5174
     },
     {
       "path": "src/ombrebrain/eventsourcing/ledger_mirror.py",
@@ -661,9 +661,14 @@
       "size": 6263
     },
     {
+      "path": "src/tools/breath/keepsake.py",
+      "sha256": "ebad47568425f564c46c74ec4aa3ec9e305dbbd0cb5ca7ef766de8411126ae3a",
+      "size": 4099
+    },
+    {
       "path": "src/tools/breath/recall_log.py",
-      "sha256": "ab8f1e4fbb46fc5e2a419d40ee85e09ca5b68587165f7370fb1112302c055b9d",
-      "size": 9012
+      "sha256": "cb921d2583855d86aa3bdbab8fdd1e060f232483d4ec19228ccf633fbaf03682",
+      "size": 9022
     },
     {
       "path": "src/tools/breath/recent_digest.py",
@@ -677,8 +682,8 @@
     },
     {
       "path": "src/tools/breath/surface.py",
-      "sha256": "fad87762aa6d8c0ef4ea0fa6c91c9615dbcb7c55c1ba5ee7980a36f768cbf025",
-      "size": 28479
+      "sha256": "18d48e59edf0e657bd0f0301637394594f4bedf37ef64538db55c378bd6dd6cf",
+      "size": 33358
     },
     {
       "path": "src/tools/dream/__init__.py",
@@ -847,8 +852,8 @@
     },
     {
       "path": "src/web/buckets.py",
-      "sha256": "719672ec9fe0bbb9a4085ae0f726c94e507154cfb17aeee9729850d663332ace",
-      "size": 50658
+      "sha256": "270320b22120458dd623e747deb64c291f9c3091aac9412dfb06c78e175a5833",
+      "size": 52567
     },
     {
       "path": "src/web/config_api.py",

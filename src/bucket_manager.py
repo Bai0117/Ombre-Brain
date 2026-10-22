@@ -2287,6 +2287,7 @@ class BucketManager:
             "dont_surface",
             "first_of_kind",
             "anchor",
+            "keepsake",
         ):
             if field in kwargs:
                 kwargs[field] = parse_bool(kwargs[field])
@@ -2576,7 +2577,10 @@ class BucketManager:
                   # plan 在无参 breath「待办」里的一行摘要（tools/plan/summary.py 维护）：
                   # todo_summary     脱水模型写的一句话
                   # todo_summary_of  写摘要时正文的指纹；正文改了指纹对不上，摘要就算过期
-                  "todo_summary", "todo_summary_of"):
+                  "todo_summary", "todo_summary_of",
+                  # 小池子（tools/breath/keepsake.py）：她或我挑出来的小事，
+                  # 每次 breath 随机想起一条。False 时删掉字段，frontmatter 保持干净。
+                  "keepsake"):
             if k in kwargs:
                 if k == "weight" and kwargs[k] is not None:
                     post[k] = _clamp01(kwargs[k], _DEFAULT_VALENCE)
@@ -2584,6 +2588,11 @@ class BucketManager:
                     post[k] = kwargs[k]
                 elif k == "first_of_kind":
                     post[k] = kwargs[k]
+                elif k == "keepsake":
+                    if kwargs[k]:
+                        post[k] = True
+                    else:
+                        post.metadata.pop(k, None)
                 elif k == "anchor":
                     # iter 2.0: anchor 是布尔；False 时直接删除字段保持 frontmatter 干净。
                     # 修复：透传路径之前会绕过 ANCHOR_LIMIT，导致批量脚本/前端直接 update(anchor=True)

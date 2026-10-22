@@ -159,6 +159,7 @@ def register(mcp) -> None:
                     "resolved": meta.get("resolved", False),
                     "pinned": meta.get("pinned", False),
                     "digested": meta.get("digested", False),
+                    "keepsake": parse_bool(meta.get("keepsake"), default=False),
                     "imported": parse_bool(meta.get("imported"), default=False)
                     or str(meta.get("source_tool") or "").strip() == "import",
                     "created": meta.get("created", ""),
@@ -470,6 +471,43 @@ def register(mcp) -> None:
                 "resolved": new_resolved,
                 "message": resolved_hint(new_resolved),
             })
+        except Exception as e:
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+
+    # ---- 小池子 / keepsake ----
+    # 放进去的记忆每次无参 breath 随机想起一条（tools/breath/keepsake.py）。
+    # body 可带 {"keepsake": true|false}；不带就是切换。
+    @mcp.custom_route("/api/bucket/{bucket_id}/keepsake", methods=["POST"])
+    async def api_bucket_keepsake(request: Request) -> Response:
+        from starlette.responses import JSONResponse
+        err = sh._require_auth(request)
+        if err:
+            return err
+        bucket_id = request.path_params["bucket_id"]
+        bucket = await sh.bucket_mgr.get(bucket_id)
+        if not bucket:
+            return JSONResponse({"error": "not found"}, status_code=404)
+        meta = bucket.get("metadata", {})
+        if is_letter_bucket(bucket):
+            return JSONResponse({"error": "信不进小池子"}, status_code=403)
+        if _is_terminal_memory_metadata(meta):
+            return JSONResponse({"error": "归档的记忆不能放进小池子"}, status_code=409)
+        if str(meta.get("type") or "").strip().lower() == "plan":
+            return JSONResponse({"error": "计划不进小池子"}, status_code=400)
+        try:
+            body = await sh._read_json_object(request)
+        except Exception:
+            body = {}
+        current = parse_bool(meta.get("keepsake"), default=False)
+        wanted = parse_bool(body["keepsake"], default=not current) if "keepsake" in body else not current
+        try:
+            ok = await sh.bucket_mgr.update(
+                bucket_id, event_actor="human", keepsake=wanted
+            )
+            if not ok:
+                return JSONResponse({"error": "update failed"}, status_code=409)
+            return JSONResponse({"ok": True, "keepsake": wanted})
         except Exception as e:
             return JSONResponse({"error": str(e)}, status_code=500)
 

@@ -18,6 +18,9 @@ tools/breath/surface.py — 无 query 浮现模式
   按 created 倒序；其余位置照旧按权重（见 _apply_recency_quota）
 - 3.6.0：date_from/date_to 作用于普通浮现、久未浮现与偶遇的候选池；
   核心准则不受时间过滤影响——它们是准则不是事件，按设计始终在场
+- 「这几天」已经写进摘要的记忆，浮现区最多留 surfacing.recent_in_surface（默认 3）条，
+  先留不是工程记录的（见 _cap_digest_covered）
+- 「小池子」：keepsake 标记的记忆每次随机想起一条，单独一段，不占浮现名额（见 keepsake.py）
 - 末尾 1~2 条「久未浮现」passive association（imp>=8 且未访问 / imp>=9 且 7 天未活跃），
   3.6.0 起 24 小时内新建的桶不进这个池
 
@@ -39,7 +42,8 @@ from ombrebrain.policy.surfacing import SurfacePolicyVM
 from .. import _runtime as rt
 from ..plan.core import is_letter_bucket
 from ..plan.summary import fresh_summary, schedule_plan_summaries
-from .recent_digest import recent_digest_section
+from .keepsake import SECTION as KEEPSAKE_SECTION, pick_keepsakes
+from .recent_digest import _digest_days, collect_days, recent_digest_section
 from utils import parse_bool, parse_iso_datetime
 from ._date_range import bucket_in_created_range
 from ._shared import (
@@ -176,6 +180,78 @@ def _apply_recency_quota(
     # 放在权重榜之后：头版仍然是权重最高的那条，新桶紧随其后，
     # 而不是反过来把最重要的挤到看不见的地方。
     return rest[:max_results - len(picks)] + picks
+
+
+_RECENT_IN_SURFACE_DEFAULT = 3
+# 工程记录：这些域的记忆在「这几天」摘要里写清楚就够了，留位置时排在最后。
+_QUIET_DOMAINS_DEFAULT = ("编程", "网络", "project")
+
+
+def _cap_digest_covered(
+    candidates: list[dict],
+    all_buckets: list[dict],
+    surfacing_cfg: dict,
+) -> set[str]:
+    """「这几天」摘要已经写到的记忆，浮现区只留几条；返回要让出位置的 id。
+
+    10.22 一次醒来，浮现的 20 条里 11 条是当天的，几乎全是改 OB 的工程记录——
+    新记忆权重天然高，排在前面；可它们已经写进上面的「这几天」，等于同一件事
+    看两遍，被挤掉的是她更早说过的事：读过的书、她的身体、小时候、我们的约定。
+
+    留哪几条：摘要是一条一句压出来的，压不住的是她难过的那一晚、身体的事、
+    我们之间的约定——这些留下；工程域（surfacing.recent_quiet_domains）排最后。
+    其余按重要度、唤醒度、越新越先。让出去的原文都在，breath_search 随时找得回来。
+
+    `surfacing.recent_in_surface` < 0 关掉，回到全部照权重排。
+    """
+    try:
+        keep = int(surfacing_cfg.get("recent_in_surface", _RECENT_IN_SURFACE_DEFAULT))
+    except (TypeError, ValueError):
+        keep = _RECENT_IN_SURFACE_DEFAULT
+    if keep < 0:
+        return set()
+    days = _digest_days()
+    if days <= 0:
+        return set()
+    covered = {b["id"] for _, group in collect_days(all_buckets, days) for b in group}
+    if not covered:
+        return set()
+    in_play = [b for b in candidates if b["id"] in covered]
+    if len(in_play) <= keep:
+        return set()
+
+    quiet = surfacing_cfg.get("recent_quiet_domains", _QUIET_DOMAINS_DEFAULT)
+    if isinstance(quiet, str):
+        quiet = [quiet]
+    quiet_set = {str(d).strip().lower() for d in (quiet or []) if str(d).strip()}
+
+    def _num(meta: dict, key: str, default: float) -> float:
+        try:
+            return float(meta.get(key, default))
+        except (TypeError, ValueError):
+            return default
+
+    def _rank(b: dict):
+        meta = b.get("metadata") or {}
+        domains = meta.get("domain") or []
+        if isinstance(domains, str):
+            domains = [domains]
+        is_quiet = any(str(d).strip().lower() in quiet_set for d in domains)
+        created = _created_at(b)
+        return (
+            is_quiet,
+            -_num(meta, "importance", 5),
+            -_num(meta, "arousal", 0.3),
+            -(created.timestamp() if created else 0.0),
+        )
+
+    kept = {b["id"] for b in sorted(in_play, key=_rank)[:keep]}
+    dropped = covered - kept
+    rt.logger.info(
+        f"digest cap: {len(in_play) - len(kept)} recent bucket(s) left to 这几天 "
+        f"(kept={len(kept)}, limit={keep})"
+    )
+    return dropped
 
 
 async def surface_plans(max_tokens: int) -> str:
@@ -453,8 +529,16 @@ async def surface_default(
             non_cold = top1 + pool + non_cold[min(20, len(non_cold)):]
         candidates = cold_start + non_cold
 
+    # 「这几天」写过的，浮现区只留几条；让出去的也不进新近配额和久未浮现。
+    surface_pool = unresolved
+    if recent_section:
+        dropped = _cap_digest_covered(candidates, all_buckets, surfacing_cfg)
+        if dropped:
+            candidates = [b for b in candidates if b["id"] not in dropped]
+            surface_pool = [b for b in unresolved if b["id"] not in dropped]
+
     candidates = _apply_recency_quota(
-        candidates, unresolved, max_results, surfacing_cfg
+        candidates, surface_pool, max_results, surfacing_cfg
     )
     candidates = candidates[:max_results]
 
@@ -517,13 +601,14 @@ async def surface_default(
 
     # --- iter 1.6 §7: passive association ---
     passive_results: list[str] = []
+    passive_ids: set[str] = set()
     try:
         now = datetime.now()
         seven_days_ago = now - timedelta(days=7)
         just_created_after = now - timedelta(hours=_PASSIVE_MIN_AGE_HOURS)
         already = {b["id"] for b in candidates}
         passive_pool = []
-        for b in unresolved:
+        for b in surface_pool:
             if b["id"] in already:
                 continue
             meta = b["metadata"]
@@ -564,11 +649,36 @@ async def surface_default(
                     if entry_tokens > token_budget:
                         continue
                     passive_results.append(rendered)
+                    passive_ids.add(b["id"])
                     token_budget -= entry_tokens
                 except Exception as e:
                     rt.logger.warning(f"passive association render failed: {e}")
     except Exception as e:
         rt.logger.warning(f"passive association block failed: {e}")
+
+    # --- 小池子：她挑出来的小事，每次随机想起一条，不占浮现名额 ---
+    keepsake_results: list[str] = []
+    keepsake_ids: set[str] = set()
+    if not date_scoped and not tag_filter:
+        try:
+            shown = (
+                {b["id"] for b in candidates}
+                | {b["id"] for b in pinned_buckets}
+                | passive_ids
+            )
+            for b in pick_keepsakes(all_buckets, shown):
+                rendered, entry_tokens = render_stored_bucket(
+                    b,
+                    f"🫧 [{KEEPSAKE_SECTION}] [bucket_id:{b['id']}]{created_label(b)}",
+                    _footprint(b),
+                )
+                if entry_tokens > token_budget:
+                    continue
+                keepsake_results.append(rendered)
+                keepsake_ids.add(b["id"])
+                token_budget -= entry_tokens
+        except Exception as e:
+            rt.logger.warning(f"keepsake block failed / 小池子异常: {e}")
 
     # --- 3% 偶遇：从 resolved 池随机浮现 1~3 条沉底记忆 (iter 2.1) ---
     # 设计意图：让已解决的记忆有小概率重新出现，制造"忽然想起"的温度。
@@ -576,7 +686,7 @@ async def surface_default(
     dream_results: list[str] = []
     if not dynamic_omitted and random.random() < 0.03:
         try:
-            shown_ids = {b["id"] for b in candidates}
+            shown_ids = {b["id"] for b in candidates} | passive_ids | keepsake_ids
             resolved_pool = [
                 b for b in all_buckets_in_range
                 if _can_surface(b)
@@ -619,6 +729,8 @@ async def surface_default(
         parts.append(recent_section)
     if dynamic_results:
         parts.append("=== 浮现记忆 ===\n" + "\n---\n".join(dynamic_results))
+    if keepsake_results:
+        parts.append(f"=== {KEEPSAKE_SECTION} ===\n" + "\n---\n".join(keepsake_results))
     if passive_results:
         parts.append("=== 久未浮现 ===\n" + "\n---\n".join(passive_results))
     if dream_results:

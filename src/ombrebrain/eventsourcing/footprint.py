@@ -112,6 +112,8 @@ def _event_label(event: dict[str, Any]) -> str:
         return f"{_actor_label(payload)}{action}"
     if "anchor" in fields:
         return "设为地标" if payload.get("anchor") else "解除地标"
+    if "keepsake" in fields:
+        return "放进小池子" if payload.get("keepsake") else "拿出小池子"
     if "resolved" in fields:
         return "已经放下" if payload.get("resolved") else "重新激活"
     if "content" in fields:

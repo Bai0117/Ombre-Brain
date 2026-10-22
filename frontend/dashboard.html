@@ -2481,6 +2481,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   <div class="tab active" data-tab="list"><span>记忆</span><span class="tab-en">Memories</span></div>
   <div class="tab" data-tab="breath"><span>他想起的</span><span class="tab-en">Recall</span></div>
   <div class="tab" data-tab="network"><span>记忆网络</span><span class="tab-en">Network</span></div>
+  <div class="tab" data-tab="keepsake"><span>小池子</span><span class="tab-en">Keepsakes</span></div>
   <div class="tab" data-tab="plan"><span>计划</span><span class="tab-en">Plans</span></div>
   <div class="tab" data-tab="letters"><span>信</span><span class="tab-en">Letters</span></div>
   <div class="tab" data-tab="anchors"><span>锚点</span><span class="tab-en">Anchors</span></div>
@@ -2844,6 +2845,24 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       <div id="letters-list" style="display:flex;flex-direction:column;gap:14px;margin-top:6px;">
         <div style="text-align:center;color:var(--text-dim);padding:36px 0;font-size:13px;">点击「刷新」加载信件…</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 小池子：他每次醒来随机想起一条 -->
+<div class="content" id="keepsake-view" style="display:none">
+  <div style="max-width:920px;margin:0 auto;">
+    <div class="config-section">
+      <h3><i data-lucide="waves" style="width:16px;height:16px;vertical-align:-2px;"></i> 小池子</h3>
+      <p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:4px 0 12px;">
+        放在这里的小事，他每次醒来会从里面随机想起<b>一条</b>，单独一段，不占浮现记忆的位置；刚想起过的会先躲开几次。<br>
+        在任意一条记忆的详情里点「放进小池子」就能放进来。
+      </p>
+      <div style="font-size:13px;margin-bottom:10px;">现在池子里：<span id="keepsake-count-text">…</span></div>
+      <div id="keepsake-list" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="color:var(--text-dim);font-size:12px;">加载中…</div>
+      </div>
+      <button class="btn-secondary" onclick="loadKeepsakeView()" title="刷新" style="margin-top:14px;padding:6px 12px;font-size:12px;"><i data-lucide="refresh-cw"></i></button>
     </div>
   </div>
 </div>
@@ -5679,6 +5698,7 @@ function activateDashboardTab(tab) {
     document.getElementById('settings-view').style.display = target === 'settings' ? '' : 'none';
     document.getElementById('letters-view').style.display = target === 'letters' ? '' : 'none';
     document.getElementById('anchors-view').style.display = target === 'anchors' ? '' : 'none';
+    document.getElementById('keepsake-view').style.display = target === 'keepsake' ? '' : 'none';
     document.getElementById('about-view').style.display = target === 'about' ? '' : 'none';
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
     if (target === 'network') pending.push(loadNetwork());
@@ -5711,6 +5731,7 @@ function activateDashboardTab(tab) {
     }
     if (target === 'letters') pending.push(loadLetters());
     if (target === 'anchors') pending.push(loadAnchorsView());
+    if (target === 'keepsake') pending.push(loadKeepsakeView());
     if (target === 'about') pending.push(loadAbout());
     return Promise.allSettled(pending);
 }
@@ -6136,6 +6157,7 @@ async function showDetail(id) {
         '<div class="field"><label>已解决 / Resolved</label>' + (meta.resolved ? _SV.ok : '—') + '</div>' +
         '<div class="field"><label>已消化 / Digested</label>' + (meta.digested ? _SV.ok : '—') + '</div>' +
         '<div class="field"><label>钉选 / Pinned</label>' + (meta.pinned ? _SV.ok : '—') + '</div>' +
+        '<div class="field"><label>小池子 / Keepsake</label>' + (meta.keepsake ? _SV.ok : '—') + '</div>' +
         '<div class="field"><label>导入来源 / Imported</label>' + (meta.imported || meta.source_tool === 'import' ? '被导入' : '—') + '</div>' +
         '<div class="field"><label>Anchor</label>' + (meta.anchor ? _SV.anchor+' 坐标系 / anchor' : '—') + '</div>' +
         '<div class="field"><label>创建 / Created</label>' + esc(meta.created || '—') + '</div>' +
@@ -6151,6 +6173,8 @@ async function showDetail(id) {
         '<button data-bucket-id="' + escAttr(id) + '" onclick="bucketResolve(this.dataset.bucketId)" class="icon-btn">' + (meta.resolved ? '<i data-lucide="rotate-ccw"></i> 取消已解决' : '<i data-lucide="check"></i> 标记已解决') + '</button>' +
         '<button data-bucket-id="' + escAttr(id) + '" onclick="bucketForget(this.dataset.bucketId)" class="icon-btn">' + (meta.dont_surface ? '<i data-lucide="eye"></i> 重新允许浮现' : '<i data-lucide="eye-off"></i> 主动遗忘') + '</button>' +
         '<button data-bucket-id="' + escAttr(id) + '" onclick="bucketArchive(this.dataset.bucketId)" class="icon-btn"><i data-lucide="archive"></i> 归档</button>' +
+        (meta.type === 'plan' ? '' :
+          '<button data-bucket-id="' + escAttr(id) + '" onclick="bucketKeepsake(this.dataset.bucketId)" class="icon-btn" title="小池子：他每次醒来随机想起其中一条">' + (meta.keepsake ? '<i data-lucide="waves"></i> 拿出小池子' : '<i data-lucide="waves"></i> 放进小池子') + '</button>') +
       '</div>' +
       '<div class="detail-content">' + esc(displayContent) + '</div>' +
       renderEditForm(id, Object.assign({}, meta, {_content_for_edit: b.content}));
@@ -6185,6 +6209,70 @@ async function bucketPin(id) {
     await showDetail(id);
     await loadBuckets();
   } catch (e) { alert('钉选切换失败 / Pin toggle failed: ' + e.message); }
+}
+
+// 小池子：放进去 / 拿出来
+async function bucketKeepsake(id) {
+  try {
+    var res = await fetch(BASE + '/api/bucket/' + encodeURIComponent(id) + '/keepsake', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: '{}',
+    });
+    if (!res.ok) {
+      var msg = await res.text();
+      try { msg = JSON.parse(msg).error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    await showDetail(id);
+    var view = document.getElementById('keepsake-view');
+    if (view && view.style.display !== 'none') loadKeepsakeView();
+    else loadBuckets();
+  } catch (e) { alert('小池子没放成：' + e.message); }
+}
+
+async function loadKeepsakeView() {
+  var list = document.getElementById('keepsake-list');
+  var cnt = document.getElementById('keepsake-count-text');
+  if (!list) return;
+  list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;">加载中…</div>';
+  try {
+    var resp = await authFetch('/api/buckets?sort=created_desc');
+    if (!resp || !resp.ok) { list.innerHTML = '<div style="color:var(--text-dim);">加载失败</div>'; return; }
+    var all = await resp.json();
+    var items = (all || []).filter(function(b) { return b.keepsake; });
+    cnt.innerHTML = '<b>' + items.length + '</b> 条';
+    if (!items.length) {
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:14px 0;">池子还是空的。打开一条记忆，点「放进小池子」。</div>';
+      return;
+    }
+    list.innerHTML = items.map(function(b) {
+      var day = String(b.created || '').slice(0, 10);
+      return '<div data-bucket-id="' + escAttr(b.id) + '" onclick="showDetail(this.dataset.bucketId)" style="background:var(--surface);border-radius:var(--radius-inner);padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:4px 4px 10px var(--shadow-dark-subtle),-3px -3px 8px var(--shadow-light);cursor:pointer;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(b.name || b.id) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + esc(b.content_preview || '') + '</div>' +
+          '<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">' + esc(day) + '</div>' +
+        '</div>' +
+        '<button class="btn-secondary" data-bucket-id="' + escAttr(b.id) + '" title="拿出小池子" style="flex-shrink:0;padding:6px 10px;font-size:11px;" onclick="event.stopPropagation();keepsakeTakeOut(this.dataset.bucketId)">拿出来</button>' +
+      '</div>';
+    }).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  } catch (e) {
+    list.innerHTML = '<div style="color:var(--text-dim);">加载失败：' + esc(e && e.message ? e.message : e) + '</div>';
+  }
+}
+
+async function keepsakeTakeOut(id) {
+  try {
+    var res = await fetch(BASE + '/api/bucket/' + encodeURIComponent(id) + '/keepsake', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ keepsake: false }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    loadKeepsakeView();
+  } catch (e) { alert('没拿出来：' + e.message); }
 }
 
 // iter 2.0: anchor 切换 / anchor toggle

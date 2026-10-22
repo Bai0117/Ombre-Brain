@@ -140,7 +140,9 @@ async def test_recent_slots_zero_restores_the_old_behaviour(monkeypatch):
 @pytest.mark.asyncio
 async def test_quota_is_a_noop_when_everything_is_already_recent(monkeypatch):
     fresh = [_bucket(f"new-{i}", age_days=0, score=10.0 - i) for i in range(5)]
-    _install(monkeypatch, PlainBucketManager(fresh))
+    # 「这几天」开着时今天的记忆只留 3 条在浮现区（test_breath_keepsake 测那个）；
+    # 这里只看配额本身，把摘要关掉。
+    _install(monkeypatch, PlainBucketManager(fresh), {"recent_digest_days": 0})
 
     out = await surface_default(max_results=5, max_tokens=100_000, tag_filter=[])
 
