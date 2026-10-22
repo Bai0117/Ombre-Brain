@@ -274,7 +274,7 @@ def test_prompt_version_bump_makes_old_summaries_stale(monkeypatch):
 def test_clean_plan_summary_cuts_long_line_at_a_comma():
     from dehydrator import PLAN_SUMMARY_MAX_CHARS, Dehydrator
 
-    line = "10月26日左右问白耳骨耳洞增生是否好转，按每天生理盐水洗两次、不碰不压不转耳钉试一周，没好转就必须去看医生"
+    line = "10月26日左右问白耳骨耳洞增生是否好转，按每天生理盐水洗两次、不碰不压不转耳钉试一周，没好转就必须去看医生，别拖到下个月再说"
     assert len(line) > PLAN_SUMMARY_MAX_CHARS
     out = Dehydrator._clean_plan_summary(line)
     assert not out.endswith("…") and len(out) <= PLAN_SUMMARY_MAX_CHARS
