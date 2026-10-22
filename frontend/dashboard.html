@@ -2914,30 +2914,28 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   </div>
 </div>
 
-<!-- 相册 -->
+<!-- 相册：上面一个框放照片，下面一张照片一个框，和记忆列表一样平铺 -->
 <div class="content" id="album-view" style="display:none">
-  <div style="max-width:920px;margin:0 auto;">
-    <div class="config-section">
-      <h3><i data-lucide="images" style="width:16px;height:16px;vertical-align:-2px;"></i> 相册</h3>
-      <p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:4px 0 12px;">
-        发给他看过的照片放在这里，换了窗口他也能再看一次。上传前会自动缩小（长边 1600），说明写图上是什么、那天发生了什么，他看过之后也会补。
-      </p>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <label class="btn-primary" style="padding:6px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-          放照片<input id="album-file" type="file" accept="image/*" multiple style="display:none;" onchange="albumUpload(this.files)" />
-        </label>
-        <span id="album-status" style="font-size:12px;color:var(--text-dim);"></span>
-      </div>
-      <div id="album-grid" style="display:flex;flex-direction:column;gap:16px;"></div>
+  <div class="bucket-row" style="cursor:default;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;">
+      <i data-lucide="images" style="width:16px;height:16px;"></i> 相册
+      <span id="album-status" style="font-size:12px;font-weight:400;color:var(--text-dim);margin-left:auto;"></span>
     </div>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:6px 0 10px;">
+      发给他看过的照片放在这里，换了窗口他也能再看一次。上传前会自动缩小，说明写图上是什么、那天发生了什么，他看过之后也会补。
+    </div>
+    <label class="btn-primary" style="align-self:flex-start;padding:6px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;width:max-content;">
+      放照片<input id="album-file" type="file" accept="image/*" multiple style="display:none;" onchange="albumUpload(this.files)" />
+    </label>
   </div>
+  <div class="bucket-list" id="album-grid"></div>
 </div>
 <div id="album-viewer" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.82);overflow:auto;padding:16px;" onclick="if(event.target===this)closeAlbumViewer()">
   <div style="max-width:720px;margin:0 auto;background:var(--surface-solid);border-radius:var(--radius-inner);padding:14px;">
-    <img id="album-viewer-img" alt="" style="width:100%;height:auto;max-height:62vh;object-fit:contain;border-radius:6px;display:block;background:#000;" />
+    <img id="album-viewer-img" alt="" style="width:100%;height:auto;max-height:32vh;object-fit:contain;border-radius:6px;display:block;background:#000;" />
     <input id="album-viewer-id" type="hidden" />
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:13px;">
-      <textarea id="album-viewer-caption" rows="3" maxlength="2000" placeholder="图上是什么、那天发生了什么" style="padding:6px 10px;"></textarea>
+      <textarea id="album-viewer-caption" rows="6" maxlength="2000" placeholder="图上是什么、那天发生了什么" style="padding:6px 10px;"></textarea>
       <input id="album-viewer-taken" type="date" style="padding:6px 10px;" />
       <input id="album-viewer-memory" type="text" maxlength="64" placeholder="连到一条记忆（bucket id，可空）" style="padding:6px 10px;" />
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -6445,7 +6443,7 @@ function gotoAlbumPage(n) {
 function renderAlbum() {
   var grid = document.getElementById('album-grid');
   if (!_albumPhotos.length) {
-    grid.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:10px 0;">还没有照片。</div>';
+    grid.innerHTML = '<div class="loading">还没有照片</div>';
     return;
   }
   var pages = Math.max(1, Math.ceil(_albumPhotos.length / ALBUM_PER_PAGE));
@@ -6455,18 +6453,20 @@ function renderAlbum() {
   grid.innerHTML = items.map(function(p) {
     var day = p.taken || String(p.added || '').slice(0, 10);
     var caption = p.caption
-      ? '<div style="font-size:13px;line-height:1.7;white-space:pre-wrap;">' + esc(p.caption) + '</div>'
+      ? '<div style="font-size:13px;line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;">' + esc(p.caption) + '</div>'
       : '<div style="font-size:13px;color:var(--text-dim);">还没有说明</div>';
     var link = p.memory_id ? '<span class="domain-pill" style="font-size:11px;" title="' + escAttr(p.memory_id) + '">连着一条记忆</span>' : '';
-    return '<div class="bucket-row" data-photo-id="' + escAttr(p.id) + '" onclick="openAlbumViewer(this.dataset.photoId)" style="cursor:pointer;padding:12px;">' +
-      '<div style="border-radius:12px;overflow:hidden;background:var(--surface);display:flex;justify-content:center;">' +
-        '<img loading="lazy" src="' + BASE + '/api/album/' + encodeURIComponent(p.id) + '/image" alt="" style="display:block;max-width:100%;max-height:480px;width:auto;height:auto;object-fit:contain;" />' +
-      '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px;padding:12px 4px 2px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-          '<span style="font-size:14px;font-weight:600;">' + esc(day) + '</span>' + link +
+    return '<div class="bucket-row" data-photo-id="' + escAttr(p.id) + '" onclick="openAlbumViewer(this.dataset.photoId)" style="cursor:pointer;">' +
+      '<div style="display:flex;gap:14px;align-items:flex-start;">' +
+        '<div style="flex:0 0 88px;width:88px;height:88px;border-radius:10px;overflow:hidden;background:var(--surface-solid);">' +
+          '<img loading="lazy" src="' + BASE + '/api/album/' + encodeURIComponent(p.id) + '/image" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />' +
         '</div>' +
-        caption +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '<span style="font-size:14px;font-weight:600;">' + esc(day) + '</span>' + link +
+          '</div>' +
+          caption +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('') + (pages > 1
