@@ -10,9 +10,13 @@ from tests.test_breath_todo_section import _breath, _ordinary, _plan
 
 
 @pytest.fixture(autouse=True)
-def _reset_summary_state():
+def _reset_summary_state(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from tools import _runtime as rt
     from tools.plan import summary
 
+    monkeypatch.setattr(rt, "logger", MagicMock())
     summary._in_flight.clear()
     summary._failed_at.clear()
     yield
@@ -185,6 +189,10 @@ async def test_nothing_is_scheduled_without_api():
         ("摘要：在 VPS 上跑 Claude Code 接 Telegram\n（说明：略）", "在 VPS 上跑 Claude Code 接 Telegram"),
         ("```\n给聊天后端加锁\n```", "给聊天后端加锁"),
         ("[OB] 修 breath 待办截断", "[OB] 修 breath 待办截断"),
+        # 标签或分隔线单独占一行时，答案在下一行——不能连它一起扔掉
+        ("摘要：\n给聊天后端加鉴权并搬到 VPS", "给聊天后端加鉴权并搬到 VPS"),
+        ("---\n**给聊天后端加锁**", "给聊天后端加锁"),
+        ("\n\n「」\n合并分支", "合并分支"),
         ("", ""),
     ],
 )

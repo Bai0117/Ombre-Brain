@@ -602,12 +602,21 @@ class Dehydrator:
         # 供应商明说了「我是被 max_tokens 截断的」，这条信号原先被整个丢掉：
         # 半截 JSON 一路走到「返回空结果」，日志里什么线索都没有。
         # 真机上「短内容正常、长内容一直失败」查了两天，缺的就是这一行。
-        if getattr(choice, "finish_reason", "") == "length":
+        finish = getattr(choice, "finish_reason", "") or ""
+        if finish == "length":
             logger.warning(
                 "LLM output truncated by max_tokens / 输出被 max_tokens 截断："
                 "model=%s limit=%s。半截 JSON 会解析失败。",
                 self.model,
                 max_tokens if max_tokens is not None else self.max_tokens,
+            )
+        elif finish not in ("stop", "tool_calls", "function_call"):
+            # content_filter（被供应商审核拦下）、insufficient_system_resource
+            # （DeepSeek 忙时）等：内容通常是空的，原先完全没有痕迹。
+            logger.warning(
+                "LLM finished abnormally / 模型非正常结束：model=%s finish_reason=%s",
+                self.model,
+                finish,
             )
         return choice.message.content or ""
 
@@ -1283,7 +1292,15 @@ class Dehydrator:
         except Exception as e:
             logger.warning(f"summarize_plan failed: {e}")
             return ""
-        return self._clean_plan_summary(raw)
+        summary = self._clean_plan_summary(raw)
+        if not summary:
+            logger.warning(
+                "summarize_plan got no usable line / 待办摘要没拿到可用的一句："
+                "model=%s raw=%r",
+                self.model,
+                (raw or "")[:_PARSE_ERR_PREVIEW],
+            )
+        return summary
 
     @staticmethod
     def _clean_plan_summary(raw: str | None) -> str:
@@ -1291,16 +1308,22 @@ class Dehydrator:
         cleaned = (raw or "").strip()
         if cleaned.startswith("```"):
             cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-        # 模型偶尔会多给几行（解释、备选），只要第一行非空的。
-        line = next((ln.strip() for ln in cleaned.splitlines() if ln.strip()), "")
-        for prefix in ("标题：", "标题:", "摘要：", "摘要:", "待办：", "待办:"):
-            if line.startswith(prefix):
-                line = line[len(prefix):].strip()
-        line = line.strip("\"'“”‘’「」『』《》*`#- ").rstrip("。.!！;；，,")
-        line = " ".join(line.split())
-        if len(line) > PLAN_SUMMARY_MAX_CHARS:
-            line = line[:PLAN_SUMMARY_MAX_CHARS] + "…"
-        return line
+        # 模型偶尔会多给几行：标签单独一行（「摘要：」）、分隔线、解释、备选。
+        # 取「清理之后」第一行非空的——先挑行再清理的话，标签行清完是空串，
+        # 下面真正的答案就被一起扔掉了。
+        for raw_line in cleaned.splitlines():
+            line = raw_line.strip()
+            for prefix in ("标题：", "标题:", "摘要：", "摘要:", "待办：", "待办:"):
+                if line.startswith(prefix):
+                    line = line[len(prefix):].strip()
+            line = line.strip("\"'“”‘’「」『』《》*`#-—_=~ ").rstrip("。.!！;；，,")
+            line = " ".join(line.split())
+            if not line:
+                continue
+            if len(line) > PLAN_SUMMARY_MAX_CHARS:
+                line = line[:PLAN_SUMMARY_MAX_CHARS] + "…"
+            return line
+        return ""
 
     async def judge_same_event(self, old_memory: str, new_content: str) -> dict:
         """保守判断两段内容是否属于同一个具体事件。

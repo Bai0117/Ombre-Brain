@@ -69,19 +69,24 @@ async def refresh_plan_summary(bucket_id: str) -> str:
     fingerprint = content_fingerprint(content)
     summary = await dehydrator.summarize_plan(content)
     if not summary:
+        # 具体原因（截断 / 审核 / 空回复）summarize_plan 和 _chat 已经各自记过了。
+        rt.logger.warning(f"plan summary for {bucket_id}: model gave nothing usable")
         _failed_at[bucket_id] = time.monotonic()
         return ""
     # 模型在想的这几秒里正文可能又被改了；那这句摘要已经过期，不写。
     latest = await rt.bucket_mgr.get(bucket_id)
     if not latest or content_fingerprint(latest.get("content") or "") != fingerprint:
+        rt.logger.info(f"plan summary for {bucket_id}: content changed meanwhile, dropped")
         return ""
     ok = await rt.bucket_mgr.update(
         bucket_id, todo_summary=summary, todo_summary_of=fingerprint
     )
     if not ok:
+        rt.logger.warning(f"plan summary for {bucket_id}: bucket update refused")
         _failed_at[bucket_id] = time.monotonic()
         return ""
     _failed_at.pop(bucket_id, None)
+    rt.logger.info(f"plan summary for {bucket_id}: {summary}")
     return summary
 
 
