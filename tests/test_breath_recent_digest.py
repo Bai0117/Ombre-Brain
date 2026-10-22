@@ -219,6 +219,7 @@ async def test_summarize_day_prompt_and_cleanup(monkeypatch):
     d.api_available = True
     d.human = "白"
     d.model = "stub"
+    d.api_format, d.base_url, d.extra_body = "openai_compat", "https://api.deepseek.com/v1", {}
     seen = {}
 
     async def fake_chat(system, user, **kw):
@@ -265,6 +266,7 @@ async def test_prompt_asks_for_more_room_on_busy_days(monkeypatch):
 
     d = Dehydrator.__new__(Dehydrator)
     d.api_available, d.human, d.model = True, "白", "stub"
+    d.api_format, d.base_url, d.extra_body = "openai_compat", "https://api.deepseek.com/v1", {}
     seen = []
 
     async def fake_chat(system, user, **kw):
@@ -284,6 +286,7 @@ async def test_day_digest_leaves_room_for_thinking():
 
     d = Dehydrator.__new__(Dehydrator)
     d.api_available, d.human, d.model = True, "白", "stub"
+    d.api_format, d.base_url, d.extra_body = "openai_compat", "https://api.deepseek.com/v1", {}
     budgets = []
 
     async def fake_chat(system, user, max_tokens=None, **kw):
@@ -296,3 +299,102 @@ async def test_day_digest_leaves_room_for_thinking():
     d.digest_max_tokens = 32768
     await d.summarize_day("a", [("1", "x")])
     assert budgets == [16384, 32768]
+
+
+
+def _bare(base_url="https://api.deepseek.com/v1", extra=None, fmt="openai_compat"):
+    from dehydrator import Dehydrator
+
+    d = Dehydrator.__new__(Dehydrator)
+    d.api_available, d.human, d.model = True, "白", "deepseek-flash"
+    d.api_format, d.base_url, d.extra_body = fmt, base_url, dict(extra or {})
+    return d
+
+
+@pytest.mark.asyncio
+async def test_summaries_turn_thinking_off_on_deepseek():
+    d = _bare(extra={"foo": 1})
+    seen = []
+
+    async def fake_chat(system, user, **kw):
+        seen.append(kw)
+        return "好。"
+
+    d._chat = fake_chat
+    await d.summarize_day("a", [("1", "x")])
+    await d.summarize_plan("给聊天后端加锁")
+    for kw in seen:
+        assert kw["extra_body"] == {"foo": 1, "thinking": {"type": "disabled"}}
+        assert kw["timeout"] == 300.0
+    assert d.extra_body == {"foo": 1}, "不改动配置里的 extra_body"
+
+
+@pytest.mark.asyncio
+async def test_other_providers_get_no_unknown_fields():
+    d = _bare(base_url="https://generativelanguage.googleapis.com/v1beta/openai")
+    seen = []
+
+    async def fake_chat(system, user, **kw):
+        seen.append(kw)
+        return "好。"
+
+    d._chat = fake_chat
+    await d.summarize_day("a", [("1", "x")])
+    assert "extra_body" not in seen[0]
+
+
+@pytest.mark.asyncio
+async def test_falls_back_when_model_rejects_the_switch():
+    d = _bare()
+    calls = []
+
+    class BadRequest(Exception):
+        status_code = 400
+
+    async def fake_chat(system, user, **kw):
+        calls.append(kw.get("extra_body"))
+        if kw.get("extra_body"):
+            raise BadRequest("unknown field: thinking")
+        return "以前那样写出来的。"
+
+    d._chat = fake_chat
+    assert await d.summarize_day("a", [("1", "x")]) == "以前那样写出来的。"
+    assert calls[0]["thinking"] == {"type": "disabled"} and calls[1] is None
+
+
+@pytest.mark.asyncio
+async def test_transient_errors_are_not_retried_twice():
+    d = _bare()
+    calls = []
+
+    class Busy(Exception):
+        status_code = 503
+
+    async def fake_chat(system, user, **kw):
+        calls.append(kw)
+        raise Busy("overloaded")
+
+    d._chat = fake_chat
+    assert await d.summarize_day("a", [("1", "x")]) == ""
+    assert len(calls) == 1, "瞬时错误交给 _chat 自己的退避重试，这里不再追加一轮"
+
+
+@pytest.mark.asyncio
+async def test_chat_once_sends_per_request_options():
+    """真正发出去的请求里带上 thinking 开关和单次超时；不传时仍用配置的 extra_body。"""
+    from types import SimpleNamespace
+
+    d = _bare(extra={"cfg": True})
+    d.temperature, d.max_tokens = 0.1, 1024
+    sent = []
+
+    async def create(**kw):
+        sent.append(kw)
+        msg = SimpleNamespace(content="好。")
+        return SimpleNamespace(choices=[SimpleNamespace(message=msg, finish_reason="stop")])
+
+    d.client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    await d._chat_once("s", "u", extra_body={"thinking": {"type": "disabled"}}, timeout=300.0)
+    await d._chat_once("s", "u")
+    assert sent[0]["extra_body"] == {"thinking": {"type": "disabled"}} and sent[0]["timeout"] == 300.0
+    assert sent[1]["extra_body"] == {"cfg": True} and "timeout" not in sent[1]

@@ -138,6 +138,8 @@ _DAY_DIGEST_INPUT_LIMIT = 9000   # 一天十几条记忆
 # deepseek-flash 读完视角铁律和十几条记忆，光想就用光了（finish_reason=length、正文为空）。
 _DAY_DIGEST_MAX_TOKENS = 16384
 _DAY_DIGEST_TEMPERATURE = 0.3
+# 摘要类调用的单次超时：万一 thinking 关不掉、模型想得很久，也别被默认的 60 秒掐断
+_SUMMARY_TIMEOUT_SECONDS = 300.0
 
 # --- 默认情感坐标（与 bucket_manager 中保持一致）---
 _DEFAULT_VALENCE = 0.5  # 0=极负, 1=极正
@@ -547,6 +549,48 @@ class Dehydrator:
         name = type(exc).__name__.lower()
         return any(k in name for k in ("timeout", "connect", "ratelimit", "unavailable"))
 
+    def _no_think_body(self) -> dict | None:
+        """DeepSeek 端点：在配置的 extra_body 上加 thinking=disabled；别家返回 None（不乱塞未知字段）。"""
+        if self.api_format != "openai_compat" or "deepseek" not in (self.base_url or "").lower():
+            return None
+        body = dict(self.extra_body)
+        body["thinking"] = {"type": "disabled"}
+        return body
+
+    async def _chat_quick(
+        self,
+        system: str,
+        user: str,
+        *,
+        max_tokens: int,
+        temperature: float,
+        timeout: float | None = None,
+    ) -> str:
+        """写摘要这类「只需要压缩、不需要推理」的调用。
+
+        deepseek-flash 这类 thinking 模型会先想很久再写：待办摘要和每日摘要都撞过
+        额度被推理吃光（正文为空），加大额度又会撞上请求超时。这里在 DeepSeek 上直接
+        关掉 thinking（config.example.yaml 里记载的开关）。万一这个模型不认这个开关
+        （非瞬时错误，比如 400），退回默认方式再试一次——最差也和以前一样。
+        """
+        body = self._no_think_body()
+        if body is not None:
+            try:
+                return await self._chat(
+                    system, user, max_tokens=max_tokens, temperature=temperature,
+                    extra_body=body, timeout=timeout,
+                )
+            except Exception as e:
+                if self._is_transient_error(e):
+                    raise
+                logger.warning(
+                    "关闭 thinking 的请求被拒，改回默认方式重试 / thinking=disabled rejected, "
+                    "retrying without it: %s: %s", type(e).__name__, e,
+                )
+        return await self._chat(
+            system, user, max_tokens=max_tokens, temperature=temperature, timeout=timeout,
+        )
+
     async def _chat(
         self,
         system: str,
@@ -554,6 +598,8 @@ class Dehydrator:
         *,
         max_tokens: int | None = None,
         temperature: float | None = None,
+        extra_body: dict | None = None,
+        timeout: float | None = None,
     ) -> str:
         """统一 chat 入口：对 429 / 5xx / 超时等瞬时错误做指数退避重试。
 
@@ -563,7 +609,8 @@ class Dehydrator:
         for attempt in range(_RETRY_MAX_ATTEMPTS):
             try:
                 return await self._chat_once(
-                    system, user, max_tokens=max_tokens, temperature=temperature
+                    system, user, max_tokens=max_tokens, temperature=temperature,
+                    extra_body=extra_body, timeout=timeout,
                 )
             except Exception as e:
                 if not self._is_transient_error(e) or attempt == _RETRY_MAX_ATTEMPTS - 1:
@@ -586,6 +633,8 @@ class Dehydrator:
         *,
         max_tokens: int | None = None,
         temperature: float | None = None,
+        extra_body: dict | None = None,
+        timeout: float | None = None,
     ) -> str:
         """统一的 OpenAI-compatible chat 调用。
 
@@ -620,7 +669,9 @@ class Dehydrator:
                 {"role": "user", "content": user},
             ],
             temperature=temperature if temperature is not None else self.temperature,
-            extra_body=self.extra_body or None,
+            # extra_body / timeout 只覆盖这一次请求（见 _chat_quick）；不传就用配置里的
+            extra_body=(extra_body if extra_body is not None else (self.extra_body or None)),
+            **({"timeout": timeout} if timeout else {}),
             **chat_completion_token_limit(
                 self.model,
                 max_tokens if max_tokens is not None else self.max_tokens,
@@ -1315,11 +1366,12 @@ class Dehydrator:
             "只输出这一句话本身：不要引号、不要编号、不要前缀、不要句末标点、不要换行。"
         )
         try:
-            raw = await self._chat(
+            raw = await self._chat_quick(
                 system,
                 text[:_PLAN_SUMMARY_INPUT_LIMIT],
                 max_tokens=_PLAN_SUMMARY_MAX_TOKENS,
                 temperature=_PLAN_SUMMARY_TEMPERATURE,
+                timeout=_SUMMARY_TIMEOUT_SECONDS,
             )
         except Exception as e:
             logger.warning(f"summarize_plan failed: {e}")
@@ -1383,9 +1435,10 @@ class Dehydrator:
             parts.append(chunk)
             used += len(chunk)
         try:
-            raw = await self._chat(
+            raw = await self._chat_quick(
                 system,
                 "\n\n".join(parts),
+                timeout=_SUMMARY_TIMEOUT_SECONDS,
                 # dehydration.digest_max_tokens 配得更大就用它（同样是「长输入、要想很久」的调用）
                 max_tokens=max(_DAY_DIGEST_MAX_TOKENS, int(getattr(self, "digest_max_tokens", 0) or 0)),
                 temperature=_DAY_DIGEST_TEMPERATURE,
