@@ -9,3 +9,8 @@
 		# Caddy 默认会保留原始 Host，并附带 X-Forwarded-For / -Proto / -Host
 	}
 }
+
+# 同一台机器上的其他服务（例如聊天应用）在宿主 /opt/ombre-sites/ 里放一个 *.caddy，
+# 就能共用这个 Caddy 和自动 HTTPS。目录为空时这一行什么也不做。
+# 新加了站点文件后：docker exec ombre-caddy caddy reload --config /etc/caddy/Caddyfile
+import /etc/caddy/sites/*.caddy

@@ -66,6 +66,8 @@ services:
       - OMBRE_SITE_ADDRESS=${OMBRE_SITE_ADDRESS:?OMBRE_SITE_ADDRESS is required}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # 其他服务的站点配置（见 Caddyfile 末尾的 import）
+      - ${OMBRE_SITES_DIR:-/opt/ombre-sites}:/etc/caddy/sites:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:

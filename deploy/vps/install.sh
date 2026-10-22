@@ -103,6 +103,9 @@ else
   ok "已下载到 $APP_DIR"
 fi
 mkdir -p "$DATA_DIR"
+# 同一台机器上的其他服务（比如聊天应用）把自己的 Caddy 站点配置放这里，
+# 共用这一个 Caddy 和 80/443 端口。空目录也没关系。
+mkdir -p /opt/ombre-sites
 
 # ---------- 5. 配置 ----------
 if [ -f "$ENV_FILE" ]; then
