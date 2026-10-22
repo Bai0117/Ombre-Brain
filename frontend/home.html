@@ -177,6 +177,20 @@ main { max-width: 720px; margin: 0 auto; padding: 0 16px calc(var(--bottom) + 48
 .flag { padding: 0 8px; border-radius: 999px; background: var(--chip-wash); color: var(--ink-dim); box-shadow: var(--spec); }
 .flag.warn { background: var(--danger-wash); color: var(--danger); }
 .entry.quiet .text { color: var(--ink-dim); }
+/* 他想起的：每次 breath 一张，点开看那次浮上来的记忆 */
+.recall-event + .recall-event { border-top: 0.5px solid var(--line); }
+.recall-head { display: flex; width: 100%; align-items: baseline; gap: 10px; border: 0; background: none; text-align: left; padding: 12px 12px 10px; border-radius: 18px; color: var(--ink); }
+.recall-head:active { background: var(--glass-hi); }
+.recall-head .t { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 15px; flex: none; }
+.recall-head .what { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recall-head .n { flex: none; font-size: 12px; color: var(--ink-faint); }
+.recall-head .chev { flex: none; color: var(--ink-faint); transition: transform 0.2s ease; }
+.recall-head[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.recall-body { padding: 0 0 8px; }
+.recall-sec { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-dim); padding: 10px 12px 2px; }
+.recall-sec button { border: 0; background: none; color: var(--ink-faint); font-size: 12px; padding: 0; text-decoration: underline; }
+.recall-day { font-size: 13px; color: var(--ink-dim); padding: 3px 12px; }
+.recall-missing { font-size: 13px; color: var(--ink-faint); padding: 6px 12px; }
 .empty { text-align: center; color: var(--ink-dim); padding: 64px 12px; font-size: 15px; }
 .empty button { margin-top: 14px; }
 
@@ -371,7 +385,8 @@ textarea.content:focus { background: var(--glass-hi); }
     { key: "pending", label: "待删除", test: (b) => b.deletion_request && b.deletion_request.status === "pending" },
   ];
 
-  const state = { all: [], byId: new Map(), filter: "all", query: "", searchIds: null, current: null, original: null, draft: null };
+  const state = { all: [], byId: new Map(), filter: "all", query: "", searchIds: null, current: null, original: null, draft: null,
+    view: location.hash === "#recall" ? "recall" : "list", recall: null };
 
   // ---------- helpers ----------
   async function api(path, opts = {}) {
@@ -455,10 +470,116 @@ textarea.content:focus { background: var(--glass-hi); }
       state.all = (Array.isArray(rows) ? rows : []).filter((b) => b.type !== "archived");
       state.byId = new Map(state.all.map((b) => [b.id, b]));
       renderFilters(); render();
+      if (state.view === "recall") loadRecall();
     } catch (err) {
       $("statusLine").textContent = "";
       $("list").replaceChildren(emptyBox(`没读到记忆：${err.message}`, "再试一次", load));
     }
+  }
+
+  // ---------- 他想起的 ----------
+  async function loadRecall() {
+    try {
+      const res = await api("/api/recall-log?limit=120");
+      state.recall = Array.isArray(res && res.entries) ? res.entries : [];
+    } catch (err) {
+      state.recall = [];
+      if (state.view === "recall") $("list").replaceChildren(emptyBox(`没读到记录：${err.message}`, "再试一次", loadRecall));
+      return;
+    }
+    if (state.view === "recall") render();
+  }
+  const ALWAYS_THERE = new Set(["核心准则", "待办", "这几天"]);
+  function recallSummary(ev) {
+    const seen = new Set(); let core = 0;
+    for (const sec of ev.sections || []) {
+      if (sec.name === "核心准则") { core = (sec.ids || []).length; continue; }
+      if (ALWAYS_THERE.has(sec.name)) continue;
+      for (const id of sec.ids || []) seen.add(id);
+    }
+    const parts = [`想起 ${seen.size} 条`];
+    if (core) parts.push(`核心 ${core}`);
+    return parts.join(" · ");
+  }
+  function recallRow(id) {
+    const b = state.byId.get(id);
+    if (!b) return el("div", "recall-missing", "这一条已经不在列表里了（可能归档或删除了）");
+    const d = parseDate(b);
+    const row = entryRow(b, d);
+    const t = row.querySelector(".time");
+    if (t && d) t.textContent = `${d.getMonth() + 1}.${d.getDate()} ${hm(d)}`;  // 想起的是哪天的事
+    return row;
+  }
+  function recallBody(ev) {
+    const body = el("div", "recall-body");
+    for (const sec of ev.sections || []) {
+      const ids = sec.ids || [];
+      const title = el("div", "recall-sec", sec.name === "这几天" ? "这几天" : `${sec.name} · ${ids.length}`);
+      body.appendChild(title);
+      if (sec.name === "这几天") {
+        for (const d of ev.days || []) body.appendChild(el("div", "recall-day", d));
+        continue;
+      }
+      const rows = el("div");
+      for (const id of ids) rows.appendChild(recallRow(id));
+      if (ALWAYS_THERE.has(sec.name)) {
+        // 核心准则 / 待办每次醒来都在，默认收起
+        rows.hidden = true;
+        const more = el("button", "", "展开"); more.type = "button";
+        more.addEventListener("click", () => { rows.hidden = !rows.hidden; more.textContent = rows.hidden ? "展开" : "收起"; });
+        title.appendChild(more);
+      }
+      body.appendChild(rows);
+    }
+    return body;
+  }
+  function recallEvent(ev, open) {
+    const box = el("div", "recall-event");
+    const head = el("button", "recall-head"); head.type = "button";
+    const at = new Date(ev.at);
+    head.appendChild(el("span", "t", isNaN(at) ? "" : hm(at)));
+    head.appendChild(el("span", "what", ev.query ? `${ev.label}「${ev.query}」` : ev.label));
+    head.appendChild(el("span", "n", recallSummary(ev)));
+    head.appendChild(el("span", "chev", "›"));
+    let body = null;
+    const toggle = (show) => {
+      head.setAttribute("aria-expanded", String(show));
+      if (show && !body) { body = recallBody(ev); box.appendChild(body); }
+      if (body) body.hidden = !show;
+    };
+    head.addEventListener("click", () => { haptic(); toggle(head.getAttribute("aria-expanded") !== "true"); });
+    box.appendChild(head);
+    toggle(!!open);
+    return box;
+  }
+  function renderRecall() {
+    const list = $("list");
+    if (state.recall === null) { $("statusLine").textContent = "正在读取…"; list.replaceChildren(); return; }
+    const evs = state.recall;
+    $("statusLine").textContent = evs.length ? `最近 ${evs.length} 次醒来和搜索，我想起了这些` : "";
+    if (!evs.length) { list.replaceChildren(emptyBox("还没有记录。下次我 breath 的时候，这里就会多一条。")); return; }
+    const thisYear = new Date().getFullYear();
+    const frag = document.createDocumentFragment();
+    let group = null, groupKey = null;
+    evs.forEach((ev, i) => {
+      const d = new Date(ev.at);
+      const key = dayKey(isNaN(d) ? null : d);
+      if (key !== groupKey) {
+        groupKey = key;
+        group = el("section", "day");
+        const date = el("div", "date");
+        if (!isNaN(d)) {
+          date.appendChild(el("div", "md", `${d.getMonth() + 1}.${d.getDate()}`));
+          if (d.getFullYear() !== thisYear) date.appendChild(el("div", "yr", String(d.getFullYear())));
+          date.appendChild(el("div", "wd", WEEK[d.getDay()]));
+        }
+        group.appendChild(date);
+        group.appendChild(el("div", "entries"));
+        frag.appendChild(group);
+      }
+      group.lastChild.appendChild(recallEvent(ev, i === 0));
+    });
+    list.replaceChildren(frag);
   }
   function renderFilters() {
     const nav = $("filters"); nav.replaceChildren();
@@ -468,9 +589,20 @@ textarea.content:focus { background: var(--glass-hi); }
       const b = el("button", "chip", f.label);
       b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === f.key));
       const n = el("span", "n", String(count)); b.appendChild(n);
-      b.addEventListener("click", () => { haptic(); state.filter = f.key; renderFilters(); render(); window.scrollTo({ top: 0 }); });
+      b.setAttribute("aria-pressed", String(state.view === "list" && state.filter === f.key));
+      b.addEventListener("click", () => { haptic(); setView("list"); state.filter = f.key; renderFilters(); render(); window.scrollTo({ top: 0 }); });
       nav.appendChild(b);
     }
+    // 他想起的：不是一种筛选，是另一张视图——每次 breath 浮上来了哪些记忆
+    const r = el("button", "chip", "他想起的");
+    r.type = "button"; r.setAttribute("aria-pressed", String(state.view === "recall"));
+    r.addEventListener("click", () => { haptic(); setView("recall"); renderFilters(); render(); window.scrollTo({ top: 0 }); });
+    nav.appendChild(r);
+  }
+  function setView(v) {
+    state.view = v;
+    history.replaceState(null, "", v === "recall" ? "#recall" : location.pathname + location.search);
+    if (v === "recall" && !state.recall) loadRecall();
   }
   function emptyBox(msg, actionLabel, action) {
     const box = el("div", "empty", msg);
@@ -488,6 +620,7 @@ textarea.content:focus { background: var(--glass-hi); }
     return rows;
   }
   function render() {
+    if (state.view === "recall") return renderRecall();
     const rows = visible();
     const list = $("list");
     const q = state.query.trim();
@@ -543,6 +676,7 @@ textarea.content:focus { background: var(--glass-hi); }
   // ---------- search ----------
   let searchTimer, searchSeq = 0;
   $("q").addEventListener("input", () => {
+    if (state.view === "recall") { setView("list"); renderFilters(); }
     state.query = $("q").value; state.searchIds = null;
     $("clearQ").hidden = !state.query; render();
     clearTimeout(searchTimer);

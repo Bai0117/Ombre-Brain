@@ -71,6 +71,7 @@ from tools import trace as _t_trace
 from tools import anchor as _t_anchor
 from tools import plan as _t_plan
 from tools import dream as _t_dream
+from tools.breath.recall_log import RECALL_OPS as _RECALL_OPS, record_recall as _record_recall
 from tools import i as _t_i
 from tools import now as _t_now
 from tools import them as _t_them
@@ -642,6 +643,9 @@ async def _with_notice(coro: Awaitable[str], op: str = "", args: dict | None = N
     # 正常路径
     if op:
         _log_op_ok(op, result)
+    if op in _RECALL_OPS:
+        # 「他想起了什么」：记下这次浮上来哪些记忆（/home 读）。内部吞掉一切异常。
+        _record_recall(op, args, result)
     try:
         extras = format_warnings_suffix(pop_warnings())
     except Exception:
