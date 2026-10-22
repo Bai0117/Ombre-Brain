@@ -2,41 +2,42 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#E8EBF0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1014" media="(prefers-color-scheme: dark)">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#E8E8EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B0B0C" media="(prefers-color-scheme: dark)">
 <title>记忆</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="/static/manifest.json">
 <style>
 :root {
-  --base: #E8EBF0;
+  --base: #E8E8EA;
   --scene:
     radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%),
-    radial-gradient(55% 45% at 6% 28%, rgba(176, 192, 222, 0.75) 0%, rgba(176, 192, 222, 0) 70%),
-    radial-gradient(50% 40% at 96% 62%, rgba(208, 198, 228, 0.7) 0%, rgba(208, 198, 228, 0) 70%),
-    radial-gradient(60% 40% at 24% 96%, rgba(190, 216, 222, 0.7) 0%, rgba(190, 216, 222, 0) 70%);
-  --glass: rgba(255, 255, 255, 0.34);
-  --glass-hi: rgba(255, 255, 255, 0.66);
-  --glass-low: rgba(255, 255, 255, 0.2);
-  --glass-edge: rgba(255, 255, 255, 0.55);
+    radial-gradient(55% 45% at 6% 28%, rgba(198, 198, 202, 0.75) 0%, rgba(198, 198, 202, 0) 70%),
+    radial-gradient(50% 40% at 96% 62%, rgba(214, 214, 218, 0.7) 0%, rgba(214, 214, 218, 0) 70%),
+    radial-gradient(60% 40% at 24% 96%, rgba(204, 204, 208, 0.7) 0%, rgba(204, 204, 208, 0) 70%);
+  --glass: rgba(255, 255, 255, 0.4);
+  --glass-hi: rgba(255, 255, 255, 0.72);
+  --glass-low: rgba(255, 255, 255, 0.22);
+  --glass-edge: rgba(255, 255, 255, 0.6);
   --spec:
     inset 0 0.5px 0 rgba(255, 255, 255, 0.95),
     inset 0 -0.5px 0 rgba(255, 255, 255, 0.35);
-  --float: 0 10px 26px -16px rgba(38, 50, 76, 0.3), 0 0.5px 1.5px rgba(38, 50, 76, 0.08);
-  --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.95), 0 6px 18px -8px rgba(112, 132, 176, 0.55);
+  --float: 0 10px 26px -16px rgba(0, 0, 0, 0.22), 0 0.5px 1.5px rgba(0, 0, 0, 0.06);
+  --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.95), 0 6px 18px -8px rgba(0, 0, 0, 0.22);
   --sheen: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.22) 100%);
-  --tint: rgba(255, 255, 255, 0.86);
-  --tint-ink: #1B1E23;
-  --line: rgba(120, 132, 152, 0.22);
-  --ink: #20242A;
-  --ink-dim: #5C6370;
-  --ink-faint: #8A919D;
-  --moon: #6F7C96;
-  --chip-wash: rgba(255, 255, 255, 0.5);
-  --danger: #A0503C;
-  --danger-wash: rgba(214, 150, 130, 0.22);
-  --ok-tint: rgba(70, 120, 92, 0.86);
+  --tint: rgba(255, 255, 255, 0.9);
+  --tint-ink: #1C1C1E;
+  --line: rgba(60, 60, 67, 0.16);
+  --ink: #1C1C1E;
+  --ink-dim: #58585D;
+  --ink-faint: #8E8E93;
+  --moon: #8E8E93;
+  --chip-wash: rgba(255, 255, 255, 0.55);
+  --danger: #58585D;
+  --danger-wash: rgba(0, 0, 0, 0.05);
+  --ok-tint: rgba(255, 255, 255, 0.95);
+  --ok-ink: #1C1C1E;
   --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --num: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", serif;
   --top: env(safe-area-inset-top, 0px);
@@ -45,45 +46,46 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --base: #0E1014;
+    --base: #0B0B0C;
     --scene:
-      radial-gradient(60% 40% at 88% 4%, rgba(196, 206, 228, 0.22) 0%, rgba(196, 206, 228, 0) 70%),
-      radial-gradient(55% 45% at 6% 28%, rgba(58, 74, 110, 0.55) 0%, rgba(58, 74, 110, 0) 70%),
-      radial-gradient(50% 40% at 96% 62%, rgba(74, 60, 96, 0.5) 0%, rgba(74, 60, 96, 0) 70%),
-      radial-gradient(60% 40% at 24% 96%, rgba(40, 74, 84, 0.5) 0%, rgba(40, 74, 84, 0) 70%);
-    --glass: rgba(40, 44, 54, 0.36);
-    --glass-hi: rgba(70, 76, 90, 0.5);
-    --glass-low: rgba(255, 255, 255, 0.04);
+      radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0) 70%),
+      radial-gradient(55% 45% at 6% 28%, rgba(120, 120, 126, 0.2) 0%, rgba(120, 120, 126, 0) 70%),
+      radial-gradient(50% 40% at 96% 62%, rgba(96, 96, 102, 0.2) 0%, rgba(96, 96, 102, 0) 70%),
+      radial-gradient(60% 40% at 24% 96%, rgba(86, 86, 92, 0.18) 0%, rgba(86, 86, 92, 0) 70%);
+    --glass: rgba(44, 44, 47, 0.42);
+    --glass-hi: rgba(72, 72, 76, 0.55);
+    --glass-low: rgba(255, 255, 255, 0.05);
     --glass-edge: rgba(255, 255, 255, 0.12);
     --spec:
       inset 0 0.5px 0 rgba(255, 255, 255, 0.24),
       inset 0 -0.5px 0 rgba(255, 255, 255, 0.06);
-    --float: 0 12px 30px -16px rgba(0, 0, 0, 0.7), 0 0.5px 1.5px rgba(0, 0, 0, 0.35);
-    --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 6px 18px -8px rgba(150, 170, 220, 0.35);
-    --sheen: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.05) 100%);
+    --float: 0 12px 30px -16px rgba(0, 0, 0, 0.8), 0 0.5px 1.5px rgba(0, 0, 0, 0.4);
+    --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.28), 0 6px 18px -8px rgba(255, 255, 255, 0.14);
+    --sheen: linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.05) 100%);
     --tint: rgba(255, 255, 255, 0.2);
     --tint-ink: #FFFFFF;
-    --line: rgba(200, 210, 230, 0.12);
-    --ink: #E6E8EC;
-    --ink-dim: #A7AEB9;
-    --ink-faint: #737A86;
-    --moon: #AEB9CF;
-    --chip-wash: rgba(255, 255, 255, 0.06);
-    --danger: #E09A86;
-    --danger-wash: rgba(160, 80, 60, 0.25);
-    --ok-tint: rgba(110, 170, 134, 0.85);
+    --line: rgba(255, 255, 255, 0.1);
+    --ink: #F2F2F4;
+    --ink-dim: #AEAEB2;
+    --ink-faint: #6E6E73;
+    --moon: #AEAEB2;
+    --chip-wash: rgba(255, 255, 255, 0.07);
+    --danger: #AEAEB2;
+    --danger-wash: rgba(255, 255, 255, 0.06);
+    --ok-tint: rgba(255, 255, 255, 0.3);
+    --ok-ink: #FFFFFF;
   }
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html { background: var(--base); }
-html, body { margin: 0; color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+html, body { margin: 0; color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
 body.locked { overflow: hidden; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--moon); outline-offset: 2px; border-radius: 8px; }
 [hidden] { display: none !important; }
 
-/* The light that the glass bends: a fixed, softly coloured scene behind everything. */
+/* The light that the glass bends: a fixed, soft monochrome scene behind everything. */
 .backdrop { position: fixed; inset: -10vh -10vw; z-index: -1; background: var(--scene), var(--base); pointer-events: none; }
 
 /* ---------- glass material ----------
@@ -116,7 +118,7 @@ button { cursor: pointer; }
   mask-image: linear-gradient(180deg, #000 78%, transparent);
 }
 .bar-row { display: flex; align-items: center; gap: 10px; max-width: 720px; margin: 0 auto; }
-.bar h1 { font-size: 30px; font-weight: 700; margin: 0; letter-spacing: 0.01em; flex: 1; }
+.bar h1 { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: 0.01em; flex: 1; }
 .icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); }
 .icon-btn svg { width: 19px; height: 19px; }
 .search {
@@ -125,7 +127,7 @@ button { cursor: pointer; }
   background: var(--glass); border: 0.5px solid var(--glass-edge); box-shadow: var(--spec), var(--float);
 }
 .search svg { width: 16px; height: 16px; color: var(--ink-faint); flex: none; }
-.search input { flex: 1; border: 0; background: transparent; padding: 10px 0; outline: none; font-size: 16px; }
+.search input { flex: 1; border: 0; background: transparent; padding: 9px 0; outline: none; font-size: 15px; }
 .search input::placeholder { color: var(--ink-faint); }
 .search .clear { border: 0; background: none; color: var(--ink-dim); padding: 4px; font-size: 14px; }
 .filters {
@@ -133,7 +135,7 @@ button { cursor: pointer; }
   max-width: 720px; margin: 12px auto 0; padding: 2px 2px 8px;
 }
 .filters::-webkit-scrollbar { display: none; }
-.chip { flex: none; color: var(--ink-dim); background: var(--glass-low); border-radius: 999px; padding: 5px 14px; font-size: 14px; box-shadow: var(--spec); }
+.chip { flex: none; color: var(--ink-dim); background: var(--glass-low); border-radius: 999px; padding: 4px 13px; font-size: 13px; box-shadow: var(--spec); }
 .chip[aria-pressed="true"] { background: var(--tint); color: var(--tint-ink); font-weight: 600; box-shadow: var(--spec), var(--glow); }
 .chip { transition: transform 0.22s cubic-bezier(.3, 1.6, .5, 1), background-color 0.18s ease, color 0.18s ease; }
 .chip:active { transform: scale(1.08); }
@@ -148,13 +150,13 @@ main { max-width: 720px; margin: 0 auto; padding: 0 16px calc(var(--bottom) + 48
   margin-top: 14px; padding: 14px 8px 6px 14px; border-radius: 26px;
 }
 .date { position: sticky; top: calc(var(--barh, 140px) + 6px); align-self: start; padding-top: 8px; }
-.date .md { font-family: var(--num); font-size: 26px; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: lining-nums; color: var(--ink); }
+.date .md { font-family: var(--num); font-size: 24px; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: lining-nums; color: var(--ink); }
 .date .wd { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
 .date .yr { font-family: var(--num); font-size: 12px; color: var(--ink-faint); }
 .entries { min-width: 0; }
 .entry {
   position: relative; display: block; width: 100%; text-align: left; border: 0; background: transparent;
-  padding: 8px 10px 10px; margin: 0 0 4px; border-radius: 16px;
+  padding: 7px 10px 8px; margin: 0 0 3px; border-radius: 16px;
   transition: background-color 0.18s ease, transform 0.22s cubic-bezier(.3, 1.6, .5, 1), box-shadow 0.18s ease;
 }
 .entry + .entry::before { content: ""; position: absolute; left: 10px; right: 10px; top: -3px; border-top: 0.5px solid var(--line); }
@@ -164,11 +166,11 @@ main { max-width: 720px; margin: 0 auto; padding: 0 16px calc(var(--bottom) + 48
 @media (prefers-reduced-motion: reduce) { .entry { transition: none; } .entry:active { transform: none; } }
 .entry .text {
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
-  font-size: 15px; line-height: 1.7; color: var(--ink); word-break: break-word;
+  font-size: 14px; line-height: 1.55; color: var(--ink); word-break: break-word;
 }
-.entry .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; font-size: 12px; color: var(--ink-faint); }
+.entry .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; font-size: 11.5px; color: var(--ink-faint); }
 .entry .meta .time { font-family: var(--num); font-variant-numeric: tabular-nums; }
-.tag { color: var(--moon); }
+.tag { color: var(--ink-faint); }
 .flag { padding: 0 8px; border-radius: 999px; background: var(--chip-wash); color: var(--ink-dim); box-shadow: var(--spec); }
 .flag.warn { background: var(--danger-wash); color: var(--danger); }
 .entry.quiet .text { color: var(--ink-dim); }
@@ -176,13 +178,13 @@ main { max-width: 720px; margin: 0 auto; padding: 0 16px calc(var(--bottom) + 48
 .empty button { margin-top: 14px; }
 
 /* ---------- buttons ---------- */
-.btn { border-radius: 999px; padding: 8px 18px; font-size: 15px; color: var(--ink); transition: transform 0.22s cubic-bezier(.3, 1.6, .5, 1), opacity 0.2s ease, background-color 0.2s ease; }
+.btn { border-radius: 999px; padding: 7px 16px; font-size: 14px; color: var(--ink); transition: transform 0.22s cubic-bezier(.3, 1.6, .5, 1), opacity 0.2s ease, background-color 0.2s ease; }
 .btn:active:not(:disabled) { transform: scale(1.06); }
 .btn.primary { background: var(--tint); color: var(--tint-ink); font-weight: 600; min-width: 76px; box-shadow: var(--spec), var(--glow); }
 .btn.primary:disabled { background: var(--glass-low); color: var(--ink-faint); box-shadow: var(--spec); opacity: 1; }
-.btn.primary.done, .btn.primary.done:disabled { background: var(--ok-tint); color: #fff; box-shadow: var(--spec), 0 6px 18px -8px rgba(70, 120, 92, 0.6); }
+.btn.primary.done, .btn.primary.done:disabled { background: var(--ok-tint); color: var(--ok-ink); box-shadow: var(--spec), var(--glow); }
 .btn.danger { color: var(--danger); }
-.text-btn { color: var(--ink); padding: 8px 16px; font-size: 16px; }
+.text-btn { color: var(--ink); padding: 7px 15px; font-size: 14px; }
 
 /* ---------- editor sheet ---------- */
 .sheet {
@@ -210,20 +212,20 @@ main { max-width: 720px; margin: 0 auto; padding: 0 16px calc(var(--bottom) + 48
 .notice.warn { background: var(--danger-wash); color: var(--danger); }
 textarea.content {
   display: block; width: 100%; min-height: 32vh; resize: none; outline: none;
-  font-size: 17px; line-height: 1.8; padding: 18px; color: var(--ink); word-break: break-word;
+  font-size: 15px; line-height: 1.6; padding: 16px 18px; color: var(--ink); word-break: break-word;
   border-radius: 26px;
 }
 textarea.content:focus { background: var(--glass-hi); }
 .fields { margin-top: 14px; padding: 0 18px; border-radius: 26px; }
 .fields .field:last-child { border-bottom: 0; }
-.field { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 0.5px solid var(--line); }
-.field > span { font-size: 14px; color: var(--ink-dim); }
-.field input[type="text"] { width: 100%; border: 0; background: transparent; outline: none; padding: 4px 0; font-size: 16px; }
-.field input[type="range"] { width: 100%; accent-color: var(--moon); }
+.field { display: grid; grid-template-columns: 68px 1fr; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--line); }
+.field > span { font-size: 13px; color: var(--ink-dim); }
+.field input[type="text"] { width: 100%; border: 0; background: transparent; outline: none; padding: 4px 0; font-size: 15px; }
+.field input[type="range"] { width: 100%; accent-color: var(--ink-dim); }
 .imp { display: flex; align-items: center; gap: 12px; }
 .imp output { font-family: var(--num); font-size: 18px; width: 22px; text-align: right; }
 .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
-.toggles .chip { font-size: 14px; padding: 5px 14px; }
+.toggles .chip { font-size: 13px; padding: 4px 13px; }
 .hint { font-size: 12px; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.5; }
 .danger-zone { margin-top: 26px; }
 .danger-zone textarea { width: 100%; min-height: 72px; border: 0.5px solid var(--glass-edge); border-radius: 18px; background: var(--glass); box-shadow: var(--spec); padding: 10px 14px; font-size: 15px; resize: vertical; margin: 10px 0; outline: none; }
