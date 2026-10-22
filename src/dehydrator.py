@@ -108,6 +108,9 @@ _PLAN_SUMMARY_INPUT_LIMIT = 1500
 _PLAN_SUMMARY_MAX_TOKENS = 4096
 _PLAN_SUMMARY_TEMPERATURE = 0.2
 PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这里兜底
+# 改了 summarize_plan 的 prompt 就把它加一：版本混进摘要指纹，旧摘要会在下一次
+# breath 时自动按新 prompt 重写一遍（tools/plan/summary.py）。
+PLAN_SUMMARY_VERSION = 2
 
 # --- 默认情感坐标（与 bucket_manager 中保持一致）---
 _DEFAULT_VALENCE = 0.5  # 0=极负, 1=极正
@@ -1279,6 +1282,8 @@ class Dehydrator:
             "你在给一条待办事项写列表里的一行标题。"
             "用中文写一句话，30 个字以内，说清楚「要做什么」；"
             "保留关键的人名、对象、日期和条件，删掉背景解释和原因。"
+            "事情用它本来的叫法（如「聊天应用后端」），"
+            "不要拿仓库名、用户名、文件路径或链接去代替它。"
             "只复述原文里有的信息，不要补充原文没有的内容。"
             "只输出这一句话本身：不要引号、不要编号、不要前缀、不要句末标点、不要换行。"
         )

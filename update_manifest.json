@@ -7,8 +7,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "2bb1670b02351c6de139fb8c9392d3e0aca03cf13fcf89e0c0ae61ae51e03239",
-      "size": 581932
+      "sha256": "76e1e10e1a66d632b1ff46cf6ff2029219ccf272c46e2e3c9d8dac5a650acfc8",
+      "size": 582066
     },
     {
       "path": "frontend/favicon.svg",
@@ -17,8 +17,8 @@
     },
     {
       "path": "frontend/home.html",
-      "sha256": "ace701642d711611569a980198c8f2106dec816e96a1bee553586a1208e57b60",
-      "size": 39378
+      "sha256": "c6811539e193e3646bd2a4c155aa3c8ff00ec7d007a807b3d6b4ba93d466fb49",
+      "size": 39447
     },
     {
       "path": "frontend/icon.svg",
@@ -57,8 +57,8 @@
     },
     {
       "path": "src/dehydrator.py",
-      "sha256": "632dbb59b532c92bbf2abb63d0f0467a634bdc79cd126438dc2250d25dbe3e31",
-      "size": 66316
+      "sha256": "ee2f582018ec1eea370f163a018c4fc1b288f87713291e20886c370d701fdc92",
+      "size": 66683
     },
     {
       "path": "src/deletion_requests.py",
@@ -747,8 +747,8 @@
     },
     {
       "path": "src/tools/plan/summary.py",
-      "sha256": "ab17c45e9dfb716c9d3e645c4bed0b028f741c226b13249da5549b87484adee5",
-      "size": 5046
+      "sha256": "7351d1dffaf939c300f7820875d3ad13d08bf32d6c2da470c35663b8a5dbbf80",
+      "size": 5239
     },
     {
       "path": "src/tools/them/__init__.py",

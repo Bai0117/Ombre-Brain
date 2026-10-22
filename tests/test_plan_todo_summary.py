@@ -258,3 +258,14 @@ def test_writing_a_summary_is_not_a_footprint_step():
     # 正文真的被改了，就算同一次顺带写了摘要，也照常记下
     snap = FootprintSnapshot.from_events([created, status, summary, edit])
     assert snap.summary("p1").endswith("→ 正文重构")
+
+
+def test_prompt_version_bump_makes_old_summaries_stale(monkeypatch):
+    """改了摘要 prompt（版本 +1）后，旧摘要应当被当成过期、按新 prompt 重写。"""
+    import dehydrator
+    from tools.plan.summary import fresh_summary
+
+    plan = _with_summary(_plan("p1", "给聊天应用后端加鉴权"), "给Bai0117后端加鉴权")
+    assert fresh_summary(plan) == "给Bai0117后端加鉴权"
+    monkeypatch.setattr(dehydrator, "PLAN_SUMMARY_VERSION", dehydrator.PLAN_SUMMARY_VERSION + 1)
+    assert fresh_summary(plan) == ""

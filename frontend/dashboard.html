@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Ombre Brain</title>
-<meta name="theme-color" content="#E8E8EA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B0B0C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="apple-touch-icon" href="/static/icon.svg">
 <link rel="manifest" href="/static/manifest.json">
@@ -2091,47 +2091,49 @@
    Delete this <style> block to get the original retro-handheld look back.
    ===================================================================== */
 :root {
-  --bg: #E8E8EA;
-  --bg-gradient: #E8E8EA;
-  --surface: rgba(255, 255, 255, 0.42);
-  --surface-solid: rgba(255, 255, 255, 0.28);
-  --border: rgba(60, 60, 67, 0.14);
-  --border-strong: rgba(60, 60, 67, 0.24);
-  --text: #1C1C1E;
-  --text-dim: #58585D;
-  --text-light: #8E8E93;
-  --accent: #1C1C1E;
-  --accent-light: #48484A;
+  /* 10.22 白：对比度太低，像加了层滤镜。底色提亮、玻璃更白、字更黑，
+     把整页从「一片中灰」拉开成真正的黑与白。 */
+  --bg: #F2F2F4;
+  --bg-gradient: #F2F2F4;
+  --surface: rgba(255, 255, 255, 0.74);
+  --surface-solid: rgba(255, 255, 255, 0.55);
+  --border: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.18);
+  --text: #0A0A0A;
+  --text-dim: #3A3A3C;
+  --text-light: #6C6C70;
+  --accent: #0A0A0A;
+  --accent-light: #3A3A3C;
   --accent-glow: rgba(0, 0, 0, 0.08);
-  --positive: #8E8E93;
-  --negative: #1C1C1E;
-  --warning: #636366;
-  --shadow-light: rgba(255, 255, 255, 0.8);
-  --shadow-dark: rgba(0, 0, 0, 0.14);
-  --shadow-dark-subtle: rgba(0, 0, 0, 0.06);
-  --lcd: rgba(255, 255, 255, 0.32);
-  --lcd-text: #1C1C1E;
-  --lcd-dim: #58585D;
+  --positive: #6C6C70;
+  --negative: #0A0A0A;
+  --warning: #48484A;
+  --shadow-light: rgba(255, 255, 255, 0.9);
+  --shadow-dark: rgba(0, 0, 0, 0.16);
+  --shadow-dark-subtle: rgba(0, 0, 0, 0.07);
+  --lcd: rgba(255, 255, 255, 0.62);
+  --lcd-text: #0A0A0A;
+  --lcd-dim: #3A3A3C;
   --lcd-glow: rgba(0, 0, 0, 0);
   --shell-radius: 26px;
   --radius-inner: 18px;
   --radius-control: 14px;
 
   --g-scene:
-    radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%),
-    radial-gradient(55% 45% at 6% 28%, rgba(198, 198, 202, 0.75) 0%, rgba(198, 198, 202, 0) 70%),
-    radial-gradient(50% 40% at 96% 62%, rgba(214, 214, 218, 0.7) 0%, rgba(214, 214, 218, 0) 70%),
-    radial-gradient(60% 40% at 24% 96%, rgba(204, 204, 208, 0.7) 0%, rgba(204, 204, 208, 0) 70%);
-  --g-glass: rgba(255, 255, 255, 0.4);
-  --g-hi: rgba(255, 255, 255, 0.72);
-  --g-low: rgba(255, 255, 255, 0.22);
-  --g-edge: rgba(255, 255, 255, 0.6);
-  --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 0.95), inset 0 -0.5px 0 rgba(255, 255, 255, 0.35);
-  --g-float: 0 10px 26px -16px rgba(0, 0, 0, 0.22), 0 0.5px 1.5px rgba(0, 0, 0, 0.06);
-  --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 0.95), 0 6px 18px -8px rgba(0, 0, 0, 0.22);
-  --g-lit: rgba(255, 255, 255, 0.9);
-  --g-lit-ink: #1C1C1E;
-  --g-sunk: rgba(0, 0, 0, 0.04);
+    radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(55% 45% at 6% 28%, rgba(214, 214, 218, 0.7) 0%, rgba(214, 214, 218, 0) 70%),
+    radial-gradient(50% 40% at 96% 62%, rgba(226, 226, 230, 0.7) 0%, rgba(226, 226, 230, 0) 70%),
+    radial-gradient(60% 40% at 24% 96%, rgba(218, 218, 222, 0.7) 0%, rgba(218, 218, 222, 0) 70%);
+  --g-glass: rgba(255, 255, 255, 0.72);
+  --g-hi: rgba(255, 255, 255, 0.92);
+  --g-low: rgba(255, 255, 255, 0.5);
+  --g-edge: rgba(255, 255, 255, 0.85);
+  --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 1), inset 0 -0.5px 0 rgba(255, 255, 255, 0.5);
+  --g-float: 0 12px 28px -14px rgba(0, 0, 0, 0.26), 0 0.5px 1.5px rgba(0, 0, 0, 0.08);
+  --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 1), 0 6px 18px -8px rgba(0, 0, 0, 0.26);
+  --g-lit: #FFFFFF;
+  --g-lit-ink: #000000;
+  --g-sunk: rgba(0, 0, 0, 0.05);
   --g-blur: blur(22px) saturate(180%);
   --g-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --g-num: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", serif;
@@ -2140,43 +2142,43 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0B0B0C;
-    --bg-gradient: #0B0B0C;
-    --surface: rgba(44, 44, 47, 0.46);
-    --surface-solid: rgba(255, 255, 255, 0.05);
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.18);
-    --text: #F2F2F4;
-    --text-dim: #AEAEB2;
-    --text-light: #6E6E73;
-    --accent: #F2F2F4;
-    --accent-light: #C7C7CC;
-    --accent-glow: rgba(255, 255, 255, 0.1);
+    --bg: #000000;
+    --bg-gradient: #000000;
+    --surface: rgba(36, 36, 38, 0.6);
+    --surface-solid: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.13);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --text: #FFFFFF;
+    --text-dim: #C7C7CC;
+    --text-light: #8E8E93;
+    --accent: #FFFFFF;
+    --accent-light: #D1D1D6;
+    --accent-glow: rgba(255, 255, 255, 0.12);
     --positive: #8E8E93;
-    --negative: #F2F2F4;
-    --warning: #AEAEB2;
-    --shadow-light: rgba(255, 255, 255, 0.04);
-    --shadow-dark: rgba(0, 0, 0, 0.6);
-    --shadow-dark-subtle: rgba(0, 0, 0, 0.35);
-    --lcd: rgba(255, 255, 255, 0.05);
-    --lcd-text: #F2F2F4;
-    --lcd-dim: #AEAEB2;
+    --negative: #FFFFFF;
+    --warning: #C7C7CC;
+    --shadow-light: rgba(255, 255, 255, 0.05);
+    --shadow-dark: rgba(0, 0, 0, 0.7);
+    --shadow-dark-subtle: rgba(0, 0, 0, 0.4);
+    --lcd: rgba(255, 255, 255, 0.07);
+    --lcd-text: #FFFFFF;
+    --lcd-dim: #C7C7CC;
 
     --g-scene:
       radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0) 70%),
       radial-gradient(55% 45% at 6% 28%, rgba(120, 120, 126, 0.2) 0%, rgba(120, 120, 126, 0) 70%),
       radial-gradient(50% 40% at 96% 62%, rgba(96, 96, 102, 0.2) 0%, rgba(96, 96, 102, 0) 70%),
       radial-gradient(60% 40% at 24% 96%, rgba(86, 86, 92, 0.18) 0%, rgba(86, 86, 92, 0) 70%);
-    --g-glass: rgba(44, 44, 47, 0.42);
-    --g-hi: rgba(72, 72, 76, 0.55);
-    --g-low: rgba(255, 255, 255, 0.05);
-    --g-edge: rgba(255, 255, 255, 0.12);
-    --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 0.24), inset 0 -0.5px 0 rgba(255, 255, 255, 0.06);
-    --g-float: 0 12px 30px -16px rgba(0, 0, 0, 0.8), 0 0.5px 1.5px rgba(0, 0, 0, 0.4);
-    --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 0.28), 0 6px 18px -8px rgba(255, 255, 255, 0.14);
-    --g-lit: rgba(255, 255, 255, 0.2);
+    --g-glass: rgba(36, 36, 38, 0.56);
+    --g-hi: rgba(72, 72, 76, 0.62);
+    --g-low: rgba(255, 255, 255, 0.06);
+    --g-edge: rgba(255, 255, 255, 0.16);
+    --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 0.3), inset 0 -0.5px 0 rgba(255, 255, 255, 0.07);
+    --g-float: 0 12px 30px -16px rgba(0, 0, 0, 0.9), 0 0.5px 1.5px rgba(0, 0, 0, 0.5);
+    --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 0.34), 0 6px 18px -8px rgba(255, 255, 255, 0.16);
+    --g-lit: rgba(255, 255, 255, 0.26);
     --g-lit-ink: #FFFFFF;
-    --g-sunk: rgba(0, 0, 0, 0.25);
+    --g-sunk: rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }

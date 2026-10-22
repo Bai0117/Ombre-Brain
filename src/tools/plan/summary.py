@@ -37,8 +37,12 @@ _tasks: set[asyncio.Task] = set()
 
 
 def content_fingerprint(content: str) -> str:
+    """正文 + 摘要 prompt 版本的指纹。任何一边变了，旧摘要都算过期。"""
+    from dehydrator import PLAN_SUMMARY_VERSION
+
     norm = " ".join((content or "").split())
-    return hashlib.sha256(norm.encode("utf-8")).hexdigest()[:16]
+    keyed = f"v{PLAN_SUMMARY_VERSION}|{norm}"
+    return hashlib.sha256(keyed.encode("utf-8")).hexdigest()[:16]
 
 
 def fresh_summary(bucket: dict) -> str:

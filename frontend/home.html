@@ -3,41 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#E8E8EA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B0B0C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>记忆</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="/static/manifest.json">
 <style>
 :root {
-  --base: #E8E8EA;
+  /* 10.22 白：对比度太低像滤镜——底色提亮、玻璃更白、字更黑（与 dashboard 同步）。 */
+  --base: #F2F2F4;
   --scene:
-    radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%),
-    radial-gradient(55% 45% at 6% 28%, rgba(198, 198, 202, 0.75) 0%, rgba(198, 198, 202, 0) 70%),
-    radial-gradient(50% 40% at 96% 62%, rgba(214, 214, 218, 0.7) 0%, rgba(214, 214, 218, 0) 70%),
-    radial-gradient(60% 40% at 24% 96%, rgba(204, 204, 208, 0.7) 0%, rgba(204, 204, 208, 0) 70%);
-  --glass: rgba(255, 255, 255, 0.4);
-  --glass-hi: rgba(255, 255, 255, 0.72);
-  --glass-low: rgba(255, 255, 255, 0.22);
-  --glass-edge: rgba(255, 255, 255, 0.6);
+    radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(55% 45% at 6% 28%, rgba(214, 214, 218, 0.7) 0%, rgba(214, 214, 218, 0) 70%),
+    radial-gradient(50% 40% at 96% 62%, rgba(226, 226, 230, 0.7) 0%, rgba(226, 226, 230, 0) 70%),
+    radial-gradient(60% 40% at 24% 96%, rgba(218, 218, 222, 0.7) 0%, rgba(218, 218, 222, 0) 70%);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-hi: rgba(255, 255, 255, 0.92);
+  --glass-low: rgba(255, 255, 255, 0.5);
+  --glass-edge: rgba(255, 255, 255, 0.85);
   --spec:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -0.5px 0 rgba(255, 255, 255, 0.35);
-  --float: 0 10px 26px -16px rgba(0, 0, 0, 0.22), 0 0.5px 1.5px rgba(0, 0, 0, 0.06);
-  --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.95), 0 6px 18px -8px rgba(0, 0, 0, 0.22);
-  --sheen: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.22) 100%);
-  --tint: rgba(255, 255, 255, 0.9);
-  --tint-ink: #1C1C1E;
-  --line: rgba(60, 60, 67, 0.16);
-  --ink: #1C1C1E;
-  --ink-dim: #58585D;
-  --ink-faint: #8E8E93;
-  --moon: #8E8E93;
-  --chip-wash: rgba(255, 255, 255, 0.55);
-  --danger: #58585D;
-  --danger-wash: rgba(0, 0, 0, 0.05);
-  --ok-tint: rgba(255, 255, 255, 0.95);
-  --ok-ink: #1C1C1E;
+    inset 0 0.5px 0 rgba(255, 255, 255, 1),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.5);
+  --float: 0 12px 28px -14px rgba(0, 0, 0, 0.26), 0 0.5px 1.5px rgba(0, 0, 0, 0.08);
+  --glow: 0 0 0 0.5px rgba(255, 255, 255, 1), 0 6px 18px -8px rgba(0, 0, 0, 0.26);
+  --sheen: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.3) 100%);
+  --tint: #FFFFFF;
+  --tint-ink: #000000;
+  --line: rgba(0, 0, 0, 0.1);
+  --ink: #0A0A0A;
+  --ink-dim: #3A3A3C;
+  --ink-faint: #6C6C70;
+  --moon: #6C6C70;
+  --chip-wash: rgba(255, 255, 255, 0.8);
+  --danger: #3A3A3C;
+  --danger-wash: rgba(0, 0, 0, 0.06);
+  --ok-tint: #FFFFFF;
+  --ok-ink: #000000;
   --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --num: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", serif;
   --top: env(safe-area-inset-top, 0px);
@@ -46,33 +47,33 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --base: #0B0B0C;
+    --base: #000000;
     --scene:
       radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0) 70%),
       radial-gradient(55% 45% at 6% 28%, rgba(120, 120, 126, 0.2) 0%, rgba(120, 120, 126, 0) 70%),
       radial-gradient(50% 40% at 96% 62%, rgba(96, 96, 102, 0.2) 0%, rgba(96, 96, 102, 0) 70%),
       radial-gradient(60% 40% at 24% 96%, rgba(86, 86, 92, 0.18) 0%, rgba(86, 86, 92, 0) 70%);
-    --glass: rgba(44, 44, 47, 0.42);
-    --glass-hi: rgba(72, 72, 76, 0.55);
-    --glass-low: rgba(255, 255, 255, 0.05);
-    --glass-edge: rgba(255, 255, 255, 0.12);
+    --glass: rgba(36, 36, 38, 0.56);
+    --glass-hi: rgba(72, 72, 76, 0.62);
+    --glass-low: rgba(255, 255, 255, 0.06);
+    --glass-edge: rgba(255, 255, 255, 0.16);
     --spec:
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.24),
-      inset 0 -0.5px 0 rgba(255, 255, 255, 0.06);
-    --float: 0 12px 30px -16px rgba(0, 0, 0, 0.8), 0 0.5px 1.5px rgba(0, 0, 0, 0.4);
-    --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.28), 0 6px 18px -8px rgba(255, 255, 255, 0.14);
-    --sheen: linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.05) 100%);
-    --tint: rgba(255, 255, 255, 0.2);
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -0.5px 0 rgba(255, 255, 255, 0.07);
+    --float: 0 12px 30px -16px rgba(0, 0, 0, 0.9), 0 0.5px 1.5px rgba(0, 0, 0, 0.5);
+    --glow: 0 0 0 0.5px rgba(255, 255, 255, 0.34), 0 6px 18px -8px rgba(255, 255, 255, 0.16);
+    --sheen: linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0) 34%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.06) 100%);
+    --tint: rgba(255, 255, 255, 0.26);
     --tint-ink: #FFFFFF;
-    --line: rgba(255, 255, 255, 0.1);
-    --ink: #F2F2F4;
-    --ink-dim: #AEAEB2;
-    --ink-faint: #6E6E73;
-    --moon: #AEAEB2;
-    --chip-wash: rgba(255, 255, 255, 0.07);
-    --danger: #AEAEB2;
-    --danger-wash: rgba(255, 255, 255, 0.06);
-    --ok-tint: rgba(255, 255, 255, 0.3);
+    --line: rgba(255, 255, 255, 0.13);
+    --ink: #FFFFFF;
+    --ink-dim: #C7C7CC;
+    --ink-faint: #8E8E93;
+    --moon: #C7C7CC;
+    --chip-wash: rgba(255, 255, 255, 0.09);
+    --danger: #C7C7CC;
+    --danger-wash: rgba(255, 255, 255, 0.07);
+    --ok-tint: rgba(255, 255, 255, 0.34);
     --ok-ink: #FFFFFF;
   }
 }
