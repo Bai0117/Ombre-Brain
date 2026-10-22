@@ -152,7 +152,7 @@ EXPECTED_TOOL_PROPERTIES = {
     },
     "anchor": {"bucket_id"},
     "release": {"bucket_id"},
-    "pulse": {"include_archive"},
+    "pulse": {"include_archive", "list_buckets"},
     "plan": {"content", "status", "related_bucket", "weight", "why_remembered"},
     "letter_write": {
         "author", "content", "user_name", "title", "date", "ai_name",
@@ -652,7 +652,7 @@ def test_grow_items_rejects_oversized_why_remembered_contract(mcp_client):
 def test_grow_long_content_obeys_configured_provider_contract(mcp_client):
     marker = _marker("grow")
     content = f"{marker} " + "long integration memory " * 8
-    before_ids = _bucket_ids(mcp_client.call("pulse", {"include_archive": True}))
+    before_ids = _bucket_ids(mcp_client.call("pulse", {"include_archive": True, "list_buckets": True}))
     result = mcp_client.call("grow", {"content": content})
 
     if not EXPECT_COMPRESSION_PROVIDER:
@@ -662,7 +662,7 @@ def test_grow_long_content_obeys_configured_provider_contract(mcp_client):
         assert "OB-E004" in result
         assert "脱水 API 不可用" in result
         assert "桶未创建" in result
-        after_ids = _bucket_ids(mcp_client.call("pulse", {"include_archive": True}))
+        after_ids = _bucket_ids(mcp_client.call("pulse", {"include_archive": True, "list_buckets": True}))
         assert after_ids == before_ids
         return
 
@@ -739,7 +739,9 @@ def test_release_removes_anchor_marker(mcp_client):
 def test_pulse_returns_system_summary(mcp_client):
     result = mcp_client.call("pulse", {"include_archive": False})
     assert "KB" in result
-    assert _bucket_id(result)
+    assert "pulse(list_buckets=True)" in result  # short report by default
+    listed = mcp_client.call("pulse", {"include_archive": False, "list_buckets": True})
+    assert _bucket_id(listed)
 
 
 def test_pulse_include_archive_controls_archived_bucket_listing(mcp_client):
@@ -748,8 +750,8 @@ def test_pulse_include_archive_controls_archived_bucket_listing(mcp_client):
     assert "存入档案" in archived
 
     try:
-        assert bucket_id not in mcp_client.call("pulse", {"include_archive": False})
-        assert bucket_id in mcp_client.call("pulse", {"include_archive": True})
+        assert bucket_id not in mcp_client.call("pulse", {"include_archive": False, "list_buckets": True})
+        assert bucket_id in mcp_client.call("pulse", {"include_archive": True, "list_buckets": True})
     finally:
         cleanup = mcp_client.call(
             "trace",
