@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Ombre Brain</title>
-<meta name="theme-color" content="#B85C3C">
+<meta name="theme-color" content="#E8E8EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B0B0C" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="apple-touch-icon" href="/static/icon.svg">
 <link rel="manifest" href="/static/manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&family=Noto+Sans+SC:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.min.js"
         integrity="sha384-mooE85Luwgx+AyykX7e90VcN8/QCFTSIwPuHLmvcsLVoA0en7lKYb9XlOzn5G2co"
         crossorigin="anonymous" defer></script>
@@ -2082,6 +2082,314 @@
     }
     .tab-spacer { display: none; }
   }
+</style>
+<style id="ob-glass-skin">
+/* =====================================================================
+   Monochrome glass skin (same material as /home).
+   Loaded after the original theme, so it only re-points the theme's own
+   tokens and overrides the handful of places that hard-code warm colours.
+   Delete this <style> block to get the original retro-handheld look back.
+   ===================================================================== */
+:root {
+  --bg: #E8E8EA;
+  --bg-gradient: #E8E8EA;
+  --surface: rgba(255, 255, 255, 0.42);
+  --surface-solid: rgba(255, 255, 255, 0.28);
+  --border: rgba(60, 60, 67, 0.14);
+  --border-strong: rgba(60, 60, 67, 0.24);
+  --text: #1C1C1E;
+  --text-dim: #58585D;
+  --text-light: #8E8E93;
+  --accent: #1C1C1E;
+  --accent-light: #48484A;
+  --accent-glow: rgba(0, 0, 0, 0.08);
+  --positive: #8E8E93;
+  --negative: #1C1C1E;
+  --warning: #636366;
+  --shadow-light: rgba(255, 255, 255, 0.8);
+  --shadow-dark: rgba(0, 0, 0, 0.14);
+  --shadow-dark-subtle: rgba(0, 0, 0, 0.06);
+  --lcd: rgba(255, 255, 255, 0.32);
+  --lcd-text: #1C1C1E;
+  --lcd-dim: #58585D;
+  --lcd-glow: rgba(0, 0, 0, 0);
+  --shell-radius: 26px;
+  --radius-inner: 18px;
+  --radius-control: 14px;
+
+  --g-scene:
+    radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(55% 45% at 6% 28%, rgba(198, 198, 202, 0.75) 0%, rgba(198, 198, 202, 0) 70%),
+    radial-gradient(50% 40% at 96% 62%, rgba(214, 214, 218, 0.7) 0%, rgba(214, 214, 218, 0) 70%),
+    radial-gradient(60% 40% at 24% 96%, rgba(204, 204, 208, 0.7) 0%, rgba(204, 204, 208, 0) 70%);
+  --g-glass: rgba(255, 255, 255, 0.4);
+  --g-hi: rgba(255, 255, 255, 0.72);
+  --g-low: rgba(255, 255, 255, 0.22);
+  --g-edge: rgba(255, 255, 255, 0.6);
+  --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 0.95), inset 0 -0.5px 0 rgba(255, 255, 255, 0.35);
+  --g-float: 0 10px 26px -16px rgba(0, 0, 0, 0.22), 0 0.5px 1.5px rgba(0, 0, 0, 0.06);
+  --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 0.95), 0 6px 18px -8px rgba(0, 0, 0, 0.22);
+  --g-lit: rgba(255, 255, 255, 0.9);
+  --g-lit-ink: #1C1C1E;
+  --g-sunk: rgba(0, 0, 0, 0.04);
+  --g-blur: blur(22px) saturate(180%);
+  --g-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --g-num: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", serif;
+  --g-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0B0B0C;
+    --bg-gradient: #0B0B0C;
+    --surface: rgba(44, 44, 47, 0.46);
+    --surface-solid: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --text: #F2F2F4;
+    --text-dim: #AEAEB2;
+    --text-light: #6E6E73;
+    --accent: #F2F2F4;
+    --accent-light: #C7C7CC;
+    --accent-glow: rgba(255, 255, 255, 0.1);
+    --positive: #8E8E93;
+    --negative: #F2F2F4;
+    --warning: #AEAEB2;
+    --shadow-light: rgba(255, 255, 255, 0.04);
+    --shadow-dark: rgba(0, 0, 0, 0.6);
+    --shadow-dark-subtle: rgba(0, 0, 0, 0.35);
+    --lcd: rgba(255, 255, 255, 0.05);
+    --lcd-text: #F2F2F4;
+    --lcd-dim: #AEAEB2;
+
+    --g-scene:
+      radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0) 70%),
+      radial-gradient(55% 45% at 6% 28%, rgba(120, 120, 126, 0.2) 0%, rgba(120, 120, 126, 0) 70%),
+      radial-gradient(50% 40% at 96% 62%, rgba(96, 96, 102, 0.2) 0%, rgba(96, 96, 102, 0) 70%),
+      radial-gradient(60% 40% at 24% 96%, rgba(86, 86, 92, 0.18) 0%, rgba(86, 86, 92, 0) 70%);
+    --g-glass: rgba(44, 44, 47, 0.42);
+    --g-hi: rgba(72, 72, 76, 0.55);
+    --g-low: rgba(255, 255, 255, 0.05);
+    --g-edge: rgba(255, 255, 255, 0.12);
+    --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 0.24), inset 0 -0.5px 0 rgba(255, 255, 255, 0.06);
+    --g-float: 0 12px 30px -16px rgba(0, 0, 0, 0.8), 0 0.5px 1.5px rgba(0, 0, 0, 0.4);
+    --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 0.28), 0 6px 18px -8px rgba(255, 255, 255, 0.14);
+    --g-lit: rgba(255, 255, 255, 0.2);
+    --g-lit-ink: #FFFFFF;
+    --g-sunk: rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+
+/* ---------- page, scene, type ---------- */
+html { background: var(--bg); }
+body {
+  background: transparent !important;
+  color: var(--text);
+  font-family: var(--g-sans) !important;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: normal !important;
+}
+body::before {
+  content: ""; position: fixed; inset: -10vh -10vw; z-index: -1; pointer-events: none;
+  background: var(--g-scene), var(--bg);
+}
+/* One family everywhere (the theme mixed a pixel mono, a display serif and inline
+   font stacks); logs and code keep a monospace. */
+body *:not(pre):not(code):not(kbd):not(samp):not(svg):not(svg *) { font-family: var(--g-sans) !important; letter-spacing: normal !important; }
+body pre, body pre *, body code, body kbd, body samp, #logs-output { font-family: var(--g-mono) !important; }
+h1, h2, h3, h4 { color: var(--text) !important; }
+a { color: var(--text); }
+
+/* ---------- glass material on every raised surface ---------- */
+.bucket-bulkbar, .bucket-row, .detail-content, .config-section, .breath-info, .breath-flow, .flow-step,
+.know-row, .tool-card, #sec-backup, .sb-card, .sub-card, .self-panel, .self-entry, .model-list-dropdown,
+#embed-warn-banner, #status-banner, .score-row, .v-dot {
+  background: var(--g-glass) !important;
+  border: 0.5px solid var(--g-edge) !important;
+  box-shadow: var(--g-spec), var(--g-float) !important;
+  color: var(--text);
+}
+.config-section, .breath-info, .breath-flow, .tool-card, #sec-backup, .self-panel { border-radius: 26px !important; }
+.bucket-row, .sb-card, .sub-card, .know-row, .self-entry, .flow-step { border-radius: 20px !important; }
+.bucket-row { transition: background-color .18s ease, transform .22s cubic-bezier(.3, 1.6, .5, 1), box-shadow .18s ease !important; }
+.bucket-row:active { background: var(--g-hi) !important; transform: scale(1.015) !important; }
+.score-row:hover { background: var(--g-hi) !important; }
+/* the theme's coloured left stripes on status cards -> neutral */
+.sb-card { border-left-color: var(--border-strong) !important; }
+
+/* floating panels and dialogs get a live blur */
+.detail-panel, .danger-modal, .self-panel, .model-list-dropdown {
+  background: color-mix(in srgb, var(--bg) 96%, transparent) !important;
+  -webkit-backdrop-filter: var(--g-blur); backdrop-filter: var(--g-blur);
+  border: 0.5px solid var(--g-edge) !important;
+  box-shadow: var(--g-spec), 0 24px 60px -24px rgba(0, 0, 0, 0.45) !important;
+  border-radius: 26px !important;
+}
+.detail-panel .detail-content { background: var(--g-low) !important; box-shadow: var(--g-spec) !important; }
+.detail-panel-header { background: transparent !important; box-shadow: none !important; border-bottom: 0.5px solid var(--border) !important; }
+#danger-modal-overlay { background: rgba(0, 0, 0, 0.28) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.detail-panel.anchor-mode::before { display: none !important; }
+
+/* ---------- header: melts into the scene ---------- */
+.header {
+  background: color-mix(in srgb, var(--bg) 90%, transparent) !important;
+  -webkit-backdrop-filter: var(--g-blur) !important; backdrop-filter: var(--g-blur) !important;
+  border-bottom: 0.5px solid var(--border) !important;
+}
+.header h1 { color: var(--text) !important; font-weight: 700 !important; letter-spacing: 0.01em !important; }
+.header .stats, .header-meta { color: var(--text-dim) !important; }
+.header button {
+  background: var(--g-glass) !important; color: var(--text) !important;
+  border: 0.5px solid var(--g-edge) !important; box-shadow: var(--g-spec), var(--g-float) !important;
+  border-radius: 999px !important;
+}
+.header button:hover { color: var(--text) !important; transform: none; }
+.header button:active { transform: scale(1.06) !important; background: var(--g-hi) !important; box-shadow: var(--g-spec), var(--g-float) !important; }
+
+/* ---------- tabs: a row of glass capsules ---------- */
+.tabs {
+  background: transparent !important; box-shadow: none !important; border: 0 !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+.tab {
+  background: var(--g-low) !important; color: var(--text-dim) !important;
+  border: 0.5px solid var(--g-edge) !important; box-shadow: var(--g-spec) !important;
+  border-radius: 999px !important;
+  transition: transform .22s cubic-bezier(.3, 1.6, .5, 1), background-color .18s ease !important;
+}
+.tab:hover { transform: none !important; color: var(--text) !important; }
+.tab:active { transform: scale(1.06) !important; }
+.tab.active { background: var(--g-lit) !important; color: var(--g-lit-ink) !important; font-weight: 600 !important; box-shadow: var(--g-spec), var(--g-glow) !important; transform: none !important; }
+.tab .tab-en { display: none !important; }
+.tab > span:first-child { font-weight: inherit !important; }
+@media (max-width: 768px) {
+  .tabs {
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+    margin: 4px 0 6px !important; padding: 4px 16px 10px !important; gap: 8px !important;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none !important; max-width: none !important; padding: 6px 14px !important; font-size: 13px !important; }
+}
+
+/* ---------- controls ---------- */
+.search-bar input,
+input[type=text], input[type=password], input[type=number], input[type=date], input[type=search], input[type=email], input[type=url],
+select, textarea, .config-row input, .config-row select, .form-row input, .form-row select, .breath-controls input, .pager-input {
+  background: var(--g-low) !important; color: var(--text) !important;
+  border: 0.5px solid var(--g-edge) !important;
+  box-shadow: var(--g-spec) !important;
+}
+.search-bar input { border-radius: 999px !important; }
+.search-bar input:focus, input:focus, select:focus, textarea:focus {
+  outline: none !important; background: var(--g-hi) !important;
+  box-shadow: var(--g-spec), 0 0 0 3px var(--accent-glow) !important;
+}
+::placeholder { color: var(--text-light) !important; }
+
+.btn-secondary, .filter-btn, .pager-btn, .btn-sm, .settings-subtab, .sb-card-btn, .embed-warn-btn, .know-tab, .domain-pill,
+.self-fab, #settings-view a[href^="#sec-"],
+button:not(.btn-primary):not(.btn-secondary):not(.btn-danger):not(.tab):not(.filter-btn) {
+  background: var(--g-glass) !important; color: var(--text) !important;
+  border: 0.5px solid var(--g-edge) !important;
+  box-shadow: var(--g-spec), var(--g-float) !important;
+  border-radius: 999px !important;
+  transition: transform .22s cubic-bezier(.3, 1.6, .5, 1), background-color .18s ease !important;
+}
+.btn-secondary:active, .filter-btn:active, .pager-btn:active, .btn-sm:active, .sb-card-btn:active, .settings-subtab:active,
+button:not(.btn-primary):not(.btn-secondary):not(.btn-danger):not(.tab):not(.filter-btn):active {
+  transform: scale(1.06) !important; background: var(--g-hi) !important;
+}
+.filter-btn.active, .settings-subtab.active, .know-tab.active, .pager-btn.active {
+  background: var(--g-lit) !important; color: var(--g-lit-ink) !important; font-weight: 600 !important;
+  box-shadow: var(--g-spec), var(--g-glow) !important;
+}
+.btn-primary, .breath-controls button {
+  background: var(--g-lit) !important; color: var(--g-lit-ink) !important; font-weight: 600 !important;
+  border: 0.5px solid var(--g-edge) !important;
+  box-shadow: var(--g-spec), var(--g-glow) !important;
+  border-radius: 999px !important; text-shadow: none !important;
+}
+.btn-primary:active, .breath-controls button:active { transform: scale(1.06) !important; }
+.btn-danger, .btn-danger:hover, .danger-hold-btn {
+  background: var(--g-glass) !important; color: var(--text) !important;
+  border: 0.5px solid var(--border-strong) !important;
+  box-shadow: var(--g-spec), var(--g-float) !important; border-radius: 999px !important;
+}
+.danger-hold-btn.armed { background: var(--g-lit) !important; }
+
+/* iOS-style switch */
+.hw-switch { background: var(--g-sunk) !important; border: 0.5px solid var(--border-strong) !important; box-shadow: none !important; }
+.hw-switch::after { background: #FFFFFF !important; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important; }
+.hw-switch[aria-checked="true"] { background: var(--text) !important; }
+@media (prefers-color-scheme: dark) { .hw-switch[aria-checked="true"] { background: #8E8E93 !important; } }
+
+/* sliders */
+input[type=range]::-webkit-slider-runnable-track { background: var(--g-sunk) !important; box-shadow: none !important; }
+input[type=range]::-moz-range-track { background: var(--g-sunk) !important; box-shadow: none !important; }
+input[type=range]::-webkit-slider-thumb { background: #FFFFFF !important; border: 0.5px solid var(--border-strong) !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important; }
+input[type=range]::-moz-range-thumb { background: #FFFFFF !important; border: 0.5px solid var(--border-strong) !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important; }
+input[type=checkbox], input[type=radio] { accent-color: var(--text); }
+
+/* LCD screens (network map, mini terminal, breath steps) become clear glass */
+#network-canvas, #network-terminal, #network-canvas.star-active, #network-terminal.star-active {
+  background: var(--g-glass) !important; border: 0.5px solid var(--g-edge) !important;
+  box-shadow: var(--g-spec), var(--g-float) !important; border-radius: 26px !important;
+}
+#network-terminal, #network-terminal * { color: var(--text-dim) !important; }
+.flow-step.active { background: var(--g-lit) !important; box-shadow: var(--g-spec), var(--g-glow) !important; }
+#logs-output { background: var(--g-sunk) !important; box-shadow: none !important; border-radius: 18px !important; }
+
+/* status / warning banners */
+#embed-warn-banner, #status-banner { border-radius: 20px !important; margin: 8px 12px !important; }
+/* the status panel stays pinned while the page scrolls under it: it needs a real blur.
+   On phones it would cover most of the screen, so there it scrolls away with the page. */
+@media (max-width: 768px) { #status-banner { position: relative !important; top: auto !important; } }
+#status-banner { background: color-mix(in srgb, var(--bg) 62%, transparent) !important; -webkit-backdrop-filter: var(--g-blur) !important; backdrop-filter: var(--g-blur) !important; }
+#status-banner .sb-dot, #status-banner[data-state="error"] .sb-dot { background: var(--text) !important; box-shadow: none !important; }
+.ver-badge-new { background: var(--g-lit) !important; color: var(--g-lit-ink) !important; }
+
+/* scrubbing leftover warm tints */
+.know-claims li, .progress-track { background: var(--g-sunk) !important; box-shadow: none !important; }
+#heartbeat-dot { background: var(--text-dim) !important; box-shadow: none !important; }
+
+/* capsules need side room; the original rounded rectangles had none */
+/* :not(#_) lifts specificity above the theme's icon-only rule (button:has(> i[data-lucide]:only-child)),
+   which also zeroes the padding of icon+text buttons before the icon font has loaded. */
+:is(.btn-primary, .btn-secondary, .btn-danger, .btn-sm, .filter-btn, .settings-subtab, .sb-card-btn, .embed-warn-btn,
+.pager-btn, .know-tab, .danger-hold-btn, .breath-controls button):not(#_) {
+  padding-left: max(14px, var(--g-pad, 0px)) !important; padding-right: max(14px, var(--g-pad, 0px)) !important;
+  width: auto !important; min-width: max-content; overflow: visible !important;
+}
+/* plain buttons of unknown shape: soft rounded rectangle instead of a capsule */
+button:not(.btn-primary):not(.btn-secondary):not(.btn-danger):not(.tab):not(.filter-btn):not(.btn-sm):not(.settings-subtab):not(.sb-card-btn):not(.embed-warn-btn):not(.pager-btn):not(.know-tab) {
+  border-radius: 14px !important;
+}
+.header button { border-radius: 999px !important; }
+/* icon+text buttons caught by the theme's icon-only rule before icons load */
+button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar button):not(#_) { padding-left: 12px !important; padding-right: 12px !important; }
+
+/* the memory map is drawn by script in fixed beige/gold; render it in greys */
+#network-canvas { filter: grayscale(1) brightness(1.03); }
+@media (prefers-color-scheme: dark) { #network-canvas { filter: grayscale(1) invert(0.9) contrast(0.95); } }
+.header h1 img, .header img[src*="icon"], .header .logo, .header svg.logo { filter: grayscale(1); }
+
+/* yellow notice banner: text on top, buttons underneath, on phones */
+@media (max-width: 768px) {
+  #embed-warn-banner { flex-wrap: wrap !important; }
+  #embed-warn-banner > span { flex: 1 1 calc(100% - 30px) !important; }
+  #embed-warn-banner > .embed-warn-btn { margin-left: 25px; }
+  #embed-warn-banner > .embed-warn-btn + .embed-warn-btn { margin-left: 0; }
+}
+
+/* the walking chick has retired */
+#ob-chick { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab, .bucket-row, button { transition: none !important; }
+  .tab:active, .bucket-row:active, button:active { transform: none !important; }
+}
 </style>
 </head>
 <body>
@@ -6652,7 +6960,9 @@ function feelFace(v, a) {
 //   三态：egg 蛋（晃动）→ chick 破壳雏鸡 → big 走来走去的肥嘟嘟大吉
 //   记忆越多越大；Hold / Breath 事件触发破壳 or 开心跳。像捏乐高一样的 2D 像素数组。
 // ============================================================
-window.ObPet = (function () {
+// 小鸡已退休：把 OB_PET_ENABLED 改成 true 就能请它回来。
+var OB_PET_ENABLED = false;
+window.ObPet = !OB_PET_ENABLED ? null : (function () {
   var PAL = { '.':null, Y:'#FFD452', O:'#E0A92E', W:'#FFFFFF', S:'#E8DFC2', B:'#FF9F43', K:'#3A2E1E', L:'#5B8FD6', l:'#3E6FB0', P:'#7FB0E6', r:'#F6B6C2' };
   var EGG = [
     '................','......SSSS......','.....SWWWWS.....','....SWWWWWWS....',
@@ -6883,7 +7193,7 @@ window.ObPet = (function () {
     start();
   }
   return { setCount: setCount, react: react };
-})();
+})();  // end ObPet
 
 function chickReactForApiProblem(message) {
   if (!window.ObPet) return;

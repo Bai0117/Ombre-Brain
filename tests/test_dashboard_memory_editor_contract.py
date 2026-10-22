@@ -234,13 +234,20 @@ def test_mobile_responsive_overrides_follow_the_retro_theme_layer():
     html = DASHBOARD.read_text(encoding="utf-8")
 
     retro_layer = html.index("RETRO HANDHELD CONSOLE LAYER")
-    final_mobile_override = html.rindex("@media (max-width: 768px)")
+    # The monochrome glass skin is a separate, later <style> layer; the retro
+    # theme's own phone overrides must still come last *within* that theme.
+    skin = html.index('<style id="ob-glass-skin">')
+    final_mobile_override = html.rindex("@media (max-width: 768px)", 0, skin)
 
-    assert final_mobile_override > retro_layer
-    responsive = html[final_mobile_override:]
+    assert retro_layer < final_mobile_override < skin
+    responsive = html[final_mobile_override:skin]
     assert 'grid-template-columns: repeat(3, minmax(0, 1fr))' in responsive
     assert '.header-actions button {' in responsive
     assert 'font-size: 0 !important' in responsive
+    # ...and the skin's own phone layout (scrolling tab capsules) wins over both.
+    skin_mobile = html.rindex("@media (max-width: 768px)")
+    assert skin_mobile > skin
+    assert "flex-wrap: nowrap !important" in html[skin:]
 
 
 def test_editor_preserves_special_and_future_bucket_types():
