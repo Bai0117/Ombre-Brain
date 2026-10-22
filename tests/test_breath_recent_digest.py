@@ -213,7 +213,7 @@ async def test_breath_places_section_after_todos_and_skips_date_scoped(monkeypat
 
 @pytest.mark.asyncio
 async def test_summarize_day_prompt_and_cleanup(monkeypatch):
-    from dehydrator import Dehydrator, day_digest_target
+    from dehydrator import Dehydrator
 
     d = Dehydrator.__new__(Dehydrator)
     d.api_available = True
@@ -224,28 +224,20 @@ async def test_summarize_day_prompt_and_cleanup(monkeypatch):
 
     async def fake_chat(system, user, **kw):
         seen["system"], seen["user"] = system, user
-        return "摘要：白读完了 Ada。\n我陪她等红豆粥。"
+        return "这是两条的摘要：\n[2] [22:00] 我陪她等红豆粥\n[1] 白读完了 Ada，\n[9] 编号不存在的行要丢掉"
 
     d._chat = fake_chat
     out = await d.summarize_day("10.23（周五）", [("10:00", "读 Ada"), ("22:00", "红豆粥")])
-    assert out == "白读完了 Ada。 我陪她等红豆粥。"
+    assert out == "白读完了 Ada。我陪她等红豆粥。", "按编号排好、去掉抄来的时间、每句收尾"
     assert "10.23（周五）" in seen["system"] and "视角铁律" in seen["system"]
-    assert seen["user"] == "[10:00] 读 Ada\n\n[22:00] 红豆粥"
+    assert "输出正好 2 行" in seen["system"]
+    assert seen["user"] == "[1] [10:00] 读 Ada\n\n[2] [22:00] 红豆粥"
 
-    async def long_chat(system, user, **kw):
-        return "上午做了一件事。" * 60
+    async def no_format(system, user, **kw):
+        return "我没按格式写，一整段话。"
 
-    d._chat = long_chat
-    out = await d.summarize_day("x", [("1", "y")])
-    limit = int(day_digest_target(1) * 1.3)
-    assert len(out) <= limit and out.endswith("。"), "压缩后仍超长时在句号处截，不切半句"
-
-    async def no_stop_chat(system, user, **kw):
-        return "长" * 900
-
-    d._chat = no_stop_chat
-    out = await d.summarize_day("x", [("1", "y")])
-    assert len(out) == limit + 1 and out.endswith("…")
+    d._chat = no_format
+    assert await d.summarize_day("x", [("1", "y"), ("2", "z")]) == "", "没按格式就回退"
     d.api_available = False
     assert await d.summarize_day("x", [("1", "y")]) == ""
 
@@ -261,22 +253,19 @@ def test_digest_length_grows_with_the_day():
 
 
 @pytest.mark.asyncio
-async def test_prompt_asks_for_more_room_on_busy_days(monkeypatch):
-    from dehydrator import Dehydrator
-
-    d = Dehydrator.__new__(Dehydrator)
-    d.api_available, d.human, d.model = True, "白", "stub"
-    d.api_format, d.base_url, d.extra_body = "openai_compat", "https://api.deepseek.com/v1", {}
+async def test_prompt_budget_per_line(monkeypatch):
+    d = _bare()
     seen = []
 
     async def fake_chat(system, user, **kw):
         seen.append(system)
-        return "好。"
+        return "[1] 好。"
 
     d._chat = fake_chat
     await d.summarize_day("a", [("1", "x")])
     await d.summarize_day("b", [(str(i), "x") for i in range(11)])
-    assert "150 字以内" in seen[0] and "410 字以内" in seen[1]
+    assert "大约 150 字、最多 240 字" in seen[0]
+    assert "输出正好 11 行" in seen[1] and "大约 37 字、最多 59 字" in seen[1]
 
 
 @pytest.mark.asyncio
@@ -355,7 +344,7 @@ async def test_falls_back_when_model_rejects_the_switch():
         calls.append(kw.get("extra_body"))
         if kw.get("extra_body"):
             raise BadRequest("unknown field: thinking")
-        return "以前那样写出来的。"
+        return "[1] 以前那样写出来的。"
 
     d._chat = fake_chat
     assert await d.summarize_day("a", [("1", "x")]) == "以前那样写出来的。"
@@ -402,33 +391,35 @@ async def test_chat_once_sends_per_request_options():
 
 
 @pytest.mark.asyncio
-async def test_prompt_asks_to_cover_every_entry():
+async def test_every_memory_reaches_the_model_on_a_long_day():
+    """以前总共 9000 字：长记忆多的日子，后面几条根本没送进去。现在每条均分。"""
     d = _bare()
     seen = []
 
     async def fake_chat(system, user, **kw):
-        seen.append(system)
-        return "好。"
+        seen.append((system, user))
+        return "\n".join(f"[{i}] 第 {i} 件事。" for i in range(1, 12))
 
     d._chat = fake_chat
-    await d.summarize_day("10.22（周四）", [(str(i), "x") for i in range(11)])
-    assert "11 条记忆" in seen[0] and "每一条都要带到" in seen[0] and "平均每条大约 37 字" in seen[0]
-    assert "不要照抄" in seen[0] and "电报" in seen[0]
+    entries = [(f"{i:02d}:00", f"第 {i} 条记忆的开头。" + "很长的细节" * 400) for i in range(1, 12)]
+    out = await d.summarize_day("10.22", entries)
+    system, user = seen[0]
+    for i in range(1, 12):
+        assert f"[{i}] [{i:02d}:00] 第 {i} 条记忆的开头。" in user
+    assert out.startswith("第 1 件事。") and out.endswith("第 11 件事。")
+    assert "不要照抄" in system and "电报" in system
 
 
 @pytest.mark.asyncio
-async def test_too_long_draft_is_shortened_not_cut():
+async def test_long_lines_are_capped_but_every_line_kept():
     d = _bare()
-    calls = []
-    draft = "凌晨搬家，细节很多很多。" * 60 + "晚上她画好了猫猫月月。"
 
     async def fake_chat(system, user, **kw):
-        calls.append((system, user))
-        if len(calls) == 1:
-            return draft
-        return "凌晨搬家；下午改后台；晚上她画好了猫猫月月。"
+        long_line = "凌晨搬家，" + "细节很多很多，" * 30
+        return f"[1] {long_line}\n[2] 下午改了后台\n[3] 晚上她画好了猫猫月月"
 
     d._chat = fake_chat
-    out = await d.summarize_day("10.22", [(str(i), "x") for i in range(11)])
-    assert out == "凌晨搬家；下午改后台；晚上她画好了猫猫月月。", "后半段的事保住了"
-    assert len(calls) == 2 and "压缩到 410 字以内" in calls[1][0] and calls[1][1] == draft
+    out = await d.summarize_day("10.22", [("1", "a"), ("2", "b"), ("3", "c")])
+    first, rest = out.split("。", 1)
+    assert len(first) <= 92, "单行被限在 line_cap 以内（在逗号处断）"
+    assert rest == "下午改了后台。晚上她画好了猫猫月月。", "后面的事都在"

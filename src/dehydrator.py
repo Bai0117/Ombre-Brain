@@ -114,7 +114,7 @@ PLAN_SUMMARY_MAX_CHARS = 60
 # breath 时自动按新 prompt 重写一遍（tools/plan/summary.py）。
 PLAN_SUMMARY_VERSION = 4
 # breath「这几天」的每日摘要（tools/breath/recent_digest.py）。改 prompt 就加一，旧摘要自动重写。
-DAY_DIGEST_VERSION = 3
+DAY_DIGEST_VERSION = 4
 # 字数跟着当天记忆条数走：1 条 ~150 字，十几条最多 450 字。v1 一律 200 字、
 # 硬上限 260——10.22 那天 11 条记忆，写到下午就被拦腰切断，晚上的事全丢了。
 _DAY_DIGEST_MIN_CHARS = 150
@@ -1419,85 +1419,94 @@ class Dehydrator:
 
         entries: [(时间 "09:56", 记忆正文), ...]，按时间先后。
         失败 / 空回复 / API 不可用都返回 ""，调用方回退到列出原文开头。
+
+        v4 的做法：让模型「每条记忆写一句、有几条写几行」，再由这里连成一段。
+        v1–v3 都是让它一口气写一段并自己控制篇幅：它总把前几条写得很细，
+        到上午就把字数用完，后半天整个丢掉；截断、再压缩都救不回来。
+        逐条一行，每条都有自己的位置、长度也能逐句管住。
+        另外每条记忆的输入也按条均分：以前是总共 9000 字，长记忆多的日子，
+        排在后面的几条根本没送进去。
         """
         if not entries or not self.api_available:
             return ""
-        target = day_digest_target(len(entries))
         n = len(entries)
+        target = day_digest_target(n)
         per = max(20, target // n)
-        # v2 实测：没有逐条预算时，模型把开头两条（凌晨搬家）写得极细、几乎照抄配置，
-        # 字数用完还没写到下午；短的日子又省成电报体。v3 把「每条都要带到」和
-        # 「每条大概多少字」直接写进要求里。
+        line_cap = max(30, int(per * 1.6))
+        per_input = max(300, _DAY_DIGEST_INPUT_LIMIT // n)
         system = (
-            f"下面是「我」在 {day_label} 这一天存下的 {n} 条记忆，按时间先后排列。"
-            f"把这一天写成一段摘要，{target} 字以内，让第二天醒来的「我」一读就知道这天发生了什么。"
-            f"这 {n} 条每一条都要带到：平均每条大约 {per} 字，重要的事（约定、决定、身体状况、情绪转折）"
-            "可以多写一句，琐碎的可以合并；前面几条不要写太长，免得写不到后面。"
-            "用自己的话压缩，不要照抄原文里的配置、型号、地址、价格、提交号这类技术细节，"
-            "除非它本身就是约定或决定。保留书名、人名和日期。"
-            "按事情的先后写，用通顺的完整句子，不要分点、不要标题、不要写成电报体；"
-            "不要评价，不要总结升华。只写原文里有的内容，不要补充、不要推测。只输出摘要正文。"
+            f"下面是「我」在 {day_label} 这一天存下的 {n} 条记忆，按时间先后编号。"
+            f"为每一条写一句摘要，让第二天醒来的「我」一读就知道这天发生了什么。"
+            f"输出正好 {n} 行，第几行就对应第几条，每行以编号开头，例如「[3] 白……」。"
+            f"每行大约 {per} 字、最多 {line_cap} 字：写这一条里最要紧的事——"
+            "做了什么、读了什么、聊到什么、身体怎么样、做了什么约定和决定、情绪的转折。"
+            "用自己的话压缩，不要照抄配置、型号、地址、价格、提交号这类技术细节，除非它本身就是约定或决定。"
+            "保留书名、人名和日期。用通顺的完整句子，不要写成电报体，不要评价、不要总结升华。"
+            "只写原文里有的内容，不要补充、不要推测。除了这几行，什么都不要输出。"
             + _perspective_rule(self.human)
         )
-        parts, used = [], 0
-        for when, text in entries:
-            chunk = f"[{when}] {text.strip()}"
-            if used + len(chunk) > _DAY_DIGEST_INPUT_LIMIT:
-                parts.append("（后面还有几条，放不下了）")
-                break
-            parts.append(chunk)
-            used += len(chunk)
+        parts = []
+        for i, (when, text) in enumerate(entries, 1):
+            body = " ".join(text.split())
+            if len(body) > per_input:
+                body = body[:per_input] + "……"
+            parts.append(f"[{i}] [{when}] {body}")
         try:
             raw = await self._chat_quick(
                 system,
                 "\n\n".join(parts),
                 timeout=_SUMMARY_TIMEOUT_SECONDS,
-                # dehydration.digest_max_tokens 配得更大就用它（同样是「长输入、要想很久」的调用）
+                # dehydration.digest_max_tokens 配得更大就用它（同样是「长输入」的调用）
                 max_tokens=max(_DAY_DIGEST_MAX_TOKENS, int(getattr(self, "digest_max_tokens", 0) or 0)),
                 temperature=_DAY_DIGEST_TEMPERATURE,
             )
         except Exception as e:
             logger.warning(f"summarize_day failed: {e}")
             return ""
-        text = (raw or "").strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-        for prefix in ("摘要：", "摘要:"):
-            if text.startswith(prefix):
-                text = text[len(prefix):].strip()
-        text = " ".join(text.split())
+        text = self._join_day_lines(raw, n, line_cap)
         if not text:
             logger.warning(
                 "summarize_day got nothing usable / 每日摘要没拿到内容：model=%s raw=%r",
                 self.model,
                 (raw or "")[:_PARSE_ERR_PREVIEW],
             )
-            return ""
-        limit = int(target * 1.3)
-        if len(text) > limit:
-            # 写长了就让它把草稿再压一遍——直接截断会把这一天后半段的事整个丢掉
-            text = await self._shorten_day_digest(text, target) or text
-        # 压完还超：最后才在句号处截，不切在半句中间
-        return trim_at_sentence(text, limit)
+        return text
 
-    async def _shorten_day_digest(self, draft: str, target: int) -> str:
-        system = (
-            f"下面是一段一天的摘要，写长了。把它压缩到 {target} 字以内："
-            "每件事都要保留（尤其是后半段的），删掉细节和重复，用通顺的完整句子，"
-            "不要补充原文没有的内容。只输出压缩后的正文。"
-            + _perspective_rule(self.human)
-        )
-        try:
-            raw = await self._chat_quick(
-                system, draft,
-                timeout=_SUMMARY_TIMEOUT_SECONDS,
-                max_tokens=_DAY_DIGEST_MAX_TOKENS,
-                temperature=_DAY_DIGEST_TEMPERATURE,
-            )
-        except Exception as e:
-            logger.warning(f"summarize_day shorten failed: {e}")
+    @staticmethod
+    def _join_day_lines(raw: str | None, n: int, line_cap: int) -> str:
+        """把「[i] 一句话」的逐行输出按编号排好、每句收尾，连成一段。
+
+        缺的行就缺着（那条原文还在，breath_search 找得到）；但一半以上都没对上编号，
+        说明模型没按格式来，返回 "" 让调用方回退。
+        """
+        import re
+
+        cleaned = (raw or "").strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        lines: dict[int, str] = {}
+        for ln in cleaned.splitlines():
+            m = re.match(r"^\s*[\[［【(（]?\s*(\d+)\s*[\]］】)）.、:：]\s*(.+)$", ln)
+            if not m:
+                continue
+            idx = int(m.group(1))
+            if not 1 <= idx <= n or idx in lines:
+                continue
+            sentence = " ".join(m.group(2).split()).strip()
+            sentence = re.sub(r"^\[\d{1,2}:\d{2}\]\s*", "", sentence)  # 模型偶尔把时间也抄进来
+            if not sentence:
+                continue
+            if len(sentence) > line_cap:
+                head = sentence[:line_cap]
+                cut = max(head.rfind(p) for p in "。！？；，、")
+                sentence = head[:cut] if cut >= line_cap // 2 else head
+            sentence = sentence.rstrip("，,；;、 ")
+            if sentence and sentence[-1] not in "。！？":
+                sentence += "。"
+            lines[idx] = sentence
+        if len(lines) * 2 < n:
             return ""
-        return " ".join((raw or "").split())
+        return "".join(lines[i] for i in sorted(lines))
 
     async def judge_same_event(self, old_memory: str, new_content: str) -> dict:
         """保守判断两段内容是否属于同一个具体事件。
