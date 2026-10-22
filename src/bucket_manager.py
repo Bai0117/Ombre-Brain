@@ -464,6 +464,8 @@ _METADATA_TEXT_LIMITS = {
     "grow_batch_id": _GROW_BATCH_ID_MAX,
     "last_merged_by": _SOURCE_TOOL_MAX,
     "_pre_anchor_source_tool": _SOURCE_TOOL_MAX,
+    "todo_summary": 80,
+    "todo_summary_of": 32,
 }
 
 # --- _time_ripple：时间涾漪 ---
@@ -2570,7 +2572,11 @@ class BucketManager:
                   # i_dream_dates  被 dream 见证过的日期列表（按天去重），升级门槛的唯一依据
                   # i_promoted_to  候选升级后指向的正式 I 桶 ID
                   # i_from_candidate 正式 I 桶指回它的候选桶 ID
-                  "i_stage", "i_dream_dates", "i_promoted_to", "i_from_candidate"):
+                  "i_stage", "i_dream_dates", "i_promoted_to", "i_from_candidate",
+                  # plan 在无参 breath「待办」里的一行摘要（tools/plan/summary.py 维护）：
+                  # todo_summary     脱水模型写的一句话
+                  # todo_summary_of  写摘要时正文的指纹；正文改了指纹对不上，摘要就算过期
+                  "todo_summary", "todo_summary_of"):
             if k in kwargs:
                 if k == "weight" and kwargs[k] is not None:
                     post[k] = _clamp01(kwargs[k], _DEFAULT_VALENCE)

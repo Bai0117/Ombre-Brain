@@ -102,6 +102,10 @@ _PLAN_JUDGE_TEMPERATURE = 0.0   # 判定需确定性
 _SAME_EVENT_MAX_TOKENS = 1024   # 仅返回紧凑 JSON
 _SAME_EVENT_TEMPERATURE = 0.0   # 事件边界判定需确定性
 _DIGEST_TEMPERATURE = 0.0       # 拆条需确定性
+_PLAN_SUMMARY_INPUT_LIMIT = 1500
+_PLAN_SUMMARY_MAX_TOKENS = 1024  # 输出只有一行，但 thinking 模型要留推理余量
+_PLAN_SUMMARY_TEMPERATURE = 0.2
+PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这里兜底
 
 # --- 默认情感坐标（与 bucket_manager 中保持一致）---
 _DEFAULT_VALENCE = 0.5  # 0=极负, 1=极正
@@ -1248,6 +1252,53 @@ class Dehydrator:
         except Exception as e:
             logger.warning(f"judge_plan_resolution failed: {e}")
             return {"resolved": False, "confidence": 0.0, "reason": str(e)}
+
+    async def summarize_plan(self, plan_text: str) -> str:
+        """把一条 plan 压成 breath「待办」里的一行。
+
+        无参 breath 的待办区每条只给一行；以前是在第 70 个字硬切，常常切在
+        半句话中间（「……WARP 自…」）。这里让脱水模型写一句短摘要代替。
+        失败、空响应、API 不可用都返回 ""——调用方据此回退到截断原文，
+        不抛异常：待办区少一句摘要不该让 breath 出错。
+        """
+        text = (plan_text or "").strip()
+        if not text or not self.api_available:
+            return ""
+        system = (
+            "你在给一条待办事项写列表里的一行标题。"
+            "用中文写一句话，30 个字以内，说清楚「要做什么」；"
+            "保留关键的人名、对象、日期和条件，删掉背景解释和原因。"
+            "只复述原文里有的信息，不要补充原文没有的内容。"
+            "只输出这一句话本身：不要引号、不要编号、不要前缀、不要句末标点、不要换行。"
+        )
+        try:
+            raw = await self._chat(
+                system,
+                text[:_PLAN_SUMMARY_INPUT_LIMIT],
+                max_tokens=_PLAN_SUMMARY_MAX_TOKENS,
+                temperature=_PLAN_SUMMARY_TEMPERATURE,
+            )
+        except Exception as e:
+            logger.warning(f"summarize_plan failed: {e}")
+            return ""
+        return self._clean_plan_summary(raw)
+
+    @staticmethod
+    def _clean_plan_summary(raw: str | None) -> str:
+        # 不用 _strip_md_fence：那是给 JSON 用的，遇到正文里的 [ 或 { 会把它当 JSON 抠出来。
+        cleaned = (raw or "").strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        # 模型偶尔会多给几行（解释、备选），只要第一行非空的。
+        line = next((ln.strip() for ln in cleaned.splitlines() if ln.strip()), "")
+        for prefix in ("标题：", "标题:", "摘要：", "摘要:", "待办：", "待办:"):
+            if line.startswith(prefix):
+                line = line[len(prefix):].strip()
+        line = line.strip("\"'“”‘’「」『』《》*`#- ").rstrip("。.!！;；，,")
+        line = " ".join(line.split())
+        if len(line) > PLAN_SUMMARY_MAX_CHARS:
+            line = line[:PLAN_SUMMARY_MAX_CHARS] + "…"
+        return line
 
     async def judge_same_event(self, old_memory: str, new_content: str) -> dict:
         """保守判断两段内容是否属于同一个具体事件。

@@ -38,6 +38,7 @@ from datetime import datetime, timedelta
 from ombrebrain.policy.surfacing import SurfacePolicyVM
 from .. import _runtime as rt
 from ..plan.core import is_letter_bucket
+from ..plan.summary import fresh_summary, schedule_plan_summaries
 from utils import parse_bool, parse_iso_datetime
 from ._date_range import bucket_in_created_range
 from ._shared import (
@@ -243,11 +244,16 @@ def _todo_section(all_buckets: list[dict]) -> str:
             return 0.5
 
     plans.sort(key=lambda b: (-weight_of(b), str(b["metadata"].get("created", ""))))
+    shown = plans[:_TODO_MAX_LINES]
+    # 缺摘要 / 正文改过的，后台去补；这一次先用截断原文顶上，不等。
+    schedule_plan_summaries(shown)
     lines = []
-    for b in plans[:_TODO_MAX_LINES]:
-        text = " ".join(str(b.get("content") or b["metadata"].get("name") or "").split())
-        if len(text) > _TODO_LINE_CHARS:
-            text = text[:_TODO_LINE_CHARS] + "…"
+    for b in shown:
+        text = fresh_summary(b)
+        if not text:
+            text = " ".join(str(b.get("content") or b["metadata"].get("name") or "").split())
+            if len(text) > _TODO_LINE_CHARS:
+                text = text[:_TODO_LINE_CHARS] + "…"
         lines.append(f"📋 [bucket_id:{b['id']}]{created_label(b)} {text}")
     more = len(plans) - len(lines)
     head = (

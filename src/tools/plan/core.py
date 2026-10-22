@@ -266,6 +266,13 @@ async def plan_create(
         rt.logger.warning(f"plan() failed to set status/related: {e}")
     # 注意：bucket_mgr.create() 已在 content 落盘后投递 embedding outbox
     # 向量，这里不需要也不应该重复调用 generate_and_store（见 hold/feel.py 同类注释）。
+    if status == "active":
+        # 待办一行摘要在后台写，plan() 不等它。
+        from .summary import schedule_plan_summaries
+        try:
+            schedule_plan_summaries([{"id": bucket_id, "metadata": {}, "content": content}])
+        except Exception as e:
+            rt.logger.warning(f"plan() failed to schedule summary: {e}")
     return f"📋plan→{bucket_id} [{status}]"
 
 
