@@ -43,6 +43,7 @@ EXPECTED_TOOLS = {
     "dream",
     "now",
     "days",
+    "shelf",
 }
 EXPECTED_TOOL_ORDER = (
     "breath",
@@ -63,6 +64,7 @@ EXPECTED_TOOL_ORDER = (
     "I",
     "now",
     "days",
+    "shelf",
 )
 
 EXPECTED_TOOL_PROPERTIES = {
@@ -170,6 +172,9 @@ EXPECTED_TOOL_PROPERTIES = {
     "now": set(),
     # 纪念日：无参看全部；date+title 记下；delete_id 删。
     "days": {"date", "title", "yearly", "count", "delete_id"},
+    # 书架 / 片单：无参看口味；title 记一部；delete_id 拿掉；year / query 查。
+    "shelf": {"title", "kind", "creator", "status", "finished", "rating", "tags",
+              "note", "item_id", "delete_id", "year", "query"},
 }
 
 EXPECTED_REQUIRED_PROPERTIES = {

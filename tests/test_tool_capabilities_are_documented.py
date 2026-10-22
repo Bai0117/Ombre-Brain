@@ -32,8 +32,8 @@ def _tools() -> list[ast.AsyncFunctionDef]:
 
 
 def test_registered_tool_count_is_stable():
-    # 18 = 17 + days（纪念日，10.22）
-    assert len(_tools()) == 18
+    # 19 = 17 + days（纪念日）+ shelf（书架，10.22）
+    assert len(_tools()) == 19
 
 
 @pytest.mark.parametrize("tool", _tools(), ids=lambda t: t.name)

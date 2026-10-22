@@ -75,6 +75,7 @@ from tools.breath.recall_log import RECALL_OPS as _RECALL_OPS, record_recall as 
 from tools import i as _t_i
 from tools import now as _t_now
 from tools import days as _t_days
+from tools import shelf as _t_shelf
 from tools import them as _t_them
 from tools import you as _t_you
 
@@ -1317,6 +1318,36 @@ async def days(
     )
 
 
+@mcp.tool()
+async def shelf(
+    title: Optional[str] = "",
+    kind: Optional[str] = "",
+    creator: Optional[str] = "",
+    status: Optional[str] = "",
+    finished: Optional[str] = "",
+    rating: Optional[int] = -1,
+    tags: Optional[str] = "",
+    note: Optional[str] = "",
+    item_id: Optional[str] = "",
+    delete_id: Optional[str] = "",
+    year: Optional[int] = 0,
+    query: Optional[str] = "",
+) -> str:
+    """她的书架和片单。无参数=口味总览:今年看完多少、在看的、最近看完的、常看的类型和人(带平均分)、高分和不喜欢的、想看的——给她推荐之前先看这个,别推她看过的。记一部:title=书名或片名,kind=book/film/series/game(默认 book),creator=作者或导演,status=done/reading/want/dropped(写了 finished 就默认 done),finished=看完的日子 YYYY-MM-DD 或 YYYY-MM,rating=0~5(-1 不改),tags=类型/气质,逗号分隔,note=她的一句话感受。同一 kind+title 再记一次是修改;也可以用 item_id 指定修改哪一项。delete_id=拿掉一项。year=只看那一年看完的;query=按书名/作者/标签/感受找。她说读完、看完、玩完什么,就记下来。"""
+    return await _with_notice(
+        _t_shelf.dispatch(
+            title=title or "", kind=kind or "", creator=creator or "",
+            status=status or "", finished=finished or "",
+            rating=-1 if rating is None else rating, tags=tags or "", note=note or "",
+            item_id=item_id or "", delete_id=delete_id or "",
+            year=year or 0, query=query or "",
+        ),
+        op="shelf",
+        args={"title": title, "kind": kind, "status": status, "year": year, "query": query,
+              "delete_id": delete_id, "item_id": item_id},
+    )
+
+
 # Pydantic 默认的 ``extra=ignore`` 会让拼错的 MCP 参数看似调用成功；
 # 写工具甚至会在未应用客户端目标字段时仍创建记忆。breath 和 trace
 # 已有严格适配层，其余公开工具使用相同边界，并同步 FastMCP
@@ -1354,6 +1385,7 @@ for _strict_tool_name in (
     "I",
     "now",
     "days",
+    "shelf",
 ):
     try:
         _forbid_unknown_tool_arguments(_strict_tool_name)

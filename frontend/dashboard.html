@@ -2482,6 +2482,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   <div class="tab" data-tab="breath"><span>他想起的</span><span class="tab-en">Recall</span></div>
   <div class="tab" data-tab="network"><span>记忆网络</span><span class="tab-en">Network</span></div>
   <div class="tab" data-tab="days"><span>日子</span><span class="tab-en">Days</span></div>
+  <div class="tab" data-tab="shelf"><span>书架</span><span class="tab-en">Shelf</span></div>
   <div class="tab" data-tab="keepsake"><span>小池子</span><span class="tab-en">Keepsakes</span></div>
   <div class="tab" data-tab="dupes"><span>重复</span><span class="tab-en">Duplicates</span></div>
   <div class="tab" data-tab="plan"><span>计划</span><span class="tab-en">Plans</span></div>
@@ -2871,6 +2872,43 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
           <button class="btn-primary" onclick="addDay()" style="align-self:flex-start;padding:6px 16px;">记下</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 书架 / 片单 -->
+<div class="content" id="shelf-view" style="display:none">
+  <div style="max-width:920px;margin:0 auto;">
+    <div class="config-section">
+      <h3><i data-lucide="library" style="width:16px;height:16px;vertical-align:-2px;"></i> 书架</h3>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;margin:4px 0 10px;">
+        <select id="shelf-year" onchange="renderShelf()" style="font-size:12px;padding:4px 8px;"></select>
+        <span id="shelf-summary" style="color:var(--text-dim);"></span>
+      </div>
+      <div id="shelf-taste" style="font-size:12px;line-height:1.8;color:var(--text-dim);margin-bottom:10px;"></div>
+      <div id="shelf-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div id="shelf-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <details id="shelf-form-box" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+        <summary id="shelf-form-title" style="cursor:pointer;font-weight:600;font-size:13px;">记一部</summary>
+        <input id="shelf-id" type="hidden" />
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;margin-top:10px;">
+          <input id="shelf-title" type="text" maxlength="120" placeholder="书名 / 片名" style="padding:6px 10px;" />
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="shelf-kind" style="padding:6px 8px;"><option value="book">书</option><option value="film">电影</option><option value="series">剧</option><option value="game">游戏</option></select>
+            <select id="shelf-status" style="padding:6px 8px;"><option value="done">看完了</option><option value="reading">在看</option><option value="want">想看</option><option value="dropped">弃了</option></select>
+            <select id="shelf-rating" style="padding:6px 8px;"><option value="0">没打分</option><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select>
+          </div>
+          <input id="shelf-creator" type="text" maxlength="120" placeholder="作者 / 导演" style="padding:6px 10px;" />
+          <input id="shelf-finished" type="text" maxlength="10" placeholder="看完的日子：2026-10-14 或 2026-10" style="padding:6px 10px;" />
+          <input id="shelf-tags" type="text" placeholder="类型，逗号隔开：侦探, 秋天, 纳博科夫" style="padding:6px 10px;" />
+          <textarea id="shelf-note" rows="2" maxlength="400" placeholder="一句话感受" style="padding:6px 10px;"></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-primary" onclick="saveShelfItem()" style="padding:6px 16px;">放上书架</button>
+            <button class="btn-secondary" id="shelf-delete-btn" onclick="deleteShelfItem()" style="padding:6px 12px;display:none;">拿掉</button>
+            <button class="btn-secondary" onclick="resetShelfForm()" style="padding:6px 12px;">清空</button>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 </div>
@@ -5754,6 +5792,7 @@ function activateDashboardTab(tab) {
     document.getElementById('anchors-view').style.display = target === 'anchors' ? '' : 'none';
     document.getElementById('keepsake-view').style.display = target === 'keepsake' ? '' : 'none';
     document.getElementById('days-view').style.display = target === 'days' ? '' : 'none';
+    document.getElementById('shelf-view').style.display = target === 'shelf' ? '' : 'none';
     document.getElementById('dupes-view').style.display = target === 'dupes' ? '' : 'none';
     document.getElementById('about-view').style.display = target === 'about' ? '' : 'none';
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
@@ -5789,6 +5828,7 @@ function activateDashboardTab(tab) {
     if (target === 'anchors') pending.push(loadAnchorsView());
     if (target === 'keepsake') pending.push(loadKeepsakeView());
     if (target === 'days') pending.push(loadDaysView());
+    if (target === 'shelf') pending.push(loadShelfView());
     if (target === 'dupes') pending.push(loadDupesView());
     if (target === 'about') pending.push(loadAbout());
     return Promise.allSettled(pending);
@@ -6348,6 +6388,156 @@ async function deleteDay(id) {
     if (!res.ok) throw new Error(await res.text());
     loadDaysView();
   } catch (e) { alert('没删掉：' + e.message); }
+}
+
+// ---------------- 书架 ----------------
+var _shelf = { items: [], taste: null, filter: 'all' };
+var _SHELF_KINDS = { book: '书', film: '电影', series: '剧', game: '游戏' };
+var _SHELF_STATUS = { done: '看完了', reading: '在看', want: '想看', dropped: '弃了' };
+
+async function loadShelfView() {
+  try {
+    var resp = await authFetch('/api/shelf');
+    if (!resp || !resp.ok) { document.getElementById('shelf-list').innerHTML = '<div style="color:var(--text-dim);">加载失败</div>'; return; }
+    var d = await resp.json();
+    _shelf.items = d.items || [];
+    _shelf.taste = d.taste || null;
+    var years = {};
+    var thisYear = String((_shelf.taste && _shelf.taste.year) || new Date().getFullYear());
+    years[thisYear] = 1;
+    _shelf.items.forEach(function(i) { var y = String(i.finished || '').slice(0, 4); if (/^\d{4}$/.test(y)) years[y] = 1; });
+    var sel = document.getElementById('shelf-year');
+    var cur = sel.value || thisYear;
+    sel.innerHTML = '<option value="all">全部年份</option>' + Object.keys(years).sort().reverse().map(function(y) {
+      return '<option value="' + y + '">' + y + ' 年</option>';
+    }).join('');
+    sel.value = years[cur] || cur === 'all' ? cur : thisYear;
+    renderShelf();
+  } catch (e) {
+    document.getElementById('shelf-list').innerHTML = '<div style="color:var(--text-dim);">加载失败：' + esc(e && e.message ? e.message : e) + '</div>';
+  }
+}
+
+function _shelfStars(n) { n = Number(n || 0); return n ? '★'.repeat(n) : ''; }
+
+function renderShelf() {
+  var year = document.getElementById('shelf-year').value;
+  var items = _shelf.items.slice();
+  var inYear = function(i) { return year === 'all' || String(i.finished || '').slice(0, 4) === year; };
+  // 在看 / 想看 不分年份
+  var f = _shelf.filter;
+  var shown = items.filter(function(i) {
+    if (f === 'reading' || f === 'want') return i.status === f;
+    if (i.status === 'reading' || i.status === 'want') return f === 'all';
+    if (!inYear(i)) return false;
+    return f === 'all' || i.kind === f;
+  });
+  shown.sort(function(a, b) {
+    var order = { reading: 0, want: 2 };
+    var oa = order[a.status] != null ? order[a.status] : 1, ob = order[b.status] != null ? order[b.status] : 1;
+    if (oa !== ob) return oa - ob;
+    return String(b.finished || b.added || '').localeCompare(String(a.finished || a.added || ''));
+  });
+
+  var done = items.filter(function(i) { return i.status === 'done' && inYear(i); });
+  var byKind = {};
+  done.forEach(function(i) { byKind[i.kind] = (byKind[i.kind] || 0) + 1; });
+  var parts = Object.keys(_SHELF_KINDS).filter(function(k) { return byKind[k]; }).map(function(k) { return _SHELF_KINDS[k] + ' ' + byKind[k]; });
+  document.getElementById('shelf-summary').textContent = (year === 'all' ? '一共' : year + ' 年') + '看完 ' + done.length + ' 部' + (parts.length ? '：' + parts.join(' · ') : '');
+
+  var t = _shelf.taste;
+  var tasteBits = [];
+  if (t && t.top_tags && t.top_tags.length) tasteBits.push('常看：' + t.top_tags.slice(0, 6).map(function(x) { return x.tag + (x.avg ? '（' + x.avg + '★）' : ''); }).join('、'));
+  var repeatCreators = (t && t.top_creators || []).filter(function(x) { return x.count >= 2; });
+  if (repeatCreators.length) tasteBits.push('常看的人：' + repeatCreators.slice(0, 4).map(function(x) { return x.creator + '×' + x.count; }).join('、'));
+  document.getElementById('shelf-taste').innerHTML = tasteBits.map(esc).join('<br>');
+
+  var filters = [['all', '全部'], ['book', '书'], ['film', '电影'], ['series', '剧'], ['game', '游戏'], ['reading', '在看'], ['want', '想看']];
+  var fbox = document.getElementById('shelf-filters');
+  fbox.innerHTML = filters.map(function(x) {
+    return '<button class="filter-btn ' + (x[0] === f ? 'active' : '') + '" data-f="' + x[0] + '">' + x[1] + '</button>';
+  }).join('');
+  fbox.onclick = function(e) { var b = e.target.closest('.filter-btn'); if (!b) return; _shelf.filter = b.dataset.f; renderShelf(); };
+
+  var list = document.getElementById('shelf-list');
+  if (!shown.length) { list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:10px 0;">这里还空着。</div>'; return; }
+  list.innerHTML = shown.map(function(i) {
+    var meta = [_SHELF_KINDS[i.kind] || i.kind, i.creator, i.finished, i.status !== 'done' ? _SHELF_STATUS[i.status] : ''].filter(Boolean).join(' · ');
+    return '<div data-shelf-id="' + escAttr(i.id) + '" onclick="editShelfItem(this.dataset.shelfId)" style="background:var(--surface);border-radius:var(--radius-inner);padding:10px 14px;cursor:pointer;">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">' +
+        '<div style="font-size:13px;font-weight:500;">《' + esc(i.title) + '》</div>' +
+        '<div style="font-size:11px;letter-spacing:1px;flex-shrink:0;">' + _shelfStars(i.rating) + '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">' + esc(meta) + '</div>' +
+      (i.tags && i.tags.length ? '<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">#' + i.tags.map(esc).join(' #') + '</div>' : '') +
+      (i.note ? '<div style="font-size:12px;margin-top:6px;line-height:1.6;">' + esc(i.note) + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function resetShelfForm() {
+  ['shelf-id', 'shelf-title', 'shelf-creator', 'shelf-finished', 'shelf-tags', 'shelf-note'].forEach(function(k) { document.getElementById(k).value = ''; });
+  document.getElementById('shelf-kind').value = 'book';
+  document.getElementById('shelf-status').value = 'done';
+  document.getElementById('shelf-rating').value = '0';
+  document.getElementById('shelf-form-title').textContent = '记一部';
+  document.getElementById('shelf-delete-btn').style.display = 'none';
+}
+
+function editShelfItem(id) {
+  var i = _shelf.items.find(function(x) { return x.id === id; });
+  if (!i) return;
+  document.getElementById('shelf-id').value = i.id;
+  document.getElementById('shelf-title').value = i.title || '';
+  document.getElementById('shelf-kind').value = i.kind || 'book';
+  document.getElementById('shelf-status').value = i.status || 'done';
+  document.getElementById('shelf-rating').value = String(i.rating || 0);
+  document.getElementById('shelf-creator').value = i.creator || '';
+  document.getElementById('shelf-finished').value = i.finished || '';
+  document.getElementById('shelf-tags').value = (i.tags || []).join(', ');
+  document.getElementById('shelf-note').value = i.note || '';
+  document.getElementById('shelf-form-title').textContent = '改《' + (i.title || '') + '》';
+  document.getElementById('shelf-delete-btn').style.display = '';
+  var box = document.getElementById('shelf-form-box');
+  box.open = true;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function saveShelfItem() {
+  var body = {
+    id: document.getElementById('shelf-id').value,
+    title: document.getElementById('shelf-title').value,
+    kind: document.getElementById('shelf-kind').value,
+    status: document.getElementById('shelf-status').value,
+    rating: Number(document.getElementById('shelf-rating').value),
+    creator: document.getElementById('shelf-creator').value,
+    finished: document.getElementById('shelf-finished').value.trim(),
+    tags: document.getElementById('shelf-tags').value,
+    note: document.getElementById('shelf-note').value,
+  };
+  try {
+    var res = await fetch(BASE + '/api/shelf', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    if (!res.ok) {
+      var msg = await res.text();
+      try { msg = JSON.parse(msg).error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    resetShelfForm();
+    document.getElementById('shelf-form-box').open = false;
+    loadShelfView();
+  } catch (e) { alert('没放上去：' + e.message); }
+}
+
+async function deleteShelfItem() {
+  var id = document.getElementById('shelf-id').value;
+  if (!id || !confirm('从书架上拿掉这一部？')) return;
+  try {
+    var res = await fetch(BASE + '/api/shelf/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    resetShelfForm();
+    document.getElementById('shelf-form-box').open = false;
+    loadShelfView();
+  } catch (e) { alert('没拿掉：' + e.message); }
 }
 
 // ---------------- 疑似重复 ----------------
