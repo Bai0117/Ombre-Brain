@@ -19,7 +19,7 @@ tools/breath/keepsake.py — 小池子
 - 她亲手放进去的就算「已解决」「已消化」也照样会想起；
   主动遗忘、归档、删除、信不进池子。
 
-对外暴露：is_keepsake / keepsake_pool / pick_keepsakes
+对外暴露：is_keepsake / keepsake_pool / pick_keepsakes / recently_picked
 ========================================
 """
 
@@ -66,8 +66,8 @@ def _per_breath() -> int:
         return _PER_BREATH_DEFAULT
 
 
-def _recently_picked(times: int) -> set[str]:
-    """最近 times 次无参 breath 在「小池子」里出现过的 id。"""
+def _recently_picked(times: int, section: str = SECTION) -> set[str]:
+    """最近 times 次无参 breath 在某一段（默认「小池子」）里出现过的 id。"""
     if times <= 0:
         return set()
     try:
@@ -80,7 +80,7 @@ def _recently_picked(times: int) -> set[str]:
                 continue
             n += 1
             for sec in entry.get("sections") or []:
-                if sec.get("name") == SECTION:
+                if sec.get("name") == section:
                     seen.update(sec.get("ids") or [])
             if n >= times:
                 break
@@ -107,3 +107,6 @@ def pick_keepsakes(all_buckets: list[dict], exclude_ids: set[str]) -> list[dict]
         rest = [b for b in pool if b not in picks]
         picks += random.sample(rest, min(k - len(picks), len(rest)))
     return picks
+
+
+recently_picked = _recently_picked

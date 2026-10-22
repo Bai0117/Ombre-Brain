@@ -15,8 +15,9 @@ _ARCHIVED_KINDS = {"archived", "deleted", "tombstone"}
 
 # 后台派生、只供展示的字段。只改了这些的 TraceUpdated 不算这条记忆的经历：
 # 待办摘要（tools/plan/summary.py）写进去时正文一个字没动，记成「更新」
-# 会让人以为有谁改过这条 plan。
-_DERIVED_ONLY_FIELDS = frozenset({"todo_summary", "todo_summary_of"})
+# 会让人以为有谁改过这条 plan。I 候选被 dream / breath 见证（i_dream_dates）
+# 也一样：只是「那天看到过」，不是这条念头被改了。
+_DERIVED_ONLY_FIELDS = frozenset({"todo_summary", "todo_summary_of", "i_dream_dates"})
 
 _ACTOR_LABELS = {
     "llm": "LLM",

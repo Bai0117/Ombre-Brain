@@ -276,8 +276,8 @@ async def _write_candidate(content: str, aspect: str, supersedes: str = "") -> s
     return (
         f"🌱 我觉得 {aspect_label}→{bucket_id}\n"
         f"这还只是一个念头，不是自我认知。它现在是一条普通记忆，会浮现也会衰减。\n"
-        f"接下来 {I_PROMOTE_THRESHOLD} 次 dream 会把它和相关记忆摆在一起给你看；"
-        f"如果它还站得住，用 I(promote=\"{bucket_id}\") 让它进 I。"
+        f"接下来它会在醒来时 breath 的「我」里轮到出现，dream 也会把它和相关记忆摆在一起；"
+        f"在 {I_PROMOTE_THRESHOLD} 个不同的日子都被看到、还站得住，用 I(promote=\"{bucket_id}\") 让它进 I。"
         f"{dispute_note}"
     )
 
@@ -326,9 +326,9 @@ async def _promote_candidate(
         missing = I_PROMOTE_THRESHOLD - len(dates)
         seen = "、".join(dates) if dates else "还没有"
         raise ToolInputError(
-            f"还不够。{bucket_id} 被 dream 见证过 {len(dates)}/{I_PROMOTE_THRESHOLD} 次"
-            f"（{seen}），还差 {missing} 次。"
-            "不是形式——没有在几次不同的梦里都站得住，它就还只是一时的想法。"
+            f"还不够。{bucket_id} 只在 {len(dates)}/{I_PROMOTE_THRESHOLD} 个日子被见证过"
+            f"（{seen}），还差 {missing} 天。"
+            "不是形式——没有在几个不同的日子里都站得住，它就还只是一时的想法。"
         )
 
     body = content_override or str(bucket.get("content") or "").strip()

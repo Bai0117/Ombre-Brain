@@ -44,6 +44,7 @@ from ..plan.core import is_letter_bucket
 from ..plan.summary import fresh_summary, schedule_plan_summaries
 from ..days import days_section
 from .keepsake import SECTION as KEEPSAKE_SECTION, pick_keepsakes
+from . import self_section as _self
 from .recent_digest import _digest_days, collect_days, recent_digest_section
 from utils import parse_bool, parse_iso_datetime
 from ._date_range import bucket_in_created_range
@@ -439,6 +440,16 @@ async def surface_default(
         and bucket_has_tags(b["metadata"], tag_filter)
     ]
 
+    # 「我」：一条正式 I + 一条还在等的候选。选中的候选不再进浮现区。
+    self_formal = self_cand = None
+    if not date_scoped and not tag_filter and _self.enabled():
+        try:
+            self_formal, self_cand = _self.pick_self(all_buckets)
+        except Exception as e:
+            rt.logger.warning(f"self section pick failed / 「我」选取异常: {e}")
+    if self_cand is not None:
+        unresolved = [b for b in unresolved if b["id"] != self_cand["id"]]
+
     rt.logger.info(
         f"Breath surfacing: {len(all_buckets)} total, "
         f"{len(pinned_buckets)} pinned, {len(unresolved)} unresolved"
@@ -548,6 +559,30 @@ async def surface_default(
         candidates, surface_pool, max_results, surfacing_cfg
     )
     candidates = candidates[:max_results]
+
+    self_results: list[str] = []
+    try:
+        if self_formal is not None:
+            rendered, entry_tokens = render_stored_bucket(
+                self_formal,
+                f"🪞 [I] [bucket_id:{self_formal['id']}]{created_label(self_formal)}",
+                "",
+            )
+            if entry_tokens <= token_budget:
+                self_results.append(rendered)
+                token_budget -= entry_tokens
+        if self_cand is not None:
+            dates = await _self.record_breath_witness(self_cand)
+            rendered, entry_tokens = render_stored_bucket(
+                self_cand,
+                _self.candidate_header(self_cand, dates) + created_label(self_cand),
+                "",
+            )
+            if entry_tokens <= token_budget:
+                self_results.append(rendered)
+                token_budget -= entry_tokens
+    except Exception as e:
+        rt.logger.warning(f"self section render failed / 「我」渲染异常: {e}")
 
     dynamic_results = []
     dynamic_omitted = 0
@@ -732,6 +767,8 @@ async def surface_default(
         parts.append("=== 核心准则 ===\n" + "\n---\n".join(pinned_results))
     if days_text:
         parts.append(days_text)
+    if self_results:
+        parts.append(f"=== {_self.SECTION} ===\n" + "\n---\n".join(self_results))
     if todo_section:
         parts.append(todo_section)
     if recent_section:

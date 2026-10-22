@@ -212,8 +212,8 @@
     },
     {
       "path": "src/ombrebrain/eventsourcing/footprint.py",
-      "sha256": "7371067287bbfbba91f1165dc677507f49ad13a08330aca689af25a70e7dd3c4",
-      "size": 5174
+      "sha256": "59246f7fd063bb0573f410c59c1329b8d5c59b2440b53c1550d924bb16f35d36",
+      "size": 5318
     },
     {
       "path": "src/ombrebrain/eventsourcing/ledger_mirror.py",
@@ -587,8 +587,8 @@
     },
     {
       "path": "src/server.py",
-      "sha256": "0d41bbd585a051dd9e2e52d947372f7a91358be3aa4f6c4bbbe1a388d6f4ec21",
-      "size": 83146
+      "sha256": "c3020c7fd2c052ea5c1ccb46f7c9d02b0a3314e416f48a1a06fc0cfa1a55621e",
+      "size": 83289
     },
     {
       "path": "src/server_app.py",
@@ -662,13 +662,13 @@
     },
     {
       "path": "src/tools/breath/keepsake.py",
-      "sha256": "ebad47568425f564c46c74ec4aa3ec9e305dbbd0cb5ca7ef766de8411126ae3a",
-      "size": 4099
+      "sha256": "424be54b2217e59a19d6ee65102f279b3230fe12602b79225fdc3ee059b574ec",
+      "size": 4199
     },
     {
       "path": "src/tools/breath/recall_log.py",
-      "sha256": "cb921d2583855d86aa3bdbab8fdd1e060f232483d4ec19228ccf633fbaf03682",
-      "size": 9022
+      "sha256": "4838872e5788950c74311aee9131ae5abf4c5d1a4d14d1bfa6e820c8e54225e8",
+      "size": 9067
     },
     {
       "path": "src/tools/breath/recent_digest.py",
@@ -681,9 +681,14 @@
       "size": 22068
     },
     {
+      "path": "src/tools/breath/self_section.py",
+      "sha256": "e645cafaca5ceb2f1cae3e6c9043bfd31c285dfe6d15d6c2a50bc5020217c131",
+      "size": 4624
+    },
+    {
       "path": "src/tools/breath/surface.py",
-      "sha256": "97e2805eb5501d0cdcf6f372d785e81809c7da0d97dce8f9d8dc860491728acd",
-      "size": 33761
+      "sha256": "49606fa3118d8b434fdab7bc26f0a7e494ca45b813733139b22f6551c13901ac",
+      "size": 35380
     },
     {
       "path": "src/tools/days/__init__.py",
@@ -772,8 +777,8 @@
     },
     {
       "path": "src/tools/i/core.py",
-      "sha256": "f048160cbccf668fcefdeb63ffbcc26fb233943ae5b3e317004044742c2a54e3",
-      "size": 26729
+      "sha256": "eb13253ce149906e25a72c4540899636be08f883c865bdbfe534a53d05827135",
+      "size": 26810
     },
     {
       "path": "src/tools/now/__init__.py",
