@@ -99,12 +99,14 @@ def render_within_budget(
     lines: list[str] = []
     used = 0
     for index, bucket in enumerate(buckets):
-        created = bucket["metadata"].get("created", "")
-        entry, cost = render_stored_bucket(
-            bucket,
-            f"[{created}] [bucket_id:{bucket['id']}]",
-            footprint(bucket),
-        )
+        # 与无参 breath 同一个格式、同一个时区：以前这里直接放 created 原值，
+        # 搬到 UTC 容器后读出来是 2026-10-22T01:56:35+00:00，跟首页对不上。
+        label = created_label(bucket).strip()
+        if not label:
+            raw = str(bucket["metadata"].get("created") or "").strip()
+            label = f"[{raw}]" if raw else ""
+        head = f"{label} [bucket_id:{bucket['id']}]" if label else f"[bucket_id:{bucket['id']}]"
+        entry, cost = render_stored_bucket(bucket, head, footprint(bucket))
         if used + cost > max_tokens:
             return lines, len(buckets) - index
         lines.append(entry)

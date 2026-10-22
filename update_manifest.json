@@ -617,8 +617,8 @@
     },
     {
       "path": "src/tools/breath/_shared.py",
-      "sha256": "802d6a8471d22f49b35da3cc69742d21d0b01e4f0c615d7390ccda902970c2e0",
-      "size": 4039
+      "sha256": "4a839ae7d36fda4abc980c34e3aa01ce3e382248c38f7409d7bef24e2bcca974",
+      "size": 4377
     },
     {
       "path": "src/tools/breath/_verbatim.py",
