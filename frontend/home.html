@@ -3,15 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#16181C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ECEEF1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131518" media="(prefers-color-scheme: dark)">
 <title>记忆</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="/static/manifest.json">
 <style>
 :root {
-  --paper: #F3F4F6;
-  --surface: #FBFBFC;
+  --paper: #ECEEF1;
+  --surface: #FAFBFC;
+  --sheen: rgba(255, 255, 255, 0.95);
+  --lift: 0 1px 2px rgba(30, 36, 48, 0.06), 0 8px 20px -10px rgba(30, 36, 48, 0.18);
+  --lift-press: 0 0 1px rgba(30, 36, 48, 0.10);
+  --press: #E3E6EB;
   --line: #DDE0E5;
   --line-strong: #C4C9D1;
   --ink: #24272C;
@@ -29,8 +33,12 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #16181C;
-    --surface: #1D2025;
+    --paper: #131518;
+    --surface: #1E2126;
+    --sheen: rgba(255, 255, 255, 0.06);
+    --lift: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 24px -12px rgba(0, 0, 0, 0.6);
+    --lift-press: 0 0 1px rgba(0, 0, 0, 0.5);
+    --press: #272B32;
     --line: #2C3037;
     --line-strong: #3B4049;
     --ink: #E3E5E9;
@@ -50,6 +58,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--moon); outline-offset: 2px; border-radius: 6px; }
 [hidden] { display: none !important; }
+.pressable { transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease; }
+.pressable:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { .pressable, .pressable:active { transition: none; transform: none; } }
 
 /* ---------- top bar ---------- */
 .bar {
@@ -66,11 +77,12 @@ button { cursor: pointer; }
   width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent;
   display: grid; place-items: center; color: var(--ink-dim);
 }
-.icon-btn:active { background: var(--moon-wash); }
+.icon-btn:active { background: var(--press); transform: scale(0.9); }
 .icon-btn svg { width: 20px; height: 20px; }
 .search {
   display: flex; align-items: center; gap: 8px; max-width: 720px; margin: 10px auto 0;
   background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 12px;
+  box-shadow: inset 0 1px 0 var(--sheen), 0 1px 2px rgba(30, 36, 48, 0.05);
 }
 .search svg { width: 16px; height: 16px; color: var(--ink-faint); flex: none; }
 .search input { flex: 1; border: 0; background: transparent; padding: 9px 0; outline: none; font-size: 16px; }
@@ -82,27 +94,40 @@ button { cursor: pointer; }
 }
 .filters::-webkit-scrollbar { display: none; }
 .chip {
-  flex: none; border: 1px solid var(--line); background: transparent; color: var(--ink-dim);
+  flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink-dim);
   border-radius: 999px; padding: 4px 13px; font-size: 14px;
+  box-shadow: inset 0 1px 0 var(--sheen), 0 1px 1px rgba(30, 36, 48, 0.05);
+  transition: transform 0.12s ease, background-color 0.18s ease, color 0.18s ease;
 }
-.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.chip:active { transform: scale(0.94); }
+.chip[aria-pressed="true"] { background: linear-gradient(180deg, #3B4048, var(--ink)); border-color: var(--ink); color: #F4F5F7; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip[aria-pressed="true"] { background: linear-gradient(180deg, #F2F3F5, #C9CED6); color: #17191D; border-color: #C9CED6; } }
 .chip .n { font-family: var(--num); font-variant-numeric: tabular-nums; margin-left: 4px; opacity: 0.7; }
 
 /* ---------- list ---------- */
 main { max-width: 720px; margin: 0 auto; padding: 4px 16px calc(var(--bottom) + 48px); }
 .status-line { color: var(--ink-faint); font-size: 13px; padding: 12px 0 2px; }
-.day { display: grid; grid-template-columns: 58px 1fr; column-gap: 12px; padding: 16px 0 6px; border-bottom: 1px solid var(--line); }
-.day:last-child { border-bottom: 0; }
-.date { position: sticky; top: calc(var(--barh, 132px) + 12px); align-self: start; padding-top: 2px; }
+.day {
+  display: grid; grid-template-columns: 54px 1fr; column-gap: 10px;
+  margin-top: 14px; padding: 14px 8px 6px 14px;
+  background: var(--surface); border-radius: 18px;
+  box-shadow: inset 0 1px 0 var(--sheen), var(--lift);
+}
+.date { position: sticky; top: calc(var(--barh, 132px) + 14px); align-self: start; padding-top: 8px; }
 .date .md { font-family: var(--num); font-size: 26px; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: lining-nums; color: var(--ink); }
 .date .wd { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
 .date .yr { font-family: var(--num); font-size: 12px; color: var(--ink-faint); }
 .entries { min-width: 0; }
 .entry {
-  display: block; width: 100%; text-align: left; border: 0; background: transparent;
-  padding: 0 0 14px; margin: 0;
+  position: relative; display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  padding: 8px 10px 10px; margin: 0 0 4px; border-radius: 12px;
+  transition: background-color 0.15s ease, transform 0.12s ease;
 }
-.entry + .entry { border-top: 1px dashed var(--line); padding-top: 12px; }
+.entry + .entry::before { content: ""; position: absolute; left: 10px; right: 10px; top: -3px; border-top: 1px solid var(--line); }
+.entry:active { background: var(--press); transform: scale(0.985); }
+.entry:active::before, .entry:active + .entry::before { opacity: 0; }
+@media (hover: hover) { .entry:hover { background: color-mix(in srgb, var(--press) 55%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .entry { transition: none; } .entry:active { transform: none; } }
 .entry .text {
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
   font-size: 15px; line-height: 1.7; color: var(--ink); word-break: break-word;
@@ -117,11 +142,19 @@ main { max-width: 720px; margin: 0 auto; padding: 4px 16px calc(var(--bottom) + 
 .empty button { margin-top: 14px; }
 
 /* ---------- buttons ---------- */
-.btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 10px; padding: 8px 16px; font-size: 15px; }
-.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); font-weight: 600; }
-.btn.primary:disabled { opacity: 0.35; }
+.btn {
+  border: 1px solid var(--line-strong); background: var(--surface); border-radius: 11px; padding: 8px 16px; font-size: 15px;
+  box-shadow: inset 0 1px 0 var(--sheen), 0 1px 2px rgba(30, 36, 48, 0.08);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.2s ease, background 0.2s ease;
+}
+.btn:active:not(:disabled) { transform: scale(0.95); box-shadow: var(--lift-press); }
+.btn.primary { background: linear-gradient(180deg, #3B4048, var(--ink)); border-color: var(--ink); color: #F4F5F7; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 2px 6px -2px rgba(30, 36, 48, 0.35); min-width: 72px; }
+.btn.primary:disabled { opacity: 0.3; box-shadow: none; }
+.btn.primary.done, .btn.primary.done:disabled { background: linear-gradient(180deg, #5E8A70, var(--ok)); border-color: var(--ok); opacity: 1; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { background: linear-gradient(180deg, #F2F3F5, #C9CED6); color: #17191D; border-color: #C9CED6; } }
 .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); background: transparent; }
-.text-btn { border: 0; background: none; color: var(--ink-dim); padding: 8px 4px; font-size: 16px; }
+.text-btn { border: 0; background: none; color: var(--ink-dim); padding: 8px 6px; font-size: 16px; border-radius: 8px; transition: background-color 0.12s ease; }
+.text-btn:active { background: var(--press); }
 
 /* ---------- editor sheet ---------- */
 .sheet {
@@ -144,10 +177,13 @@ main { max-width: 720px; margin: 0 auto; padding: 4px 16px calc(var(--bottom) + 
 .notice { font-size: 13px; color: var(--ink-dim); background: var(--moon-wash); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
 .notice.warn { background: var(--danger-wash); color: var(--danger); }
 textarea.content {
-  display: block; width: 100%; min-height: 32vh; resize: none; border: 0; outline: none; background: transparent;
-  font-size: 17px; line-height: 1.8; padding: 0; color: var(--ink); word-break: break-word;
+  display: block; width: 100%; min-height: 32vh; resize: none; border: 0; outline: none;
+  font-size: 17px; line-height: 1.8; padding: 16px; color: var(--ink); word-break: break-word;
+  background: var(--surface); border-radius: 18px; box-shadow: inset 0 1px 0 var(--sheen), var(--lift);
 }
-.fields { margin-top: 18px; border-top: 1px solid var(--line); }
+textarea.content:focus { box-shadow: inset 0 1px 0 var(--sheen), 0 0 0 2px color-mix(in srgb, var(--moon) 45%, transparent), var(--lift); }
+.fields { margin-top: 14px; padding: 0 16px; background: var(--surface); border-radius: 18px; box-shadow: inset 0 1px 0 var(--sheen), var(--lift); }
+.fields .field:last-child { border-bottom: 0; }
 .field { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .field > span { font-size: 14px; color: var(--ink-dim); }
 .field input[type="text"] { width: 100%; border: 0; background: transparent; outline: none; padding: 4px 0; font-size: 16px; }
@@ -329,6 +365,25 @@ textarea.content {
     for (const t of (b.tags || []).slice(0, 3)) parts.push(`#${t}`);
     return parts.join("  ");
   }
+  // A light tick under the finger. Android: vibrate(). iOS 18+ Safari has no vibrate(),
+  // but toggling a native <input switch> plays the system haptic, so we flip a hidden one.
+  const haptic = (() => {
+    let label = null;
+    return () => {
+      try {
+        if (navigator.vibrate) { navigator.vibrate(8); return; }
+        if (!label) {
+          label = document.createElement("label");
+          label.setAttribute("aria-hidden", "true");
+          label.style.cssText = "position:fixed;left:-200px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none";
+          const sw = document.createElement("input");
+          sw.type = "checkbox"; sw.setAttribute("switch", ""); sw.tabIndex = -1;
+          label.appendChild(sw); document.body.appendChild(label);
+        }
+        label.click();
+      } catch (_) { /* no haptics on this device */ }
+    };
+  })();
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
   // ---------- auth ----------
@@ -369,7 +424,7 @@ textarea.content {
       const b = el("button", "chip", f.label);
       b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === f.key));
       const n = el("span", "n", String(count)); b.appendChild(n);
-      b.addEventListener("click", () => { state.filter = f.key; renderFilters(); render(); window.scrollTo({ top: 0 }); });
+      b.addEventListener("click", () => { haptic(); state.filter = f.key; renderFilters(); render(); window.scrollTo({ top: 0 }); });
       nav.appendChild(b);
     }
   }
@@ -553,24 +608,29 @@ textarea.content {
   for (const id of ["tPinned", "tResolved", "tQuiet"]) {
     $(id).addEventListener("click", () => {
       if (!state.current || !state.current.editable) return;
-      setToggle(id, $(id).getAttribute("aria-pressed") !== "true"); refreshDirty();
+      haptic(); setToggle(id, $(id).getAttribute("aria-pressed") !== "true"); refreshDirty();
     });
   }
   $("saveBtn").addEventListener("click", async () => {
     const diff = changes();
     if (!Object.keys(diff).length || !state.current) return;
     if ("content" in diff && !diff.content.trim()) { toast("正文不能是空的", true); return; }
+    haptic();
     const id = state.current.id;
     $("saveBtn").disabled = true; $("saveBtn").textContent = "保存中";
+    let saved = false;
     try {
       await api(`/api/bucket/${encodeURIComponent(id)}/edit`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(diff) });
       state.original = readForm();
-      toast("已保存");
+      saved = true;
+      $("saveBtn").textContent = "已保存 ✓"; $("saveBtn").classList.add("done");
+      setTimeout(() => { $("saveBtn").textContent = "保存"; $("saveBtn").classList.remove("done"); refreshDirty(); }, 1400);
       await load();
     } catch (err) {
       toast(`没保存成功：${err.message}`, true);
     } finally {
-      $("saveBtn").textContent = "保存"; refreshDirty();
+      if (!saved) $("saveBtn").textContent = "保存";
+      refreshDirty();
     }
   });
   $("delOpen").addEventListener("click", () => { $("delForm").hidden = false; $("delReason").focus(); });
