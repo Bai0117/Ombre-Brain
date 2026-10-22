@@ -9497,6 +9497,7 @@ function _planCard(p) {
         if (h.action === 'status') return '<li>' + esc(t) + ' · status: ' + esc(h.from || '?') + ' → <b>' + esc(h.to || '?') + '</b></li>';
         if (h.action === 'edit') return '<li>' + esc(t) + ' · 内容编辑</li>';
         if (h.action === 'created') return '<li>' + esc(t) + ' · 创建（status=' + esc(h.to || 'active') + '）</li>';
+        if (h.action === 'due') return '<li>' + esc(t) + ' · 到期日 → ' + esc(h.to || '无') + '</li>';
         return '<li>' + esc(t) + ' · ' + esc(h.action) + '</li>';
       }).join('') + '</ul></details>';
   }
@@ -9509,11 +9510,22 @@ function _planCard(p) {
     actions = '<button class="icon-btn" data-plan-id="' + escAttr(p.id) + '" title="重新激活" onclick="planAction(this.dataset.planId,\'reopen\')"><i data-lucide="rotate-ccw"></i> 重新激活</button>';
   }
   actions += ' <button class="icon-btn" data-plan-id="' + escAttr(p.id) + '" title="编辑内容" onclick="planEdit(this.dataset.planId)"><i data-lucide="pencil"></i> 编辑</button>';
+  if (p.status === 'active') actions += ' <button class="icon-btn" data-plan-id="' + escAttr(p.id) + '" data-due="' + escAttr(p.due || '') + '" title="到期日" onclick="planDue(this.dataset.planId, this.dataset.due)"><i data-lucide="calendar"></i> 到期日</button>';
+  var dueHtml = '';
+  if (p.due && p.status === 'active') {
+    var dd = new Date(p.due + 'T00:00:00');
+    var now = new Date(); now.setHours(0, 0, 0, 0);
+    var left = Math.round((dd - now) / 86400000);
+    var md = (dd.getMonth() + 1) + '.' + dd.getDate();
+    var label = left < 0 ? ('过了 ' + (-left) + ' 天（' + md + '）') : left === 0 ? ('今天到期（' + md + '）') : left <= 7 ? ('还有 ' + left + ' 天（' + md + '）') : ('到期 ' + md);
+    dueHtml = '<div style="font-size:12px;margin-top:6px;' + (left <= 0 ? 'font-weight:600;' : 'color:var(--text-dim);') + '">⏰ ' + esc(label) + '</div>';
+  }
   return '<div class="plan-card" data-id="' + escAttr(p.id) + '" style="border:1px solid var(--border);border-radius:4px;padding:14px 16px;background:var(--surface-solid);">' +
     '<div style="display:flex;align-items:flex-start;gap:10px;">' +
       '<div style="flex:1;">' +
         '<div style="font-weight:500;color:var(--text);margin-bottom:4px;">' + name + '</div>' +
         '<div style="font-size:13px;color:var(--text-dim);line-height:1.7;white-space:pre-wrap;">' + content + '</div>' +
+        dueHtml +
         weightHtml +
         '<div style="font-size:11px;color:var(--text-light);margin-top:6px;">创建于 ' + esc(created) + ' · id <code>' + esc(p.id) + '</code></div>' +
         historyHtml +
@@ -9567,6 +9579,22 @@ async function planAction(id, action) {
     if (d.error) { alert(d.error); return; }
     loadPlans();
   } catch(e) { alert('操作失败: ' + e.message); }
+}
+
+async function planDue(id, cur) {
+  var next = prompt('到期日（YYYY-MM-DD），留空就是去掉：', cur || '');
+  if (next === null) return;
+  try {
+    const resp = await authFetch('/api/plans/' + encodeURIComponent(id) + '/action', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'due', due: next.trim()}),
+    });
+    if (!resp) return;
+    const d = await resp.json();
+    if (d.error) { alert(d.error); return; }
+    loadPlans();
+  } catch(e) { alert('没改成：' + e.message); }
 }
 
 async function planEdit(id) {

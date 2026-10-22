@@ -193,7 +193,14 @@ async def plan_create(
     related_bucket: Optional[str] = "",
     weight: Optional[float] = 0.5,
     why_remembered: Optional[str] = "",
+    due: Optional[str] = "",
 ) -> str:
+    from .due import parse_due
+
+    try:
+        due = parse_due(due)
+    except ValueError as e:
+        raise ToolInputError(str(e)) from e
     if status is None:
         status = "active"
     if related_bucket is None:
@@ -237,6 +244,9 @@ async def plan_create(
                 and m.get("status", "active") == "active"
                 and (b.get("content") or "").strip() == norm
             ):
+                if due and m.get("due") != due:
+                    await rt.bucket_mgr.update(b["id"], due=due)
+                    return f"跟原有 active plan 相同→{b['id']}，到期日改成 {due}。"
                 return f"跟原有 active plan 完全重复→{b['id']}（未重复登记）"
     except Exception as e:
         rt.logger.warning(f"plan() dedup scan failed: {e}")
@@ -258,6 +268,8 @@ async def plan_create(
     from .._common import append_plan_change_log
     initial_log = append_plan_change_log([], "created", to=status, by="plan")
     update_kwargs = {"status": status, "change_log": initial_log}
+    if due:
+        update_kwargs["due"] = due
     if related_bucket.strip():
         update_kwargs["related_bucket"] = related_bucket.strip()
     try:
@@ -273,7 +285,7 @@ async def plan_create(
             schedule_plan_summaries([{"id": bucket_id, "metadata": {}, "content": content}])
         except Exception as e:
             rt.logger.warning(f"plan() failed to schedule summary: {e}")
-    return f"📋plan→{bucket_id} [{status}]"
+    return f"📋plan→{bucket_id} [{status}]" + (f" 到期 {due}" if due else "")
 
 
 async def letter_write(

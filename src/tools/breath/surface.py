@@ -322,7 +322,16 @@ def _todo_section(all_buckets: list[dict]) -> str:
         except (TypeError, ValueError):
             return 0.5
 
-    plans.sort(key=lambda b: (-weight_of(b), str(b["metadata"].get("created", ""))))
+    from ..plan.due import DUE_SOON_DAYS, due_label, due_state
+
+    def _urgency(b: dict):
+        # 过期、今天、7 天内到期的排最前（越急越前）；其余照旧按重量和登记时间。
+        left = due_state(b["metadata"])
+        if left is not None and left <= DUE_SOON_DAYS:
+            return (0, left)
+        return (1, 0)
+
+    plans.sort(key=lambda b: (*_urgency(b), -weight_of(b), str(b["metadata"].get("created", ""))))
     shown = plans[:_TODO_MAX_LINES]
     # 缺摘要 / 正文改过的，后台去补；这一次先用截断原文顶上，不等。
     schedule_plan_summaries(shown)
@@ -333,7 +342,12 @@ def _todo_section(all_buckets: list[dict]) -> str:
             text = " ".join(str(b.get("content") or b["metadata"].get("name") or "").split())
             if len(text) > _TODO_LINE_CHARS:
                 text = text[:_TODO_LINE_CHARS] + "…"
-        lines.append(f"📋 [bucket_id:{b['id']}]{created_label(b)} {text}")
+        due_text = due_label(b["metadata"])
+        lines.append(
+            f"📋 [bucket_id:{b['id']}]{created_label(b)} "
+            + (f"{due_text} " if due_text else "")
+            + text
+        )
     more = len(plans) - len(lines)
     head = (
         f"=== 待办（{len(plans)} 条）===\n"

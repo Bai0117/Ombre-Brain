@@ -466,6 +466,7 @@ _METADATA_TEXT_LIMITS = {
     "_pre_anchor_source_tool": _SOURCE_TOOL_MAX,
     "todo_summary": 80,
     "todo_summary_of": 32,
+    "due": 10,
 }
 
 # --- _time_ripple：时间涾漪 ---
@@ -2580,7 +2581,9 @@ class BucketManager:
                   "todo_summary", "todo_summary_of",
                   # 小池子（tools/breath/keepsake.py）：她或我挑出来的小事，
                   # 每次 breath 随机想起一条。False 时删掉字段，frontmatter 保持干净。
-                  "keepsake"):
+                  "keepsake",
+                  # plan 的到期日 YYYY-MM-DD（tools/plan/due.py）；None/空串删掉字段
+                  "due"):
             if k in kwargs:
                 if k == "weight" and kwargs[k] is not None:
                     post[k] = _clamp01(kwargs[k], _DEFAULT_VALENCE)
@@ -2588,6 +2591,8 @@ class BucketManager:
                     post[k] = kwargs[k]
                 elif k == "first_of_kind":
                     post[k] = kwargs[k]
+                elif k == "due" and not kwargs[k]:
+                    post.metadata.pop(k, None)
                 elif k == "keepsake":
                     if kwargs[k]:
                         post[k] = True

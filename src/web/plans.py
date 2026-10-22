@@ -66,6 +66,7 @@ def register(mcp) -> None:
                     # iter 1.8: 承诺重量与「为什么」
                     "weight": float(meta.get("weight", 0.5)) if meta.get("weight") is not None else 0.5,
                     "why_remembered": meta.get("why_remembered", ""),
+                    "due": meta.get("due") or "",
                 })
             # 每组按 updated_at 倒序。lambda 是匿名函数；key 函数指定「拿什么排序」
             # `or .. or ""` 堆叠保底：缺字段也不会报 NoneType < str 错
@@ -165,6 +166,17 @@ def register(mcp) -> None:
                     return JSONResponse({"error": size_err}, status_code=400)
                 updates["content"] = new_content.strip()
                 history = append_plan_change_log(history, "edit", by="dashboard")
+            elif action == "due":
+                from tools.plan.due import parse_due
+                try:
+                    new_due = parse_due(body.get("due"))
+                except ValueError as e:
+                    return JSONResponse({"error": str(e)}, status_code=400)
+                if new_due != (old_meta.get("due") or ""):
+                    updates["due"] = new_due or None
+                    history = append_plan_change_log(
+                        history, "due", to=new_due or "", by="dashboard"
+                    )
             else:
                 return JSONResponse({"error": f"unknown action: {action}"}, status_code=400)
 
@@ -173,7 +185,8 @@ def register(mcp) -> None:
                 return JSONResponse({"ok": True, "noop": True})
             # status 或正文经显式动作改变后，旧完成建议所依据的 plan 已失效。
             # None 由 BucketManager 解释为删除 frontmatter 字段。
-            updates["resolution_suggested"] = None
+            if "status" in updates or "content" in updates:
+                updates["resolution_suggested"] = None
             updates["change_log"] = history
             ok = await sh.bucket_mgr.update(bucket_id, **updates)
             if not ok:

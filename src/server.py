@@ -1146,18 +1146,19 @@ async def plan(
     related_bucket: Optional[str] = "",
     weight: Optional[float] = 0.5,
     why_remembered: Optional[str] = "",
+    due: Optional[str] = "",
 ) -> str:
-    """登记一个待办/承诺/未闭环事项。status=active(默认)/resolved/abandoned。related_bucket 可选,关联到某个普通记忆桶。weight=承诺重量 0.0-1.0(默认 0.5),与 importance 区分——importance 表示「多重要」、weight 表示「多重」。why_remembered=登记原因(可选、仅展示)。plan 不衰减;无参 breath() 会在核心准则后列出所有 active plan(每条一行摘要+bucket_id),全文用 breath(domain="plan");后续 hold/grow 写入新事件时系统只会提示可能已完成,实际关闭必须显式调用 trace(status="resolved")。"""
+    """登记一个待办/承诺/未闭环事项。status=active(默认)/resolved/abandoned。related_bucket 可选,关联到某个普通记忆桶。weight=承诺重量 0.0-1.0(默认 0.5),与 importance 区分——importance 表示「多重要」、weight 表示「多重」。why_remembered=登记原因(可选、仅展示)。due=到期日 YYYY-MM-DD(可选):过期、当天、7 天内到期的会排在 breath 待办最前并标出来;同一条 active plan 带 due 再登记一次=补上或修改到期日。plan 不衰减;无参 breath() 会在核心准则后列出所有 active plan(每条一行摘要+bucket_id),全文用 breath(domain="plan");后续 hold/grow 写入新事件时系统只会提示可能已完成,实际关闭必须显式调用 trace(status="resolved")。"""
     return await _with_notice(
         _t_plan.plan_create(
             content=content, status=status, related_bucket=related_bucket,
-            weight=weight, why_remembered=why_remembered,
+            weight=weight, why_remembered=why_remembered, due=due or "",
         ),
         op="plan",
         args={
             "content_len": len(content or ""), "status": status,
             "related_bucket": related_bucket, "weight": weight,
-            "why_len": len(why_remembered or ""),
+            "why_len": len(why_remembered or ""), "due": due,
         },
     )
 

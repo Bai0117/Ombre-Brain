@@ -157,7 +157,7 @@ EXPECTED_TOOL_PROPERTIES = {
     "anchor": {"bucket_id"},
     "release": {"bucket_id"},
     "pulse": {"include_archive", "list_buckets"},
-    "plan": {"content", "status", "related_bucket", "weight", "why_remembered"},
+    "plan": {"content", "status", "related_bucket", "weight", "why_remembered", "due"},
     "letter_write": {
         "author", "content", "user_name", "title", "date", "ai_name",
         "lock_type", "unlock_date",
