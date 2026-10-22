@@ -70,7 +70,7 @@ def test_pin_and_edit_refreshes_are_awaited():
 def test_bucket_pager_has_first_last_and_direct_page_navigation():
     source = _dashboard_section("function _bucketPagerHtml(", "function _paintBuckets(")
 
-    assert '<nav class="bucket-pager" aria-label="记忆桶分页">' in source
+    assert '<nav class="bucket-pager" aria-label="记忆分页">' in source
     assert "gotoBucketPage(1)" in source
     assert "gotoBucketPage(' + totalPages + ')" in source
     assert 'id="bucket-page-input" type="number"' in source

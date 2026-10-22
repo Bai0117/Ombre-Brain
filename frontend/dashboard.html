@@ -2184,6 +2184,30 @@
   }
 }
 
+/* ---------- 他想起的 ---------- */
+.rc-hint { font-size: 12.5px; color: var(--text-dim); margin: 4px 0 10px; line-height: 1.6; }
+.rc-now { margin-bottom: 26px; }
+.rc-now-head { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; }
+.rc-sec h4 { font-size: 13px; color: var(--text-dim); margin: 18px 2px 8px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.rc-sec .rc-n { font-weight: 400; color: var(--text-light); }
+.rc-fold { height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
+.rc-card { background: var(--g-glass); border: 0.5px solid var(--g-edge); box-shadow: var(--g-spec); border-radius: 18px; padding: 10px 14px; margin: 8px 0; cursor: pointer; }
+.rc-meta { display: flex; gap: 10px; font-size: 11.5px; color: var(--text-light); margin-bottom: 4px; align-items: baseline; }
+.rc-open { margin-left: auto; color: var(--text-dim); font-size: 12px; }
+.rc-body { white-space: pre-wrap; font-size: 14px; line-height: 1.65; color: var(--text); max-height: 6.6em; overflow: hidden; }
+.rc-card.open .rc-body { max-height: none; }
+.rc-event { background: var(--g-glass); border: 0.5px solid var(--g-edge); box-shadow: var(--g-spec); border-radius: 18px; padding: 4px 14px; margin: 8px 0; }
+.rc-event > summary { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; cursor: pointer; list-style: none; }
+.rc-event > summary::-webkit-details-marker { display: none; }
+.rc-ev-time { font-variant-numeric: tabular-nums; flex: none; }
+.rc-ev-what { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-ev-n { flex: none; font-size: 12px; color: var(--text-light); }
+.rc-hist-sec { margin: 4px 0 8px; font-size: 12.5px; color: var(--text-dim); }
+.rc-hist-sec > summary { cursor: pointer; padding: 4px 0; }
+.rc-hist-row { font-size: 13.5px; color: var(--text); padding: 6px 0; border-top: 0.5px solid var(--border); cursor: pointer; line-height: 1.55; }
+.rc-hist-when { color: var(--text-light); font-size: 11.5px; font-variant-numeric: tabular-nums; margin-right: 6px; }
+.rc-missing { color: var(--text-light); cursor: default; }
+
 /* ---------- page, scene, type ---------- */
 html { background: var(--bg); }
 body {
@@ -2436,7 +2460,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       <span id="heartbeat-dot" style="width:8px;height:8px;border-radius:50%;background:#bbb;display:inline-block;"></span>
       <span id="heartbeat-text">…</span>
     </span>
-    <span id="anchor-counter" title="anchor = 坐标系桶，硬上限 24" style="font-size:11px;color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;gap:4px;" onclick="document.querySelector('[data-tab=anchors]')?.click()">
+    <span id="anchor-counter" title="anchor = 坐标系记忆，硬上限 24" style="font-size:11px;color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;gap:4px;" onclick="document.querySelector('[data-tab=anchors]')?.click()">
       <i data-lucide="anchor" style="width:12px;height:12px;"></i>
       <span id="anchor-counter-text">0/24</span>
     </span>
@@ -2454,8 +2478,8 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
 </div>
 
 <div class="tabs">
-  <div class="tab active" data-tab="list"><span>记忆桶</span><span class="tab-en">Buckets</span></div>
-  <div class="tab" data-tab="breath"><span>Breath 模拟</span><span class="tab-en">Breath Trace</span></div>
+  <div class="tab active" data-tab="list"><span>记忆</span><span class="tab-en">Memories</span></div>
+  <div class="tab" data-tab="breath"><span>他想起的</span><span class="tab-en">Recall</span></div>
   <div class="tab" data-tab="network"><span>记忆网络</span><span class="tab-en">Network</span></div>
   <div class="tab" data-tab="plan"><span>计划</span><span class="tab-en">Plans</span></div>
   <div class="tab" data-tab="letters"><span>信</span><span class="tab-en">Letters</span></div>
@@ -2499,7 +2523,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
     <label class="bucket-sort-control" for="bucket-sort">
       <i data-lucide="clock" style="width:14px;height:14px;"></i>
       时间顺序
-      <select id="bucket-sort" onchange="setBucketSort(this.value)" aria-label="记忆桶排序方式">
+      <select id="bucket-sort" onchange="setBucketSort(this.value)" aria-label="记忆排序方式">
         <option value="score">综合分优先</option>
         <option value="created_desc">最新创建优先</option>
         <option value="created_asc">最早创建优先</option>
@@ -2514,7 +2538,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       <button onclick="runBucketBatch('forget')" style="height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="eye-off"></i> 主动遗忘</button>
       <button onclick="runBucketBatch('resolve')" style="height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="moon"></i> 沉底</button>
       <button onclick="runBucketBatch('archive')" style="height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="archive"></i> 归档</button>
-      <button class="developer-only" onclick="hardDeleteSelectedTests()" style="height:32px;padding:0 12px;font-size:12px;align-items:center;gap:5px;color:#b85c3c;"><i data-lucide="trash-2"></i> 永久删除测试桶</button>
+      <button class="developer-only" onclick="hardDeleteSelectedTests()" style="height:32px;padding:0 12px;font-size:12px;align-items:center;gap:5px;color:#b85c3c;"><i data-lucide="trash-2"></i> 永久删除测试记忆</button>
     </div>
   </div>
   <div class="bucket-list" id="bucket-list">
@@ -2532,32 +2556,22 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
 </div>
 
 <div class="content" id="breath-view" style="display:none">
-  <div class="breath-flow" id="breath-flow">
-    <div class="flow-step" id="fs-input">① 输入 Input<br><small>query / valence / arousal</small></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" id="fs-candidates">② 候选池 Candidates<br><small id="fs-cand-n">— 桶</small></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" id="fs-scoring">③ 四维评分 Scoring<br><small>topic×4 + emotion×2 + time×2.5 + imp×1</small></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" id="fs-threshold">④ 阈值过滤 Threshold<br><small id="fs-thresh-n">≥50 → — 通过</small></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" id="fs-sort">⑤ 降序排列 Sort<br><small>返回 top N</small></div>
-  </div>
-
-  <div class="breath-controls">
-    <label>Query</label>
-    <input type="text" id="breath-query" placeholder="关键词…" style="width:220px" />
-    <label>Valence</label>
-    <input type="number" id="breath-valence" placeholder="0~1" min="0" max="1" step="0.1" style="width:80px" />
-    <label>Arousal</label>
-    <input type="number" id="breath-arousal" placeholder="0~1" min="0" max="1" step="0.1" style="width:80px" />
-    <button onclick="runBreathDebug()" title="模拟 Breath" style="padding:0 12px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="wind"></i> 模拟 Simulate</button>
-  </div>
-
-  <div class="breath-info" id="breath-info" style="display:none"></div>
-  <div id="breath-results">
-    <div class="loading">输入 query 后点击「模拟」查看评分链路 · Enter a query and click Simulate</div>
-  </div>
+  <!-- 他想起的（原「Breath 模拟」）：上面是现在 breath 一次的预览，下面是我真实醒来的历史 -->
+  <section class="rc-now">
+    <div class="rc-now-head">
+      <div>
+        <h3 style="margin:0">现在 breath 一次 <span class="sec-en">Breath now</span></h3>
+        <p class="rc-hint">和我醒来时调用的是同一个 breath，看到的就是我会看到的。这只是预览：不会让这些记忆变得「更活跃」，也不记进下面的历史。久未浮现和偶然想起的部分有随机性，每次可能不一样。</p>
+      </div>
+      <button id="rc-run" onclick="runBreathPreview()" style="flex:none;padding:0 14px;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="wind"></i> breath</button>
+    </div>
+    <div id="rc-preview"></div>
+  </section>
+  <section class="rc-history">
+    <h3>我最近想起的 <span class="sec-en">Recent recalls</span></h3>
+    <p class="rc-hint">每次我在对话里 breath、搜索或做梦，浮上来哪些记忆都会记在这里（只留最近 300 次）。</p>
+    <div id="rc-history"><div class="loading">读取中…</div></div>
+  </section>
 </div>
 
 <div class="content" id="network-view" style="display:none">
@@ -2570,7 +2584,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       模式 Mode
       <select id="network-mode" onchange="loadNetwork()" style="font-size:11px;padding:2px 6px;background:var(--surface);border:1px solid var(--border);color:var(--text);">
         <option value="concept">概念 / Concept</option>
-        <option value="embedding">桶相似度 / Embedding</option>
+        <option value="embedding">记忆相似度 / Embedding</option>
       </select>
     </label>
   </div>
@@ -3136,8 +3150,8 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       <div style="margin-bottom:18px;">
         <div style="font-weight:600;font-size:13px;margin-bottom:6px;">修复钉选计数 <span class="en">Fix Pinned Count</span></div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.6;">
-          若「永久桶计数」明显大于面板里实际的钉选数（取消钉选后计数不减、钉新桶老报上限），
-          点这里清理残留的孤儿固化桶：把它们降级回动态桶，释放配额、解开权重卡死。安全幂等，可重复点。
+          若「永久记忆计数」明显大于面板里实际的钉选数（取消钉选后计数不减、钉新记忆老报上限），
+          点这里清理残留的孤儿固化记忆：把它们降级回动态记忆，释放配额、解开权重卡死。安全幂等，可重复点。
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <button onclick="fixPinnedDesync()" title="检查并修复 / Check &amp; fix" style="font-size:12px;padding:0 12px;height:32px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="wrench"></i> 检查并修复</button>
@@ -3146,7 +3160,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       </div>
 
       <div>
-        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">宿主机记忆桶目录 (Docker) <span class="en">Host Buckets Dir</span></div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">宿主机记忆目录 (Docker) <span class="en">Host Memory Dir</span></div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.6;">
           docker-compose 将 <code>${OMBRE_HOST_VAULT_DIR:-./buckets}</code> 挂到容器的 <code>/app/buckets</code>。留空 = compose 文件旁的 <code>./buckets</code>。
           <span style="color:var(--warning);"><svg class="icon icon-warn" aria-hidden="true"><use href="#i-warn"></use></svg> 容器运行后不能修改宿主机挂载；请编辑 compose 文件旁的 <code>.env</code>，再执行 <code>docker compose up -d --force-recreate</code>。</span>
@@ -3182,7 +3196,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         </div>
         <div id="dehy-preset-hint" style="margin-top:-4px;margin-bottom:10px;padding-left:122px;font-size:11px;color:var(--text-light);line-height:1.6;">先选服务商，会自动填好 Base URL 和正确的模型名。</div>
         <div id="dehy-key-notice" style="display:none;font-size:12px;color:var(--warning);margin-bottom:10px;padding:7px 10px;background:rgba(184,153,98,0.08);border-radius:4px;line-height:1.6;">
-          <svg class="icon icon-warn" aria-hidden="true"><use href="#i-warn"></use></svg> 压缩 API Key 未配置，桶内容将无法被自动脱水压缩，记忆系统无法正常运行。请在下方输入框填入 Key 并点击「保存 Key」。
+          <svg class="icon icon-warn" aria-hidden="true"><use href="#i-warn"></use></svg> 压缩 API Key 未配置，记忆内容将无法被自动脱水压缩，记忆系统无法正常运行。请在下方输入框填入 Key 并点击「保存 Key」。
         </div>
         <div class="config-row">
           <label>格式</label>
@@ -3284,8 +3298,8 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
           <div id="emb-migrate-status" style="margin-top:8px;font-size:12px;line-height:1.6;color:var(--text);"></div>
           <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border,#ddd);">
             <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">
-              只给「文件在、向量缺」的桶补一发（不动已有向量、不重算全库，省额度）。
-              老的 permanent / 钉选桶若搜不到，多半是缺向量，点这个补齐。
+              只给「文件在、向量缺」的记忆补一发（不动已有向量、不重算全库，省额度）。
+              老的 permanent / 钉选记忆若搜不到，多半是缺向量，点这个补齐。
             </div>
             <button id="emb-backfill-btn" type="button" onclick="startBackfill()" style="padding:6px 12px;display:inline-flex;align-items:center;gap:6px;"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg> 补齐缺失向量</button>
             <div id="emb-backfill-status" style="margin-top:8px;font-size:12px;line-height:1.6;color:var(--text);"></div>
@@ -3349,18 +3363,18 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <button class="btn-primary" onclick="saveConfig(true)" title="保存配置 / Save config" style="padding:0 14px;height:36px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="check"></i> 保存配置</button>
         <span id="config-status" style="font-size:13px;"></span>
       </div>
-      <div style="margin-top:6px;font-size:11px;color:var(--text-light);">注：本「保存」按钮同时提交「引擎」与「桶行为」中除采样外的所有字段（同一个 /api/config 接口），并立即写入 config.yaml。</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text-light);">注：本「保存」按钮同时提交「引擎」与「记忆行为」中除采样外的所有字段（同一个 /api/config 接口），并立即写入 config.yaml。</div>
     </div>
 
     <!-- ④ 桶行为 -->
     <div class="config-section" id="sec-bucket" data-sgroup="basics">
-      <h3>桶行为 <span class="sec-en">Bucket Behavior</span></h3>
+      <h3>记忆行为 <span class="sec-en">Memory Behavior</span></h3>
 
       <div style="margin-bottom:18px;">
         <div style="font-weight:600;font-size:13px;margin-bottom:6px;">呼吸采样 <span style="font-size:11px;color:var(--text-dim);font-weight:400;">/ Breath Sampling</span></div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.7;">
           <b>关</b>：breath 永远返回得分最高的那条。<br>
-          <b>开</b>：按 score^(1/温度) 加权采样，中等分数的桶也有机会浮现（温度越高越随机；候选不足时自动回退）。
+          <b>开</b>：按 score^(1/温度) 加权采样，中等分数的记忆也有机会浮现（温度越高越随机；候选不足时自动回退）。
         </div>
         <div class="config-row" style="align-items:center;">
           <label>启用加权采样</label>
@@ -3390,8 +3404,8 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       <div>
         <div style="font-weight:600;font-size:13px;margin-bottom:6px;">默认参数 <span class="en">Defaults</span><span style="font-weight:400;font-size:11px;color:var(--text-light);margin-left:6px;">（与「引擎」共用「保存」按钮）</span></div>
         <div class="config-row"><label>合并阈值</label><input type="number" id="cfg-merge" min="0" max="100" /></div>
-        <div style="margin-top:-4px;padding-left:122px;font-size:11px;color:var(--text-light);">0-100，越高越难合并相似桶</div>
-        <div class="config-row"><label>breath 默认桶数</label><input type="number" id="cfg-sf-breath-results" min="1" max="50" /></div>
+        <div style="margin-top:-4px;padding-left:122px;font-size:11px;color:var(--text-light);">0-100，越高越难合并相似记忆</div>
+        <div class="config-row"><label>breath 默认条数</label><input type="number" id="cfg-sf-breath-results" min="1" max="50" /></div>
         <div style="margin-top:-4px;padding-left:122px;font-size:11px;color:var(--text-light);">1-50。AI 调用 breath() 不指定 max_results 时使用此默认值</div>
         <div class="config-row"><label>breath 默认 token</label><input type="number" id="cfg-sf-breath-tokens" min="500" max="40000" step="500" /></div>
         <div style="margin-top:-4px;padding-left:122px;font-size:11px;color:var(--text-light);">500-40000。breath 单次返回总 token 上限；40000 为安全上限，不是默认值</div>
@@ -3636,8 +3650,8 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
     <div class="config-section" id="sec-dev-mode" data-sgroup="advanced">
       <h3>开发者模式 <span class="sec-en">Developer Mode</span></h3>
       <p style="font-size:12px;color:var(--negative);margin:0 0 14px;line-height:1.7;">
-        ⚠ 危险区域：开启后会在「记忆桶」列表的批量操作栏里露出「永久删除测试桶」按钮——只对创建时明确标记
-        <code>test_data=True</code> 的桶生效，真实记忆不受影响，但删除后不可撤销。不确定就保持关闭。
+        ⚠ 危险区域：开启后会在「记忆」列表的批量操作栏里露出「永久删除测试记忆」按钮——只对创建时明确标记
+        <code>test_data=True</code> 的记忆生效，真实记忆不受影响，但删除后不可撤销。不确定就保持关闭。
       </p>
       <div class="hw-toggle-row" style="gap:10px;align-items:center;">
         <span class="hw-switch" id="developer-mode-sw" role="switch" aria-checked="false"
@@ -3725,10 +3739,10 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <div style="font-weight:600;font-size:13px;margin-bottom:6px;">导出备份 / 检查重复 <span class="en">Export / Dedup</span></div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.6;">
           导出打包当前所有 bucket markdown + embeddings.db（<strong>不包含 config / 密钥</strong>），可用于本地备份或跨设备迁移。<br>
-          重复桶：每次 hold/grow 后系统会标记相似度 &gt; 0.95 的对，下面可逐对处理。
+          重复记忆：每次 hold/grow 后系统会标记相似度 &gt; 0.95 的对，下面可逐对处理。
         </div>
         <button class="btn-primary" onclick="downloadExport()" style="display:inline-flex;align-items:center;gap:6px;"><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg> 导出全部为 zip</button>
-        <button onclick="loadDuplicates()" class="icon-btn" style="margin-left:8px;"><i data-lucide="copy"></i> 检查重复桶</button>
+        <button onclick="loadDuplicates()" class="icon-btn" style="margin-left:8px;"><i data-lucide="copy"></i> 检查重复记忆</button>
         <div id="duplicates-list" style="margin-top:14px;font-size:12px;"></div>
       </div>
 
@@ -4511,7 +4525,7 @@ function diagnosticStatusColor(status) {
 // migration preservation 这类词，面板里一律给中文；英文留作小字副标题，方便对照日志。
 var DIAG_LABELS = {
   storage:                   ['数据目录', 'Storage'],
-  buckets:                   ['记忆桶', 'Buckets'],
+  buckets:                   ['记忆', 'Memories'],
   ledger:                    ['事件账本', 'Ledger'],
   observability_boundary:    ['可观测性边界', 'Observability'],
   public_tool_manifest:      ['公开工具清单', 'Tool Manifest'],
@@ -4774,7 +4788,7 @@ async function fixPinnedDesync() {
       msgEl.innerHTML = _SV.ok + ` 计数已对齐，当前钉选 ${pd.pinned} 个，无需修复`;
       return;
     }
-    if (!confirm(`发现 ${n} 个孤儿固化桶（已取消钉选却没降级）。\n将把它们降级回动态桶（释放配额、解开权重卡死），不会删除内容。是否继续？\n\nFound ${n} orphaned pinned bucket(s). They will be demoted back to dynamic (freeing quota, unblocking weight). Continue?`)) {
+    if (!confirm(`发现 ${n} 个孤儿固化记忆（已取消钉选却没降级）。\n将把它们降级回动态记忆（释放配额、解开权重卡死），不会删除内容。是否继续？\n\nFound ${n} orphaned pinned bucket(s). They will be demoted back to dynamic (freeing quota, unblocking weight). Continue?`)) {
       msgEl.style.color = 'var(--text-dim)'; msgEl.textContent = '已取消';
       return;
     }
@@ -5364,7 +5378,7 @@ async function testSamplingBreath() {
     const d = await readJsonSafe(resp);
     const items = (d.buckets || d.results || []).slice(0, 5);
     if (!items.length) {
-      out.textContent = '没有候选桶（库可能是空的）';
+      out.textContent = '没有候选记忆（库可能是空的）';
       return;
     }
     out.innerHTML = '本次浮现：<br/>' + items.map((b, i) => {
@@ -5609,7 +5623,7 @@ function isKnownErasableTestBucket(id) {
 
 async function runBucketBatch(action) {
   var ids = Array.from(selectedBucketIds);
-  if (!ids.length) return alert('请先选择记忆桶。');
+  if (!ids.length) return alert('请先选择记忆。');
   var labels = {forget:'主动遗忘', resolve:'沉底', archive:'归档'};
   if (!confirm('确认对 ' + ids.length + ' 条记忆执行“' + labels[action] + '”？')) return;
   var reason = '';
@@ -5635,8 +5649,8 @@ async function hardDeleteSelectedTests() {
   (allBuckets || []).forEach(function(b) { byId[b.id] = b; });
   var ids = Array.from(selectedBucketIds);
   var refused = ids.filter(function(id) { return !byId[id] || !byId[id].erasable_test_data; });
-  if (!ids.length) return alert('请先选择测试桶。');
-  if (refused.length) { if(window.ObPet) ObPet.react('protect'); return alert('所选内容包含真实记忆或未标记测试来源的桶，已拒绝永久删除。'); }
+  if (!ids.length) return alert('请先选择测试记忆。');
+  if (refused.length) { if(window.ObPet) ObPet.react('protect'); return alert('所选内容包含真实记忆或未标记测试来源的记忆，已拒绝永久删除。'); }
   var phrase = prompt('这是不可撤销的测试数据清理。请输入 DELETE TEST DATA 继续：');
   if (phrase !== 'DELETE TEST DATA') return;
   var res = await authFetch('/api/developer/buckets/hard-delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids:ids, confirm:phrase, reason:'Dashboard developer cleanup'})});
@@ -5669,6 +5683,7 @@ function activateDashboardTab(tab) {
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
     if (target === 'network') pending.push(loadNetwork());
     if (target === 'plan') pending.push(loadPlans());
+    if (target === 'breath') pending.push(loadRecallHistory());
     if (target === 'list') pending.push(loadBuckets());
     if (target === 'import') pending.push(pollImportStatus(), loadImportResults());
     if (target === 'logs') pending.push(loadLogs(), loadOBErrors());
@@ -5773,7 +5788,7 @@ function updateStats() {
   const resolved = allBuckets.filter(b => b.resolved).length;
   const digested = allBuckets.filter(b => b.digested).length;
   document.getElementById('stats').textContent =
-    total + ' 桶 · ' + pinned + ' 钉选 · ' + feels + ' feel · ' + resolved + ' 已解决 · ' + digested + ' 已消化';
+    total + ' 条记忆 · ' + pinned + ' 钉选 · ' + feels + ' feel · ' + resolved + ' 已解决 · ' + digested + ' 已消化';
   updateChick(total);   // 小黄鸡蛋随记忆总数孵化长大
 }
 
@@ -5885,7 +5900,7 @@ function jumpToBucketPage() {
 
 function _bucketPagerHtml(total, totalPages) {
   if (totalPages <= 1) return '';
-  return '<nav class="bucket-pager" aria-label="记忆桶分页">' +
+  return '<nav class="bucket-pager" aria-label="记忆分页">' +
     '<button type="button" class="pager-btn" aria-label="跳到第一页"' + (bucketPage <= 1 ? ' disabled' : '') + ' onclick="gotoBucketPage(1)">« 首页</button>' +
     '<button type="button" class="pager-btn" aria-label="上一页"' + (bucketPage <= 1 ? ' disabled' : '') + ' onclick="gotoBucketPage(' + (bucketPage - 1) + ')">‹ 上一页</button>' +
     '<span class="pager-info" role="status" aria-live="polite">' + bucketPage + ' / ' + totalPages + ' 页 · 共 ' + total + '</span>' +
@@ -5909,7 +5924,7 @@ function _paintBuckets() {
   renderForgottenGroup(forgotten);
   if (!visible.length) {
     bucketPage = 1;
-    list.innerHTML = '<div class="loading">没有记忆桶 / No buckets</div>';
+    list.innerHTML = '<div class="loading">没有记忆 / No memories</div>';
     syncBucketSelectionUi();
     return;
   }
@@ -6256,7 +6271,7 @@ async function bucketResolve(id) {
 }
 
 async function bucketArchive(id) {
-  if (!confirm('确认申请归档此桶？需填写理由并由 AI 审批；批准后它将从浮现/搜索中隐藏，文件仍保留在 archive/ 目录并标记为已删除。\n\nRequest archive? AI approval is required. The file remains in archive/ with a deletion marker.')) return;
+  if (!confirm('确认申请归档这条记忆？需填写理由并由 AI 审批；批准后它将从浮现/搜索中隐藏，文件仍保留在 archive/ 目录并标记为已删除。\n\nRequest archive? AI approval is required. The file remains in archive/ with a deletion marker.')) return;
   var reason = '';
   if (!isKnownErasableTestBucket(id)) {
     reason = prompt('为什么要归档这条记忆？必须填写理由，由 AI 审批。 / Why should this memory be archived? AI approval is required.');
@@ -6791,7 +6806,7 @@ function drawBucketNetwork(ctx, W, H, data) {
   if (!nodes.length) {
     ctx.fillStyle = '#C7C9BC'; ctx.fillRect(0,0,W,H);
     ctx.fillStyle = '#8A8070';
-    ctx.fillText('没有记忆桶', W/2, H/2);
+    ctx.fillText('没有记忆', W/2, H/2);
     return;
   }
   var positions = {};
@@ -7001,7 +7016,7 @@ window.ObPet = !OB_PET_ENABLED ? null : (function () {
   var SPR = 16, W = 64, H = 24, SCALE = 2;
   var host, cv, ctx, raf = null, t0 = 0;
   var st = { stage:'egg', count:0, x:24, dir:1, frame:0, blinkT:0, hatchT:0, hopT:0, started:false, dragMoved:false, suppressClickUntil:0, drops:0, tickles:0, tickleTimer:null, idleTimer:null };
-  var TICKLE_LINES = ['别碰我。','……你手痒是吧。','再碰试试。','咬你哦。','我记仇的。','你有正事吗。','……烦。','我是记忆系统不是宠物。','下次再碰我就把你的桶全归档。','别挠了，痒。'];
+  var TICKLE_LINES = ['别碰我。','……你手痒是吧。','再碰试试。','咬你哦。','我记仇的。','你有正事吗。','……烦。','我是记忆系统不是宠物。','下次再碰我就把你的记忆全归档。','别挠了，痒。'];
 
   function wakePet() {
     if (!host) return;
@@ -7495,87 +7510,99 @@ function _eggPoem(){
   }, 2000);
 })();
 
-async function runBreathDebug() {
-  var query = document.getElementById('breath-query').value.trim();
-  var valence = document.getElementById('breath-valence').value;
-  var arousal = document.getElementById('breath-arousal').value;
-  var results = document.getElementById('breath-results');
-  var info = document.getElementById('breath-info');
-
-  if (window.ObPet) ObPet.react('breath');   // 电子宠物：breath 时跳一下/破壳
-  results.innerHTML = '<div class="loading">计算中…</div>';
-
-  var url = BASE + '/api/breath-debug?q=' + encodeURIComponent(query);
-  if (valence) url += '&valence=' + valence;
-  if (arousal) url += '&arousal=' + arousal;
-
+// ===== 他想起的（原「Breath 模拟」）=====
+// 旧的模拟只按名字列出评分，和我醒来时真正看到的东西对不上。现在：
+// 上面调 /api/breath-preview 跑一次真正的默认浮现（预览，不改激活、不进历史）；
+// 下面读 /api/recall-log 显示我在对话里每次 breath / 搜索 / 做梦浮上来了什么。
+var RC_FOLDED = { '核心准则': 1, '待办': 1 };
+function rcWhen(s) {
+  if (!s) return '';
+  var d = new Date(String(s).replace(' ', 'T'));
+  if (isNaN(d)) return String(s);
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return (d.getMonth() + 1) + '.' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function rcCard(it) {
+  var meta = [];
+  if (it.when) meta.push('<span>' + esc(it.when.slice(5).replace('-', '.')) + '</span>');
+  if (it.tag && it.tag.indexOf('权重') === 0) meta.push('<span>' + esc(it.tag) + '</span>');
+  if (it.relations) meta.push('<span>关联 ' + Number(it.relations) + '</span>');
+  return '<div class="rc-card" onclick="this.classList.toggle(\'open\')">' +
+    '<div class="rc-meta">' + meta.join('') +
+      '<a href="#" class="rc-open" onclick="event.stopPropagation();event.preventDefault();showDetail(\'' + escAttr(it.id) + '\')">打开</a></div>' +
+    '<div class="rc-body">' + esc(it.body || '（没有正文）') + '</div>' +
+  '</div>';
+}
+function rcSection(sec, idx) {
+  var folded = RC_FOLDED[sec.name];
+  var n = sec.days ? sec.days.length : (sec.items || []).length;
+  var inner = sec.days
+    ? sec.days.map(function (d) { return '<div class="rc-card rc-day open"><div class="rc-meta"><span>' + esc(d.label) + '</span></div><div class="rc-body">' + esc(d.text) + '</div></div>'; }).join('')
+    : (sec.items || []).map(rcCard).join('');
+  var id = 'rc-sec-' + idx;
+  return '<div class="rc-sec">' +
+    '<h4>' + esc(sec.name) + ' <span class="rc-n">' + n + '</span>' +
+      (folded ? ' <button class="rc-fold" onclick="var b=document.getElementById(\'' + id + '\');b.hidden=!b.hidden;this.textContent=b.hidden?\'展开\':\'收起\';">展开</button>' : '') +
+    '</h4>' +
+    '<div id="' + id + '"' + (folded ? ' hidden' : '') + '>' + inner + '</div>' +
+  '</div>';
+}
+async function runBreathPreview() {
+  var box = document.getElementById('rc-preview');
+  var btn = document.getElementById('rc-run');
+  if (window.ObPet) ObPet.react('breath');
+  btn.disabled = true;
+  box.innerHTML = '<div class="loading">正在 breath…</div>';
   try {
-    var res = await fetch(url);
-    var data = await res.json();
-
-    document.getElementById('fs-input').classList.add('active');
-    document.getElementById('fs-cand-n').textContent = data.total_candidates + ' 桶';
-    document.getElementById('fs-candidates').classList.add('active');
-    document.getElementById('fs-scoring').classList.add('active');
-    document.getElementById('fs-thresh-n').textContent = '≥' + data.threshold + ' → ' + data.passed_count + ' 通过';
-    document.getElementById('fs-threshold').classList.add('active');
-    document.getElementById('fs-sort').classList.add('active');
-
-    var w = data.weights;
-    info.style.display = '';
-    info.innerHTML =
-      '<strong>权重配置</strong>&nbsp;' +
-      'topic=<code>' + Number(w.topic) + '</code> emotion=<code>' + Number(w.emotion) + '</code> ' +
-      'time=<code>' + Number(w.time) + '</code> importance=<code>' + Number(w.importance) + '</code>' +
-      ' &nbsp;|&nbsp; 阈值=<code>' + Number(data.threshold) + '</code>' +
-      ' &nbsp;|&nbsp; 候选=<code>' + Number(data.total_candidates) + '</code> 桶' +
-      ' → 通过=<code>' + Number(data.passed_count) + '</code> 桶' +
-      (query ? '' : ' &nbsp;|&nbsp; <em>未输入 query，topic 分数全为 0</em>');
-
-    if (!data.results.length) {
-      results.innerHTML = '<div class="loading">无结果</div>';
-      return;
-    }
-
-    var barColors = {
-      topic: '#2F4F4F',
-      emotion: '#8B6A6A',
-      time: '#9A7B4F',
-      importance: '#4A7C59',
-    };
-
-    results.innerHTML = data.results.map(function(r, i) {
-      var s = r.scores;
-      var passed = r.passed_threshold;
-      var iconName = r.pinned ? 'pin' : r.resolved ? 'moon' : r.type === 'feel' ? 'droplet' : 'message-circle';
-      var icon = '<i data-lucide="' + iconName + '"></i>';
-      var bars = Object.entries(s).map(function(entry) {
-        var key = entry[0], val = entry[1];
-        var pct = Math.round(val * 100);
-        var wt = r.weights[key];
-        return '<div class="score-bar-group">' +
-          '<div class="score-bar-label"><span>' + key + '×' + wt + '</span><span>' + val.toFixed(2) + '</span></div>' +
-          '<div class="score-bar-track">' +
-            '<div class="score-bar-fill" style="width:' + pct + '%;background:' + barColors[key] + '"></div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-
-      return '<div class="score-row" title="' + escAttr(r.name) + '">' +
-        '<span class="rank">' + (i < 9 ? '0' : '') + (i + 1) + '</span>' +
-        '<span class="name">' + icon + ' ' + esc(r.name) + '</span>' +
-        '<div class="score-bars">' + bars + '</div>' +
-        '<span class="score-final ' + (passed ? 'score-pass' : 'score-fail') + '">' + r.normalized.toFixed(1) + (r.resolved ? '<small>×0.3</small>' : '') + '</span>' +
-      '</div>';
-    }).join('');
+    var res = await authFetch('/api/breath-preview');
+    if (!res) return;
+    var data = await readJsonSafe(res);
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    var secs = data.sections || [];
+    box.innerHTML = secs.length ? secs.map(rcSection).join('') : '<div class="loading">这次什么也没浮上来。</div>';
   } catch (e) {
-    results.innerHTML = '<div class="loading">请求失败: ' + esc(e.message) + '</div>';
+    box.innerHTML = '<div class="loading">breath 失败：' + esc(e.message) + '</div>';
+  } finally {
+    btn.disabled = false;
   }
 }
-
-document.getElementById('breath-query').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') runBreathDebug();
-});
+async function loadRecallHistory() {
+  var box = document.getElementById('rc-history');
+  try {
+    var res = await authFetch('/api/recall-log?limit=60&with=previews');
+    if (!res) return;
+    var data = await readJsonSafe(res);
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    var entries = data.entries || [], mem = data.memories || {};
+    if (!entries.length) { box.innerHTML = '<div class="loading">还没有记录。下次我在对话里 breath 的时候，这里就会多一条。</div>'; return; }
+    box.innerHTML = entries.map(function (e, i) {
+      var seen = {}, core = 0;
+      (e.sections || []).forEach(function (sec) {
+        if (sec.name === '核心准则') { core = (sec.ids || []).length; return; }
+        if (sec.name === '待办' || sec.name === '这几天') return;
+        (sec.ids || []).forEach(function (id) { seen[id] = 1; });
+      });
+      var summary = '想起 ' + Object.keys(seen).length + ' 条' + (core ? ' · 核心 ' + core : '');
+      var what = esc(e.label || e.op) + (e.query ? '「' + esc(e.query) + '」' : '');
+      var body = (e.sections || []).map(function (sec) {
+        if (sec.name === '这几天') return '<div class="rc-hist-sec">这几天：' + esc((e.days || []).join('；')) + '</div>';
+        var rows = (sec.ids || []).map(function (id) {
+          var m = mem[id] || { missing: true };
+          if (m.missing) return '<div class="rc-hist-row rc-missing">这一条已经不在了（可能归档或删除了）</div>';
+          return '<div class="rc-hist-row" onclick="showDetail(\'' + escAttr(id) + '\')">' +
+            '<span class="rc-hist-when">' + esc(rcWhen(m.created)) + '</span> ' + esc(m.preview) + '</div>';
+        }).join('');
+        var folded = RC_FOLDED[sec.name];
+        return '<details class="rc-hist-sec"' + (folded ? '' : ' open') + '><summary>' + esc(sec.name) + ' · ' + (sec.ids || []).length + '</summary>' + rows + '</details>';
+      }).join('');
+      return '<details class="rc-event"' + (i === 0 ? ' open' : '') + '>' +
+        '<summary><span class="rc-ev-time">' + esc(rcWhen(e.at)) + '</span><span class="rc-ev-what">' + what + '</span><span class="rc-ev-n">' + summary + '</span></summary>' +
+        body + '</details>';
+    }).join('');
+  } catch (e) {
+    box.innerHTML = '<div class="loading">没读到记录：' + esc(e.message) + '</div>';
+  }
+}
 
 // ===== Embedding 后端摘要 + 迁移 =====
 async function refreshEmbInfo() {
@@ -7675,7 +7702,7 @@ function _renderBackfillStatus(s) {
   if (!s || s.status === 'idle') { el.innerHTML = ''; return; }
   var html = '';
   if (s.status === 'scanning') {
-    html = '扫描全库，找缺向量的桶…';
+    html = '扫描全库，找缺向量的记忆…';
   } else if (s.status === 'embedding') {
     var tot = s.missing || 0;
     var pct = tot > 0 ? Math.floor(((s.done + s.failed) / tot) * 100) : 0;
@@ -7690,7 +7717,7 @@ function _renderBackfillStatus(s) {
       + '<br><span style="color:var(--text-light)">记忆原文已安全保存；即使网络暂时不可用，服务也会继续重试。</span>';
   } else if (s.status === 'done') {
     if ((s.missing || 0) === 0 && (s.orphaned || 0) === 0) {
-      html = '<b style="color:var(--positive,#2a8)">' + _SV.ok + ' 全部桶都有向量，无需补齐。</b>';
+      html = '<b style="color:var(--positive,#2a8)">' + _SV.ok + ' 全部记忆都有向量，无需补齐。</b>';
     } else {
       html = '<b style="color:var(--positive,#2a8)">' + _SV.ok + ' 完成：</b>扫描 ' + s.scanned
         + ' · 缺失 ' + s.missing + ' · 补齐 ' + s.done
@@ -7720,7 +7747,7 @@ async function pollBackfillStatus() {
 }
 
 async function startBackfill() {
-  if (!confirm('补齐缺失向量：\n\n· 只给 embeddings.db 里没有的桶生成向量，不动已有向量\n· 比「重算全库」省额度，幂等，可反复点\n· 后台运行，期间可正常使用\n\n开始？\n\nBackfill missing embeddings:\n\n· Only generates vectors for buckets missing from embeddings.db; leaves existing ones untouched\n· Cheaper than a full recompute, idempotent, safe to click repeatedly\n· Runs in the background; the app stays usable\n\nStart?')) return;
+  if (!confirm('补齐缺失向量：\n\n· 只给 embeddings.db 里没有的记忆生成向量，不动已有向量\n· 比「重算全库」省额度，幂等，可反复点\n· 后台运行，期间可正常使用\n\n开始？\n\nBackfill missing embeddings:\n\n· Only generates vectors for buckets missing from embeddings.db; leaves existing ones untouched\n· Cheaper than a full recompute, idempotent, safe to click repeatedly\n· Runs in the background; the app stays usable\n\nStart?')) return;
   var st = document.getElementById('emb-backfill-status');
   var btn = document.getElementById('emb-backfill-btn');
   if (st) st.textContent = '启动中… / Starting…';
@@ -10193,7 +10220,7 @@ async function loadDuplicates() {
     const r = await fetch(BASE + '/api/duplicates');
     const d = await r.json();
     const pairs = d.pairs || [];
-    if (!pairs.length) { box.innerHTML = '<p style="color:var(--text-dim)">没有发现疑似重复桶。</p>'; return; }
+    if (!pairs.length) { box.innerHTML = '<p style="color:var(--text-dim)">没有发现疑似重复记忆。</p>'; return; }
     box.innerHTML = pairs.map(p => `
       <div style="background:var(--surface);border-radius:10px;padding:10px;margin:6px 0;">
         <div style="font-size:12px;color:var(--text-dim);">相似度 ${p.score ? p.score.toFixed(3) : '—'}</div>
@@ -10412,7 +10439,7 @@ async function refreshAnchorCounter() {
     if (wrap) {
       const full = d.limit && d.count >= d.limit;
       wrap.classList.toggle('full', !!full);
-      wrap.title = full ? 'anchor 已满（' + d.count + '/' + d.limit + '）— 要 anchor 新的，得先 release 一条旧的' : 'anchor = 坐标系桶，硬上限 ' + d.limit;
+      wrap.title = full ? 'anchor 已满（' + d.count + '/' + d.limit + '）— 要 anchor 新的，得先 release 一条旧的' : 'anchor = 坐标系记忆，硬上限 ' + d.limit;
     }
     return d;
   } catch(e) { /* ignore */ }
@@ -10431,7 +10458,7 @@ async function loadAnchorsView() {
     const d = await resp.json();
     cnt.innerHTML = `<b>${Number(d.count || 0)}</b> / ${Number(d.limit || 0)} 槽已用`;
     if (d.count === 0) {
-      list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:14px 0;">还没有 anchor。在桶详情页用 ' + _SV.anchor + ' 按钮把一条「定义我们是谁」的事实钉为坐标系。</div>';
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:14px 0;">还没有 anchor。在记忆详情页用 ' + _SV.anchor + ' 按钮把一条「定义我们是谁」的事实钉为坐标系。</div>';
       refreshAnchorCounter();
       return;
     }

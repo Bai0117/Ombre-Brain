@@ -205,7 +205,7 @@ def test_dashboard_chick_can_be_tickled_and_reacts_to_real_system_states():
     assert "canvasX - spriteX" in text
     assert "lastPetAction==='tickle'" in text
     assert "别碰我。" in text
-    assert "下次再碰我就把你的桶全归档。" in text
+    assert "下次再碰我就把你的记忆全归档。" in text
     assert "别挠了，痒。" in text
     assert "chickReactForApiProblem" in text
     assert "最近发现你有429的问题" in text

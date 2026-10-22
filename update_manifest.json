@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "16fafc96b0866d728d2294e2f579927c5ac8b4b97b98c6dd90c5a533753724f2",
-      "size": 582177
+      "sha256": "2d941f7ad37aa511deff8adf5a5aa39f22e5622351554a2f6a8b5f784c5eb937",
+      "size": 585602
     },
     {
       "path": "frontend/favicon-64.png",
@@ -662,8 +662,8 @@
     },
     {
       "path": "src/tools/breath/recall_log.py",
-      "sha256": "f6e304853a2da8aa94cf819a1b7e0096d061ac41e56676bca6327a15df17cac4",
-      "size": 5337
+      "sha256": "ab8f1e4fbb46fc5e2a419d40ee85e09ca5b68587165f7370fb1112302c055b9d",
+      "size": 9012
     },
     {
       "path": "src/tools/breath/recent_digest.py",
@@ -912,8 +912,8 @@
     },
     {
       "path": "src/web/recall.py",
-      "sha256": "88b24dc447b8e371888326dd53bc84a3f2463888635c7757786bbb2908472493",
-      "size": 1175
+      "sha256": "3a5726e9d6dbeac4cd06cae6139e23f931777adcbf9dc9594eb6ab557e8edfc7",
+      "size": 4117
     },
     {
       "path": "src/web/request_limits.py",

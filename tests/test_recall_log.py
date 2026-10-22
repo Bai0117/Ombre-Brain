@@ -149,3 +149,119 @@ async def test_server_wrapper_records_breath_family(rt_tmp):
     await server._with_notice(out("✓ 已存"), op="hold", args={"content": "x"})
     await server._with_notice(out(SEARCH_OUT), op="breath_search", args={"query": "鬼入侵"})
     assert [(e["op"], e["query"]) for e in read_recall()] == [("breath_search", "鬼入侵"), ("breath", "")]
+
+
+# ---------------- 后台「他想起的」：拆块 + 两个接口 ----------------
+
+def test_parse_breath_blocks_into_cards():
+    from tools.breath.recall_log import parse_breath_blocks
+
+    secs = {s["name"]: s for s in parse_breath_blocks(BREATH_OUT)}
+    assert list(secs) == ["核心准则", "待办", "这几天", "浮现记忆", "久未浮现"]
+    core = secs["核心准则"]["items"]
+    assert [c["id"] for c in core] == ["core1", "core2"]
+    assert core[0]["when"] == "2026-07-03 10:57" and core[0]["body"] == "正文" and core[0]["relations"] == 1
+    assert [(t["id"], t["body"]) for t in secs["待办"]["items"]] == [("plan1", "问耳洞"), ("plan2", "合进 main")]
+    assert [d["label"] for d in secs["这几天"]["days"]] == ["10.22（周四） · 11 条", "10.21（周三） · 3 条"]
+    assert secs["这几天"]["days"][1]["text"] == "白读完《染血之室》"
+    assert [(m["id"], m["tag"]) for m in secs["浮现记忆"]["items"]] == [("m1", "权重:8.82"), ("m2", "权重:7.11")]
+
+
+def test_parse_breath_blocks_search_output():
+    from tools.breath.recall_log import parse_breath_blocks
+
+    secs = parse_breath_blocks(SEARCH_OUT)
+    assert [(s["name"], [i["id"] for i in s["items"]]) for s in secs] == [
+        ("检索结果", ["s1", "s2"]),
+        ("忽然想起来", ["s3"]),
+    ]
+    assert secs[0]["items"][0]["body"] == "Hill House"
+
+
+class _FakeMcp:
+    def __init__(self):
+        self.routes = {}
+
+    def custom_route(self, path, methods):
+        def deco(fn):
+            self.routes[path] = fn
+            return fn
+        return deco
+
+
+class _Req:
+    def __init__(self, **qp):
+        self.query_params = qp
+        self.headers = {}
+        self.path_params = {}
+
+
+class _Mgr:
+    def __init__(self, rows):
+        self.rows = rows
+
+    async def get(self, bid):
+        return self.rows.get(bid)
+
+
+@pytest.mark.asyncio
+async def test_recall_log_api_needs_login_and_adds_previews(rt_tmp, monkeypatch):
+    from tools.breath.recall_log import record_recall
+    from web import _shared as sh
+    from web import recall as recall_web
+
+    mcp = _FakeMcp()
+    recall_web.register(mcp)
+    handler = mcp.routes["/api/recall-log"]
+
+    from starlette.responses import JSONResponse
+    monkeypatch.setattr(sh, "_require_auth", lambda req: JSONResponse({"error": "no"}, status_code=401))
+    assert (await handler(_Req())).status_code == 401
+
+    monkeypatch.setattr(sh, "_require_auth", lambda req: None)
+    monkeypatch.setattr(sh, "bucket_mgr", _Mgr({
+        "m1": {"id": "m1", "content": "白读完了 Ada。" * 20, "metadata": {"created": "2026-10-17T07:03:00+08:00", "type": "dynamic"}},
+    }), raising=False)
+    record_recall("breath_search", {"query": "Ada"}, "[bucket_id:m1]\n---\n[bucket_id:gone]")
+    resp = await handler(_Req(limit="5", **{"with": "previews"}))
+    body = json.loads(resp.body)
+    assert body["entries"][0]["query"] == "Ada"
+    assert body["memories"]["m1"]["preview"].startswith("白读完了 Ada。") and body["memories"]["m1"]["preview"].endswith("…")
+    assert body["memories"]["gone"] == {"missing": True}
+    plain = json.loads((await handler(_Req())).body)
+    assert "memories" not in plain
+
+
+@pytest.mark.asyncio
+async def test_breath_preview_runs_default_surfacing_without_logging(rt_tmp, monkeypatch):
+    from tools import _runtime as rt
+    from tools.breath import recall_log
+    from web import _shared as sh
+    from web import recall as recall_web
+
+    mcp = _FakeMcp()
+    recall_web.register(mcp)
+    handler = mcp.routes["/api/breath-preview"]
+    monkeypatch.setattr(sh, "_require_auth", lambda req: None)
+
+    class _Decay:
+        async def ensure_started(self):
+            return None
+
+    calls = []
+
+    async def fake_surface(**kw):
+        calls.append(kw)
+        return BREATH_OUT
+
+    async def fake_them(body, query=""):
+        return body
+
+    monkeypatch.setattr(rt, "decay_engine", _Decay(), raising=False)
+    monkeypatch.setattr("tools.breath.surface.surface_default", fake_surface)
+    monkeypatch.setattr("tools.breath._with_them", fake_them)
+    resp = await handler(_Req())
+    body = json.loads(resp.body)
+    assert [s["name"] for s in body["sections"]] == ["核心准则", "待办", "这几天", "浮现记忆", "久未浮现"]
+    assert calls and calls[0]["tag_filter"] == []
+    assert recall_log.read_recall() == [], "预览不记进历史"

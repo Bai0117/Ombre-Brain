@@ -158,3 +158,102 @@ def read_recall(limit: int = 80) -> list[dict]:
         if len(out) >= limit:
             break
     return out
+
+
+# ---------------------------------------------------------------
+# 后台「他想起的 · 现在 breath 一次」：把一次 breath 的返回文本拆成
+# 段落 → 一条条记忆，页面按卡片显示（正文就是我看到的原样）。
+# ---------------------------------------------------------------
+_WHEN_RE = re.compile(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\]")
+_TAG_RE = re.compile(r"\[(权重:[\d.]+|核心准则|久未浮现|偶遇|语义关联|联想浮现[^\]]*)\]")
+_ITEM_RE = re.compile(r"\[bucket_id:([A-Za-z0-9_\-]+)\](?:\s*\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\])?\s*(.*)$")
+
+
+def _block_item(lines: list[str]) -> dict | None:
+    head_idx = next((i for i, ln in enumerate(lines) if _ID_RE.search(ln)), None)
+    if head_idx is None:
+        return None
+    head = lines[head_idx]
+    when = _WHEN_RE.search(head)
+    tag = _TAG_RE.search(head)
+    relations = 0
+    footprint = ""
+    body: list[str] = []
+    for ln in lines[head_idx + 1:]:
+        s = ln.strip()
+        if s.startswith("↳"):
+            m = re.search(r"另有\s*(\d+)\s*条", s)
+            relations += int(m.group(1)) if m else 1
+            continue
+        if s.startswith("👣"):
+            footprint = s.split("：", 1)[-1].strip()
+            continue
+        body.append(ln)
+    return {
+        "id": _ID_RE.search(head).group(1),
+        "when": when.group(1) if when else "",
+        "tag": tag.group(1) if tag else "",
+        "body": "\n".join(body).strip(),
+        "relations": relations,
+        "footprint": footprint,
+    }
+
+
+def parse_breath_blocks(text: str) -> list[dict]:
+    """→ [{"name", "items": [{id, when, tag, body, relations, footprint}]} | {"name", "days": [{label, text}]}]"""
+    sections: list[dict] = []
+    current: dict | None = None
+    buf: list[str] = []
+
+    def flush():
+        if current is None:
+            return
+        name = current["name"]
+        if name == "这几天":
+            days, day = [], None
+            for ln in buf:
+                s = ln.strip()
+                m = _DAY_RE.match(s)
+                if m:
+                    day = {"label": m.group(1), "text": ""}
+                    days.append(day)
+                elif day is not None and s:
+                    day["text"] = (day["text"] + "\n" + s).strip()
+            current["days"] = days
+        elif name == "待办":
+            items = []
+            for ln in buf:
+                m = _ITEM_RE.search(ln)
+                if m:
+                    when = _WHEN_RE.search(ln)
+                    items.append({"id": m.group(1), "when": when.group(1) if when else "",
+                                  "tag": "", "body": m.group(2).strip(), "relations": 0, "footprint": ""})
+            current["items"] = items
+        else:
+            blocks, block = [], []
+            for ln in buf:
+                if ln.strip() == "---":
+                    blocks.append(block)
+                    block = []
+                else:
+                    block.append(ln)
+            blocks.append(block)
+            current["items"] = [it for it in (_block_item(b) for b in blocks) if it]
+
+    for line in (text or "").splitlines():
+        m = _HEADER_RE.match(line.strip())
+        if m:
+            flush()
+            current = {"name": _section_name(m.group(1))}
+            sections.append(current)
+            buf = []
+            continue
+        if current is None:
+            if _ID_RE.search(line):
+                current = {"name": _SEARCH_SECTION}
+                sections.append(current)
+                buf = [line]
+            continue
+        buf.append(line)
+    flush()
+    return [s for s in sections if s.get("items") or s.get("days")]
