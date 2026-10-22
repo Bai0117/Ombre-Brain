@@ -694,7 +694,8 @@ textarea.content:focus { background: var(--glass-hi); }
   function toggleMenu(open) { $("menu").hidden = !open; $("menuBtn").setAttribute("aria-expanded", String(open)); }
   $("menuBtn").addEventListener("click", (e) => { e.stopPropagation(); toggleMenu($("menu").hidden); });
   document.addEventListener("click", (e) => { if (!$("menu").hidden && !$("menu").contains(e.target)) toggleMenu(false); });
-  $("refreshBtn").addEventListener("click", () => { load(); toast("已刷新"); });
+  // 整页重载：添加到主屏幕后没有浏览器刷新键；重载也能拿到更新后的新页面。
+  $("refreshBtn").addEventListener("click", () => { haptic(); location.reload(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("sheet").classList.contains("open")) closeSheet(); });
   window.addEventListener("beforeunload", (e) => { if (Object.keys(changes()).length) { e.preventDefault(); e.returnValue = ""; } });
   // Keep the editor's top bar pinned above the on-screen keyboard (iOS Safari).

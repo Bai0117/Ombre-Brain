@@ -7,8 +7,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "a22d6c5995976c39b353a0fc288f95c74cf61b639b910b7ce82dcb13d48e4c35",
-      "size": 580566
+      "sha256": "2bb1670b02351c6de139fb8c9392d3e0aca03cf13fcf89e0c0ae61ae51e03239",
+      "size": 581932
     },
     {
       "path": "frontend/favicon.svg",
@@ -17,8 +17,8 @@
     },
     {
       "path": "frontend/home.html",
-      "sha256": "f169d78a9deb181223cf650a8b2ea3f020c2745f3b11072e833f355ce9ababc6",
-      "size": 39266
+      "sha256": "ace701642d711611569a980198c8f2106dec816e96a1bee553586a1208e57b60",
+      "size": 39378
     },
     {
       "path": "frontend/icon.svg",

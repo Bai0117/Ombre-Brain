@@ -2443,6 +2443,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
     <button onclick="doSearch()" title="搜索"><i data-lucide="search"></i></button>
   </div>
   <div class="header-actions">
+    <button id="btn-refresh" onclick="refreshPage()" title="刷新页面（添加到主屏幕后没有浏览器的刷新键）" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> 刷新</button>
     <button id="btn-restart" onclick="restartService()" title="重启服务；红点表示有设置等待重启生效" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><span class="restart-dot"></span><i data-lucide="power"></i> 重启</button>
     <button onclick="openFeedback()" title="给作者反馈 / Feedback" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><i data-lucide="message-circle"></i> 反馈 Feedback</button>
     <button onclick="doLogout()" title="退出登录 / Log out" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><i data-lucide="log-out"></i> 退出 Exit</button>
@@ -10710,11 +10711,28 @@ function goToLogsTab() {
 
 // 认证完成后刷新当前视图；也支持 #letters 老书签直达。
 // 这里不能在脚本解析阶段直接 click，否则未登录访问会抢跑受保护接口。
+// 顶栏「刷新」：整页重载（顺便拿到更新后的新页面），回来时停在原来的标签页。
+// 添加到主屏幕后的独立窗口里没有浏览器的刷新键，这是唯一的刷新入口。
+function refreshPage() {
+  try {
+    const active = document.querySelector('.tab.active');
+    if (active && active.dataset.tab) sessionStorage.setItem('ob-refresh-tab', active.dataset.tab);
+  } catch (_) { /* storage unavailable: just reload */ }
+  location.reload();
+}
+
 function refreshAuthenticatedActiveView() {
   let target = null;
   if (location.hash === '#letters') {
     target = document.querySelector('.tab[data-tab="letters"]');
   }
+  try {
+    const remembered = sessionStorage.getItem('ob-refresh-tab');
+    if (remembered) {
+      sessionStorage.removeItem('ob-refresh-tab');
+      target = target || document.querySelector('.tab[data-tab="' + CSS.escape(remembered) + '"]');
+    }
+  } catch (_) { /* ignore */ }
   if (!target) target = document.querySelector('.tab.active');
   if (target) return activateDashboardTab(target);
   return Promise.resolve([]);
