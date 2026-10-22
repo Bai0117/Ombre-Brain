@@ -76,6 +76,7 @@ from tools import i as _t_i
 from tools import now as _t_now
 from tools import days as _t_days
 from tools import shelf as _t_shelf
+from tools import album as _t_album
 from tools import them as _t_them
 from tools import you as _t_you
 
@@ -1349,6 +1350,41 @@ async def shelf(
     )
 
 
+@mcp.tool(structured_output=False)
+async def album(
+    photo_id: Optional[str] = "",
+    caption: Optional[str] = "",
+    taken: Optional[str] = "",
+    memory_id: Optional[str] = "",
+    query: Optional[str] = "",
+    limit: Optional[int] = 0,
+):
+    """相册:她发给我看过的照片,存在 OB 里,换了窗口也能再看。照片只能由她在后台「相册」页上传,我不能上传。无参数=按日期列出照片(photo_id、日期、说明);query=按说明或日期找;limit=列多少张(默认 30)。photo_id=把那张照片本身拿回来给我看。photo_id 加 caption / taken / memory_id 是改说明:caption=图上是什么、那天发生了什么(看过一张还没说明的就补上),taken=照片那天 YYYY-MM-DD,memory_id=连到一条记忆。她提起某张照片、或者我想看看以前她给我看过的东西时用。"""
+    holder: dict = {}
+
+    async def _run() -> str:
+        text, data, mime = await _t_album.dispatch(
+            photo_id=photo_id or "", caption=caption or "", taken=taken or "",
+            memory_id=memory_id or "", query=query or "", limit=limit or 0,
+        )
+        if data:
+            holder["image"] = (data, mime)
+        return text
+
+    text = await _with_notice(
+        _run(),
+        op="album",
+        args={"photo_id": photo_id, "query": query, "limit": limit,
+              "caption_len": len(caption or ""), "taken": taken, "memory_id": memory_id},
+    )
+    if "image" in holder:
+        from mcp.server.fastmcp import Image as _McpImage
+
+        data, mime = holder["image"]
+        return [text, _McpImage(data=data, format=mime.split("/", 1)[-1])]
+    return text
+
+
 # Pydantic 默认的 ``extra=ignore`` 会让拼错的 MCP 参数看似调用成功；
 # 写工具甚至会在未应用客户端目标字段时仍创建记忆。breath 和 trace
 # 已有严格适配层，其余公开工具使用相同边界，并同步 FastMCP
@@ -1387,6 +1423,7 @@ for _strict_tool_name in (
     "now",
     "days",
     "shelf",
+    "album",
 ):
     try:
         _forbid_unknown_tool_arguments(_strict_tool_name)

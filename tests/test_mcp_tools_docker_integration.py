@@ -44,6 +44,7 @@ EXPECTED_TOOLS = {
     "now",
     "days",
     "shelf",
+    "album",
 }
 EXPECTED_TOOL_ORDER = (
     "breath",
@@ -65,6 +66,7 @@ EXPECTED_TOOL_ORDER = (
     "now",
     "days",
     "shelf",
+    "album",
 )
 
 EXPECTED_TOOL_PROPERTIES = {
@@ -175,6 +177,8 @@ EXPECTED_TOOL_PROPERTIES = {
     # 书架 / 片单：无参看口味；title 记一部；delete_id 拿掉；year / query 查。
     "shelf": {"title", "kind", "creator", "status", "finished", "rating", "tags",
               "note", "item_id", "delete_id", "year", "query"},
+    # 相册：无参列表；photo_id 返回图片本身；photo_id+caption/taken/memory_id 改说明。
+    "album": {"photo_id", "caption", "taken", "memory_id", "query", "limit"},
 }
 
 EXPECTED_REQUIRED_PROPERTIES = {

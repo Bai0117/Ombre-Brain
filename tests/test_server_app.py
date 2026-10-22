@@ -46,6 +46,7 @@ EXPECTED_PUBLIC_MCP_TOOLS = (
     "now",
     "days",
     "shelf",
+    "album",
 )
 
 # 信件。3.2.0 挪到 /mcp-extra，3.4.0 并回主链路——「该不该在这时候用」是
