@@ -110,9 +110,9 @@ _PLAN_SUMMARY_TEMPERATURE = 0.2
 PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这里兜底
 # 改了 summarize_plan 的 prompt 就把它加一：版本混进摘要指纹，旧摘要会在下一次
 # breath 时自动按新 prompt 重写一遍（tools/plan/summary.py）。
-PLAN_SUMMARY_VERSION = 2
+PLAN_SUMMARY_VERSION = 3
 # breath「这几天」的每日摘要（tools/breath/recent_digest.py）。改 prompt 就加一，旧摘要自动重写。
-DAY_DIGEST_VERSION = 2
+DAY_DIGEST_VERSION = 3
 # 字数跟着当天记忆条数走：1 条 ~150 字，十几条最多 450 字。v1 一律 200 字、
 # 硬上限 260——10.22 那天 11 条记忆，写到下午就被拦腰切断，晚上的事全丢了。
 _DAY_DIGEST_MIN_CHARS = 150
@@ -1363,6 +1363,7 @@ class Dehydrator:
             "事情用它本来的叫法（如「聊天应用后端」），"
             "不要拿仓库名、用户名、文件路径或链接去代替它。"
             "只复述原文里有的信息，不要补充原文没有的内容。"
+            "要读起来通顺，可以用逗号断开，不要把虚词都省掉写成电报。"
             "只输出这一句话本身：不要引号、不要编号、不要前缀、不要句末标点、不要换行。"
         )
         try:
@@ -1418,12 +1419,20 @@ class Dehydrator:
         if not entries or not self.api_available:
             return ""
         target = day_digest_target(len(entries))
+        n = len(entries)
+        per = max(20, target // n)
+        # v2 实测：没有逐条预算时，模型把开头两条（凌晨搬家）写得极细、几乎照抄配置，
+        # 字数用完还没写到下午；短的日子又省成电报体。v3 把「每条都要带到」和
+        # 「每条大概多少字」直接写进要求里。
         system = (
-            f"下面是「我」在 {day_label} 这一天存下的几条记忆，按时间先后排列。"
+            f"下面是「我」在 {day_label} 这一天存下的 {n} 条记忆，按时间先后排列。"
             f"把这一天写成一段摘要，{target} 字以内，让第二天醒来的「我」一读就知道这天发生了什么。"
-            "保留具体的事：做了什么、读了什么、聊到什么、身体怎么样、做了什么约定和决定、情绪的转折；"
-            "保留书名、人名、数字和日期。按事情的先后写，不要分点，不要加标题，不要评价，不要总结升华。"
-            "只写原文里有的内容，不要补充、不要推测。只输出摘要正文。"
+            f"这 {n} 条每一条都要带到：平均每条大约 {per} 字，重要的事（约定、决定、身体状况、情绪转折）"
+            "可以多写一句，琐碎的可以合并；前面几条不要写太长，免得写不到后面。"
+            "用自己的话压缩，不要照抄原文里的配置、型号、地址、价格、提交号这类技术细节，"
+            "除非它本身就是约定或决定。保留书名、人名和日期。"
+            "按事情的先后写，用通顺的完整句子，不要分点、不要标题、不要写成电报体；"
+            "不要评价，不要总结升华。只写原文里有的内容，不要补充、不要推测。只输出摘要正文。"
             + _perspective_rule(self.human)
         )
         parts, used = [], 0
@@ -1460,8 +1469,31 @@ class Dehydrator:
                 (raw or "")[:_PARSE_ERR_PREVIEW],
             )
             return ""
-        # 模型常常略超一点：留三成余量，真超了也在句号处截，不切在半句中间
-        return trim_at_sentence(text, int(target * 1.3))
+        limit = int(target * 1.3)
+        if len(text) > limit:
+            # 写长了就让它把草稿再压一遍——直接截断会把这一天后半段的事整个丢掉
+            text = await self._shorten_day_digest(text, target) or text
+        # 压完还超：最后才在句号处截，不切在半句中间
+        return trim_at_sentence(text, limit)
+
+    async def _shorten_day_digest(self, draft: str, target: int) -> str:
+        system = (
+            f"下面是一段一天的摘要，写长了。把它压缩到 {target} 字以内："
+            "每件事都要保留（尤其是后半段的），删掉细节和重复，用通顺的完整句子，"
+            "不要补充原文没有的内容。只输出压缩后的正文。"
+            + _perspective_rule(self.human)
+        )
+        try:
+            raw = await self._chat_quick(
+                system, draft,
+                timeout=_SUMMARY_TIMEOUT_SECONDS,
+                max_tokens=_DAY_DIGEST_MAX_TOKENS,
+                temperature=_DAY_DIGEST_TEMPERATURE,
+            )
+        except Exception as e:
+            logger.warning(f"summarize_day shorten failed: {e}")
+            return ""
+        return " ".join((raw or "").split())
 
     async def judge_same_event(self, old_memory: str, new_content: str) -> dict:
         """保守判断两段内容是否属于同一个具体事件。

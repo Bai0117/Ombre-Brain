@@ -77,8 +77,8 @@
     },
     {
       "path": "src/dehydrator.py",
-      "sha256": "7aa188335b5a6d256395f078f202f2af72a1c5cc33b9de0ecbf438921aaf6dc3",
-      "size": 73393
+      "sha256": "604990faf8fb959d36e50fe2fc8a22298c56f4d52d0dc7abb2715ecef5629123",
+      "size": 75247
     },
     {
       "path": "src/deletion_requests.py",

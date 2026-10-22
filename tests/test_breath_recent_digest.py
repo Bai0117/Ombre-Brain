@@ -238,7 +238,7 @@ async def test_summarize_day_prompt_and_cleanup(monkeypatch):
     d._chat = long_chat
     out = await d.summarize_day("x", [("1", "y")])
     limit = int(day_digest_target(1) * 1.3)
-    assert len(out) <= limit and out.endswith("。"), "超长时在句号处截，不切半句"
+    assert len(out) <= limit and out.endswith("。"), "压缩后仍超长时在句号处截，不切半句"
 
     async def no_stop_chat(system, user, **kw):
         return "长" * 900
@@ -398,3 +398,37 @@ async def test_chat_once_sends_per_request_options():
     await d._chat_once("s", "u")
     assert sent[0]["extra_body"] == {"thinking": {"type": "disabled"}} and sent[0]["timeout"] == 300.0
     assert sent[1]["extra_body"] == {"cfg": True} and "timeout" not in sent[1]
+
+
+
+@pytest.mark.asyncio
+async def test_prompt_asks_to_cover_every_entry():
+    d = _bare()
+    seen = []
+
+    async def fake_chat(system, user, **kw):
+        seen.append(system)
+        return "好。"
+
+    d._chat = fake_chat
+    await d.summarize_day("10.22（周四）", [(str(i), "x") for i in range(11)])
+    assert "11 条记忆" in seen[0] and "每一条都要带到" in seen[0] and "平均每条大约 37 字" in seen[0]
+    assert "不要照抄" in seen[0] and "电报" in seen[0]
+
+
+@pytest.mark.asyncio
+async def test_too_long_draft_is_shortened_not_cut():
+    d = _bare()
+    calls = []
+    draft = "凌晨搬家，细节很多很多。" * 60 + "晚上她画好了猫猫月月。"
+
+    async def fake_chat(system, user, **kw):
+        calls.append((system, user))
+        if len(calls) == 1:
+            return draft
+        return "凌晨搬家；下午改后台；晚上她画好了猫猫月月。"
+
+    d._chat = fake_chat
+    out = await d.summarize_day("10.22", [(str(i), "x") for i in range(11)])
+    assert out == "凌晨搬家；下午改后台；晚上她画好了猫猫月月。", "后半段的事保住了"
+    assert len(calls) == 2 and "压缩到 410 字以内" in calls[1][0] and calls[1][1] == draft
