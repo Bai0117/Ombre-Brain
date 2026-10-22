@@ -19,9 +19,13 @@ RUN git clone --depth 1 --branch "$WIREPROXY_VERSION" https://github.com/whyvl/w
  && cd /src/wireproxy && go build -trimpath -ldflags="-s -w" -o /out/wireproxy ./cmd/wireproxy
 
 FROM alpine:3
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates curl
 COPY --from=build /out/wgcf /out/wireproxy /usr/local/bin/
 COPY entrypoint.sh /entrypoint.sh
 VOLUME ["/data"]
 EXPOSE 25345
+# docker ps 里显示 (healthy)/(unhealthy)：经隧道能不能摸到 Google。
+# 真正的自动重启由 entrypoint.sh 里的自检负责（Docker 不会自己重启 unhealthy 容器）。
+HEALTHCHECK --interval=60s --timeout=20s --start-period=30s --retries=3 \
+  CMD curl -s -o /dev/null --max-time 15 -x http://127.0.0.1:25345 https://generativelanguage.googleapis.com/ || exit 1
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
