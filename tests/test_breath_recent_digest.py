@@ -213,7 +213,7 @@ async def test_breath_places_section_after_todos_and_skips_date_scoped(monkeypat
 
 @pytest.mark.asyncio
 async def test_summarize_day_prompt_and_cleanup(monkeypatch):
-    from dehydrator import DAY_DIGEST_MAX_CHARS, Dehydrator
+    from dehydrator import Dehydrator, day_digest_target
 
     d = Dehydrator.__new__(Dehydrator)
     d.api_available = True
@@ -232,10 +232,46 @@ async def test_summarize_day_prompt_and_cleanup(monkeypatch):
     assert seen["user"] == "[10:00] 读 Ada\n\n[22:00] 红豆粥"
 
     async def long_chat(system, user, **kw):
-        return "长" * 500
+        return "上午做了一件事。" * 60
 
     d._chat = long_chat
     out = await d.summarize_day("x", [("1", "y")])
-    assert len(out) == DAY_DIGEST_MAX_CHARS + 1 and out.endswith("…")
+    limit = int(day_digest_target(1) * 1.3)
+    assert len(out) <= limit and out.endswith("。"), "超长时在句号处截，不切半句"
+
+    async def no_stop_chat(system, user, **kw):
+        return "长" * 900
+
+    d._chat = no_stop_chat
+    out = await d.summarize_day("x", [("1", "y")])
+    assert len(out) == limit + 1 and out.endswith("…")
     d.api_available = False
     assert await d.summarize_day("x", [("1", "y")]) == ""
+
+
+def test_digest_length_grows_with_the_day():
+    from dehydrator import day_digest_target, trim_at_sentence
+
+    assert day_digest_target(1) == 150
+    assert day_digest_target(11) == 410
+    assert day_digest_target(30) == 450
+    assert trim_at_sentence("短的。", 10) == "短的。"
+    assert trim_at_sentence("第一句话很长。第二句也很长很长很长。", 12) == "第一句话很长。"
+
+
+@pytest.mark.asyncio
+async def test_prompt_asks_for_more_room_on_busy_days(monkeypatch):
+    from dehydrator import Dehydrator
+
+    d = Dehydrator.__new__(Dehydrator)
+    d.api_available, d.human, d.model = True, "白", "stub"
+    seen = []
+
+    async def fake_chat(system, user, **kw):
+        seen.append(system)
+        return "好。"
+
+    d._chat = fake_chat
+    await d.summarize_day("a", [("1", "x")])
+    await d.summarize_day("b", [(str(i), "x") for i in range(11)])
+    assert "150 字以内" in seen[0] and "410 字以内" in seen[1]

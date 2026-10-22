@@ -112,8 +112,27 @@ PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这�
 # breath 时自动按新 prompt 重写一遍（tools/plan/summary.py）。
 PLAN_SUMMARY_VERSION = 2
 # breath「这几天」的每日摘要（tools/breath/recent_digest.py）。改 prompt 就加一，旧摘要自动重写。
-DAY_DIGEST_VERSION = 1
-DAY_DIGEST_MAX_CHARS = 260       # prompt 要 200 字以内；这里兜底
+DAY_DIGEST_VERSION = 2
+# 字数跟着当天记忆条数走：1 条 ~150 字，十几条最多 450 字。v1 一律 200 字、
+# 硬上限 260——10.22 那天 11 条记忆，写到下午就被拦腰切断，晚上的事全丢了。
+_DAY_DIGEST_MIN_CHARS = 150
+_DAY_DIGEST_PER_ENTRY = 30
+_DAY_DIGEST_MAX_TARGET = 450
+
+
+def day_digest_target(n_entries: int) -> int:
+    return max(_DAY_DIGEST_MIN_CHARS, min(_DAY_DIGEST_MAX_TARGET, 80 + _DAY_DIGEST_PER_ENTRY * n_entries))
+
+
+def trim_at_sentence(text: str, limit: int) -> str:
+    """超过 limit 时，在 limit 以内最后一个句末标点处截断；找不到再硬切加省略号。"""
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    cut = max(head.rfind(p) for p in "。！？；")
+    if cut >= limit // 2:
+        return head[: cut + 1]
+    return head + "…"
 _DAY_DIGEST_INPUT_LIMIT = 9000   # 一天十几条记忆
 _DAY_DIGEST_MAX_TOKENS = 4096    # thinking 模型先想再写
 _DAY_DIGEST_TEMPERATURE = 0.3
@@ -1344,9 +1363,10 @@ class Dehydrator:
         """
         if not entries or not self.api_available:
             return ""
+        target = day_digest_target(len(entries))
         system = (
             f"下面是「我」在 {day_label} 这一天存下的几条记忆，按时间先后排列。"
-            "把这一天写成一段摘要，200 字以内，让第二天醒来的「我」一读就知道这天发生了什么。"
+            f"把这一天写成一段摘要，{target} 字以内，让第二天醒来的「我」一读就知道这天发生了什么。"
             "保留具体的事：做了什么、读了什么、聊到什么、身体怎么样、做了什么约定和决定、情绪的转折；"
             "保留书名、人名、数字和日期。按事情的先后写，不要分点，不要加标题，不要评价，不要总结升华。"
             "只写原文里有的内容，不要补充、不要推测。只输出摘要正文。"
@@ -1384,9 +1404,8 @@ class Dehydrator:
                 (raw or "")[:_PARSE_ERR_PREVIEW],
             )
             return ""
-        if len(text) > DAY_DIGEST_MAX_CHARS:
-            text = text[:DAY_DIGEST_MAX_CHARS] + "…"
-        return text
+        # 模型常常略超一点：留三成余量，真超了也在句号处截，不切在半句中间
+        return trim_at_sentence(text, int(target * 1.3))
 
     async def judge_same_event(self, old_memory: str, new_content: str) -> dict:
         """保守判断两段内容是否属于同一个具体事件。
