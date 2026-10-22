@@ -160,7 +160,11 @@ async def test_hold_analysis_failure_preserves_exact_content(monkeypatch):
     monkeypatch.setattr(hold_core.rt, "logger", _Logger(), raising=False)
     monkeypatch.setattr(hold_core, "merge_or_create", fake_merge_or_create)
     monkeypatch.setattr(hold_core, "check_plan_resolution", background)
-    monkeypatch.setattr(hold_core, "check_duplicate_for", background)
+
+    async def no_hint(*_args, **_kwargs):
+        return ""
+
+    monkeypatch.setattr(hold_core, "similar_to_new", no_hint)
     monkeypatch.setattr(hold_core.asyncio, "create_task", close_task)
 
     result = await hold_core.store_core(

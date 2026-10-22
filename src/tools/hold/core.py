@@ -30,7 +30,8 @@ import asyncio
 from utils import normalize_memory_title
 
 from .. import _runtime as rt
-from .._common import merge_or_create, check_duplicate_for, check_plan_resolution
+from .._common import merge_or_create, check_plan_resolution
+from ..dedupe import similar_to_new
 
 
 async def store_core(
@@ -101,9 +102,14 @@ async def store_core(
 
     action = "合并→" if is_merged else "新建→"
     asyncio.create_task(check_plan_resolution(content, source_bucket_id=result_name))
-    if not is_merged:
-        asyncio.create_task(check_duplicate_for(result_name, content))
+    dupe_hint = ""
+    if not is_merged and not test_data:
+        # 合并没接上（域不同、判成两件事、向量那会儿挂了）但旧记忆里有很像的：
+        # 当场提醒我去补那条，而不是悄悄标在一个没人看的字段里。
+        dupe_hint = await similar_to_new(result_name, content)
     result = f"{action}{result_name} {','.join(str(d) for d in final_domain if d is not None)}"
+    if dupe_hint:
+        result += f"\n{dupe_hint}"
     if embed_warn:
         result += f"\n⚠️ {embed_warn}"
     if metadata_fallback:

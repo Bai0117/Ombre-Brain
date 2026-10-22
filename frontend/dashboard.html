@@ -2482,6 +2482,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   <div class="tab" data-tab="breath"><span>他想起的</span><span class="tab-en">Recall</span></div>
   <div class="tab" data-tab="network"><span>记忆网络</span><span class="tab-en">Network</span></div>
   <div class="tab" data-tab="keepsake"><span>小池子</span><span class="tab-en">Keepsakes</span></div>
+  <div class="tab" data-tab="dupes"><span>重复</span><span class="tab-en">Duplicates</span></div>
   <div class="tab" data-tab="plan"><span>计划</span><span class="tab-en">Plans</span></div>
   <div class="tab" data-tab="letters"><span>信</span><span class="tab-en">Letters</span></div>
   <div class="tab" data-tab="anchors"><span>锚点</span><span class="tab-en">Anchors</span></div>
@@ -2863,6 +2864,34 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <div style="color:var(--text-dim);font-size:12px;">加载中…</div>
       </div>
       <button class="btn-secondary" onclick="loadKeepsakeView()" title="刷新" style="margin-top:14px;padding:6px 12px;font-size:12px;"><i data-lucide="refresh-cw"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- 疑似重复：两两比向量，留一条 / 不是一回事 -->
+<div class="content" id="dupes-view" style="display:none">
+  <div style="max-width:920px;margin:0 auto;">
+    <div class="config-section">
+      <h3><i data-lucide="copy" style="width:16px;height:16px;vertical-align:-2px;"></i> 疑似重复</h3>
+      <p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:4px 0 12px;">
+        新窗口的他想不起来某件事，就会再记一遍。这里把所有记忆两两比了一遍，很像的列成一对，旧的在上面。<br>
+        <b>留这条</b>：另一条交给他确认后归档。另一条里有这条没写到的细节，先点「编辑」补过来。<br>
+        <b>不是一回事</b>：这一对以后不再出现。
+      </p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;margin-bottom:10px;">
+        <span>多像才算：</span>
+        <select id="dupes-min" onchange="loadDupesView()" style="font-size:12px;padding:4px 8px;">
+          <option value="0.92">很像（0.92）</option>
+          <option value="0.88" selected>像（0.88）</option>
+          <option value="0.84">有点像（0.84）</option>
+          <option value="0.80">宽一点（0.80）</option>
+        </select>
+        <span id="dupes-count-text" style="color:var(--text-dim);"></span>
+      </div>
+      <div id="dupes-list" style="display:flex;flex-direction:column;gap:14px;">
+        <div style="color:var(--text-dim);font-size:12px;">加载中…</div>
+      </div>
+      <button class="btn-secondary" onclick="loadDupesView()" title="刷新" style="margin-top:14px;padding:6px 12px;font-size:12px;"><i data-lucide="refresh-cw"></i></button>
     </div>
   </div>
 </div>
@@ -3758,10 +3787,10 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <div style="font-weight:600;font-size:13px;margin-bottom:6px;">导出备份 / 检查重复 <span class="en">Export / Dedup</span></div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.6;">
           导出打包当前所有 bucket markdown + embeddings.db（<strong>不包含 config / 密钥</strong>），可用于本地备份或跨设备迁移。<br>
-          重复记忆：每次 hold/grow 后系统会标记相似度 &gt; 0.95 的对，下面可逐对处理。
+          重复记忆：在顶上「重复」页逐对处理。
         </div>
         <button class="btn-primary" onclick="downloadExport()" style="display:inline-flex;align-items:center;gap:6px;"><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg> 导出全部为 zip</button>
-        <button onclick="loadDuplicates()" class="icon-btn" style="margin-left:8px;"><i data-lucide="copy"></i> 检查重复记忆</button>
+        <button onclick="document.querySelector('[data-tab=dupes]')?.click()" class="icon-btn" style="margin-left:8px;"><i data-lucide="copy"></i> 检查重复记忆</button>
         <div id="duplicates-list" style="margin-top:14px;font-size:12px;"></div>
       </div>
 
@@ -5699,6 +5728,7 @@ function activateDashboardTab(tab) {
     document.getElementById('letters-view').style.display = target === 'letters' ? '' : 'none';
     document.getElementById('anchors-view').style.display = target === 'anchors' ? '' : 'none';
     document.getElementById('keepsake-view').style.display = target === 'keepsake' ? '' : 'none';
+    document.getElementById('dupes-view').style.display = target === 'dupes' ? '' : 'none';
     document.getElementById('about-view').style.display = target === 'about' ? '' : 'none';
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
     if (target === 'network') pending.push(loadNetwork());
@@ -5732,6 +5762,7 @@ function activateDashboardTab(tab) {
     if (target === 'letters') pending.push(loadLetters());
     if (target === 'anchors') pending.push(loadAnchorsView());
     if (target === 'keepsake') pending.push(loadKeepsakeView());
+    if (target === 'dupes') pending.push(loadDupesView());
     if (target === 'about') pending.push(loadAbout());
     return Promise.allSettled(pending);
 }
@@ -6229,6 +6260,96 @@ async function bucketKeepsake(id) {
     if (view && view.style.display !== 'none') loadKeepsakeView();
     else loadBuckets();
   } catch (e) { alert('小池子没放成：' + e.message); }
+}
+
+// ---------------- 疑似重复 ----------------
+var _dupePairs = [];
+
+function _dupeSide(side, other, idx, which) {
+  var day = String(side.created || '').slice(0, 10);
+  var dr = side.deletion_request;
+  var state = '';
+  if (dr && dr.status === 'pending') state = '<div style="font-size:11px;color:var(--text-dim);margin-top:6px;">已交给他确认归档，等他看</div>';
+  else if (dr && dr.status === 'rejected') state = '<div style="font-size:11px;color:var(--text-dim);margin-top:6px;">他没同意归档：' + esc(dr.ai_reason || '') + '</div>';
+  var pendingHere = dr && dr.status === 'pending';
+  var pendingThere = other.deletion_request && other.deletion_request.status === 'pending';
+  var keepBtn = (other.pinned || pendingHere || pendingThere)
+    ? ''
+    : '<button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="dupeKeep(' + idx + ',\'' + which + '\')">留这条</button>';
+  return '<div style="background:var(--surface);border-radius:var(--radius-inner);padding:12px 14px;box-shadow:4px 4px 10px var(--shadow-dark-subtle),-3px -3px 8px var(--shadow-light);">' +
+    '<div style="font-size:11px;color:var(--text-dim);">' + esc(day) + ' · ' + esc((side.domain || []).join(', ')) + (side.pinned ? ' · 核心准则' : '') + '</div>' +
+    '<div style="font-weight:500;font-size:13px;margin:3px 0 6px;">' + esc(side.name || side.id) + '</div>' +
+    '<div style="font-size:12px;line-height:1.65;white-space:pre-wrap;max-height:220px;overflow:auto;">' + esc(side.content || '') + '</div>' +
+    state +
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' + keepBtn +
+      '<button class="btn-secondary" style="padding:6px 12px;font-size:12px;" data-bucket-id="' + escAttr(side.id) + '" onclick="showDetail(this.dataset.bucketId)">编辑</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function loadDupesView() {
+  var list = document.getElementById('dupes-list');
+  var cnt = document.getElementById('dupes-count-text');
+  if (!list) return;
+  var min = (document.getElementById('dupes-min') || {}).value || '0.88';
+  list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;">正在两两比对…</div>';
+  cnt.textContent = '';
+  try {
+    var resp = await authFetch('/api/duplicates?min=' + encodeURIComponent(min));
+    if (!resp || !resp.ok) { list.innerHTML = '<div style="color:var(--text-dim);">加载失败</div>'; return; }
+    var d = await resp.json();
+    _dupePairs = d.pairs || [];
+    cnt.textContent = _dupePairs.length ? ('找到 ' + _dupePairs.length + ' 对') : '';
+    if (!_dupePairs.length) {
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:14px 0;">没有找到这么像的。' + (d.vector_ready ? '' : '（向量库还没准备好，只做了文字比对）') + '</div>';
+      return;
+    }
+    list.innerHTML = _dupePairs.map(function(p, i) {
+      return '<div style="border-top:1px solid var(--border);padding-top:12px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px;">' +
+          '<span>相似度 <b>' + Number(p.score).toFixed(2) + '</b>' + (p.kind === 'text' ? '（没有向量，按文字比的）' : '') + '</span>' +
+          '<button class="btn-secondary" style="padding:5px 10px;font-size:12px;" onclick="dupeDismiss(' + i + ')">不是一回事</button>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+          _dupeSide(p.a, p.b, i, 'a') + _dupeSide(p.b, p.a, i, 'b') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="color:var(--text-dim);">加载失败：' + esc(e && e.message ? e.message : e) + '</div>';
+  }
+}
+
+async function dupeKeep(i, which) {
+  var p = _dupePairs[i];
+  if (!p) return;
+  var keep = which === 'a' ? p.a : p.b;
+  var drop = which === 'a' ? p.b : p.a;
+  if (!confirm('留下「' + (keep.name || keep.id) + '」，把「' + (drop.name || drop.id) + '」交给他确认后归档？\n\n那条里有这条没写到的细节，先点「编辑」补过来再留。')) return;
+  try {
+    var reason = '和「' + (keep.name || keep.id) + '」（' + keep.id + '）重复，相似度 ' + Number(p.score).toFixed(2) + '，她留了那条。';
+    var res = await fetch(BASE + '/api/bucket/' + encodeURIComponent(drop.id) + '/archive', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reason: reason}),
+    });
+    if (!res.ok) {
+      var msg = await res.text();
+      try { msg = JSON.parse(msg).error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    loadDupesView();
+  } catch (e) { alert('没交上去：' + e.message); }
+}
+
+async function dupeDismiss(i) {
+  var p = _dupePairs[i];
+  if (!p) return;
+  try {
+    var res = await fetch(BASE + '/api/duplicates/dismiss', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({a: p.a.id, b: p.b.id}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    loadDupesView();
+  } catch (e) { alert('没记上：' + e.message); }
 }
 
 async function loadKeepsakeView() {
@@ -10299,23 +10420,6 @@ function resetMigrate() {
   zone.innerHTML = '<div style="font-size:13px;color:var(--text-dim);">点击或拖入 <code>ombre_export_*.zip</code></div><input type="file" id="migrate-file-input" accept=".zip" style="display:none" onchange="handleMigrateFileSelect(event)" />';
   document.getElementById('migrate-parsed-panel').style.display = 'none';
   document.getElementById('migrate-progress-panel').style.display = 'none';
-}
-
-async function loadDuplicates() {
-  const box = document.getElementById('duplicates-list');
-  box.innerHTML = '<div class="loading">加载中… / Loading…</div>';
-  try {
-    const r = await fetch(BASE + '/api/duplicates');
-    const d = await r.json();
-    const pairs = d.pairs || [];
-    if (!pairs.length) { box.innerHTML = '<p style="color:var(--text-dim)">没有发现疑似重复记忆。</p>'; return; }
-    box.innerHTML = pairs.map(p => `
-      <div style="background:var(--surface);border-radius:10px;padding:10px;margin:6px 0;">
-        <div style="font-size:12px;color:var(--text-dim);">相似度 ${p.score ? p.score.toFixed(3) : '—'}</div>
-        <div style="margin:4px 0;"><a href="#" data-bucket-id="${escAttr(p.a.id)}" onclick="showDetail(this.dataset.bucketId);return false;">${esc(p.a.name || p.a.id)}</a> ⟷ <a href="#" data-bucket-id="${escAttr(p.b.id)}" onclick="showDetail(this.dataset.bucketId);return false;">${esc(p.b.name || p.b.id)}</a></div>
-      </div>
-    `).join('');
-  } catch (e) { box.innerHTML = '<p style="color:var(--negative)">加载失败: ' + esc(e.message) + '</p>'; }
 }
 
 // ========================================

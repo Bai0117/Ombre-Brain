@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "6fd15758adc552b005e947cfc82e790830a0d26347415628acfa56e1448c4509",
-      "size": 590853
+      "sha256": "7bf088566c096c16103a0dcb7e8c7e4581d24ebfaa79fb8fe9476b32f14b5723",
+      "size": 596843
     },
     {
       "path": "frontend/favicon-64.png",
@@ -686,6 +686,11 @@
       "size": 33358
     },
     {
+      "path": "src/tools/dedupe.py",
+      "sha256": "c91420f26b9b9d0a3c8ed0c653a63c27227a31bd5bba6b6c17aafe197a3ef9dc",
+      "size": 9593
+    },
+    {
       "path": "src/tools/dream/__init__.py",
       "sha256": "a2eb9d95e2c511f1abf3ab12a507882d05b9f0afcee8ecf2d21c0b945c1f7821",
       "size": 4500
@@ -737,8 +742,8 @@
     },
     {
       "path": "src/tools/hold/core.py",
-      "sha256": "8a8f189ffd13ff249bcc13bb2bce1cac591267ccaaa533d6016a0bb8ecb7066b",
-      "size": 4435
+      "sha256": "6a53a80a9e124f7f0665e97b2b607ca31d0baf93d2d2fb34f1db323c6c99fabf",
+      "size": 4626
     },
     {
       "path": "src/tools/hold/feel.py",
@@ -927,8 +932,8 @@
     },
     {
       "path": "src/web/search.py",
-      "sha256": "3bea5dfa978447909c1db2b4ae748e9e89da423573e50fa524715dc36d35e0a7",
-      "size": 21115
+      "sha256": "5f85a1fb291508de52319121b538d2c26b2daba8bfa45f558043a9c10e0cd141",
+      "size": 21262
     },
     {
       "path": "src/web/system.py",

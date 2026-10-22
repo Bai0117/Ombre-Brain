@@ -167,42 +167,49 @@ def register(mcp) -> None:
 
     @mcp.custom_route("/api/duplicates", methods=["GET"])
     async def api_duplicates(request: Request) -> Response:
-        """List bucket pairs flagged as duplicate candidates (sim > 0.95).
+        """疑似重复的记忆对（tools/dedupe.py）：全库两两比向量，?min= 调门槛。
 
-        iter 1.6 §4：每次 hold/grow 写完后 _check_duplicate_for 在两边写 dup_candidate +
-        dup_score。本接口把所有这种标记的桶聚合成 pair，前端「记忆健康」面板可据此让
-        她/他挨个确认是否合并。返回去重后的 pair 列表。
+        旧版只聚合 hold 时写下的 dup_candidate，可那个字段从来没写进去过。
         """
         from starlette.responses import JSONResponse
+        from tools.dedupe import DEFAULT_MIN_SCORE, find_pairs
+
         err = sh._require_auth(request)
         if err:
             return err
         try:
-            all_b = await sh.bucket_mgr.list_all(include_archive=False)
-            all_b = [
-                b for b in all_b
-                if not letter_lock_state(b, "human")["locked"]
-            ]
-            seen: set[frozenset] = set()
-            pairs: list[dict] = []
-            index = {b["id"]: b for b in all_b}
-            for b in all_b:
-                meta = b.get("metadata", {}) or {}
-                other_id = meta.get("dup_candidate")
-                if not other_id or other_id not in index:
-                    continue
-                key = frozenset((b["id"], other_id))
-                if key in seen:
-                    continue
-                seen.add(key)
-                other = index[other_id]
-                pairs.append({
-                    "a": {"id": b["id"], "name": meta.get("name", b["id"])},
-                    "b": {"id": other_id, "name": other["metadata"].get("name", other_id)},
-                    "score": meta.get("dup_score") or other["metadata"].get("dup_score"),
-                })
-            pairs.sort(key=lambda p: p.get("score") or 0, reverse=True)
-            return JSONResponse({"pairs": pairs, "total": len(pairs)})
+            raw = request.query_params.get("min")
+            min_score = float(raw) if raw not in (None, "") else DEFAULT_MIN_SCORE
+        except ValueError:
+            return JSONResponse({"error": "min 要是 0~1 的数"}, status_code=400)
+        min_score = min(0.99, max(0.6, min_score))
+        try:
+            return JSONResponse(
+                await find_pairs(min_score, deletion_requests=sh.deletion_requests)
+            )
+        except Exception as e:
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+
+    @mcp.custom_route("/api/duplicates/dismiss", methods=["POST"])
+    async def api_duplicates_dismiss(request: Request) -> Response:
+        """「不是一回事」：这一对以后不再列出来。body = {"a": id, "b": id}。"""
+        from starlette.responses import JSONResponse
+        from tools.dedupe import dismiss_pair
+
+        err = sh._require_auth(request)
+        if err:
+            return err
+        try:
+            body = await sh._read_json_object(request)
+        except Exception:
+            return JSONResponse({"error": "body 要是 JSON 对象"}, status_code=400)
+        a, b = str(body.get("a") or "").strip(), str(body.get("b") or "").strip()
+        if not a or not b or a == b:
+            return JSONResponse({"error": "要两条不同的记忆"}, status_code=400)
+        try:
+            dismiss_pair(a, b)
+            return JSONResponse({"ok": True})
         except Exception as e:
             return JSONResponse({"error": str(e)}, status_code=500)
 
