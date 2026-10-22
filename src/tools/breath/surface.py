@@ -39,6 +39,7 @@ from ombrebrain.policy.surfacing import SurfacePolicyVM
 from .. import _runtime as rt
 from ..plan.core import is_letter_bucket
 from ..plan.summary import fresh_summary, schedule_plan_summaries
+from .recent_digest import recent_digest_section
 from utils import parse_bool, parse_iso_datetime
 from ._date_range import bucket_in_created_range
 from ._shared import (
@@ -333,6 +334,8 @@ async def surface_default(
 
     # 待办与核心准则一样不受日期过滤：它们是还欠着的事，不是某天发生的事。
     todo_section = _todo_section(all_buckets)
+    # 「这几天」：最近几天每天一段摘要。带日期范围的 breath 本身就在看特定的日子，不再叠一层。
+    recent_section = "" if date_scoped else recent_digest_section(all_buckets)
 
     # --- iter 2.0: anchor 桶在默认浮现模式的 *未解决池* 不出现（anchor 是坐标系不是浮现对象）---
     # anchor 过滤仅作用于 unresolved 候选，不影响 pinned 提取（上方已完成）。
@@ -509,7 +512,8 @@ async def surface_default(
                 "或者 dream() 让我自己挑几段最近的记忆嚼一嚼。"
             )
         # 没东西可浮现时，欠着的事更要看见。
-        return f"{todo_section}\n\n{calm}" if todo_section else calm
+        head = "\n\n".join(x for x in (todo_section, recent_section) if x)
+        return f"{head}\n\n{calm}" if head else calm
 
     # --- iter 1.6 §7: passive association ---
     passive_results: list[str] = []
@@ -611,6 +615,8 @@ async def surface_default(
         parts.append("=== 核心准则 ===\n" + "\n---\n".join(pinned_results))
     if todo_section:
         parts.append(todo_section)
+    if recent_section:
+        parts.append(recent_section)
     if dynamic_results:
         parts.append("=== 浮现记忆 ===\n" + "\n---\n".join(dynamic_results))
     if passive_results:

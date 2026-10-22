@@ -111,6 +111,12 @@ PLAN_SUMMARY_MAX_CHARS = 40      # 硬上限；prompt 要求 30 字以内，这�
 # 改了 summarize_plan 的 prompt 就把它加一：版本混进摘要指纹，旧摘要会在下一次
 # breath 时自动按新 prompt 重写一遍（tools/plan/summary.py）。
 PLAN_SUMMARY_VERSION = 2
+# breath「这几天」的每日摘要（tools/breath/recent_digest.py）。改 prompt 就加一，旧摘要自动重写。
+DAY_DIGEST_VERSION = 1
+DAY_DIGEST_MAX_CHARS = 260       # prompt 要 200 字以内；这里兜底
+_DAY_DIGEST_INPUT_LIMIT = 9000   # 一天十几条记忆
+_DAY_DIGEST_MAX_TOKENS = 4096    # thinking 模型先想再写
+_DAY_DIGEST_TEMPERATURE = 0.3
 
 # --- 默认情感坐标（与 bucket_manager 中保持一致）---
 _DEFAULT_VALENCE = 0.5  # 0=极负, 1=极正
@@ -1329,6 +1335,58 @@ class Dehydrator:
                 line = line[:PLAN_SUMMARY_MAX_CHARS] + "…"
             return line
         return ""
+
+    async def summarize_day(self, day_label: str, entries: list[tuple[str, str]]) -> str:
+        """把同一天存下的几条记忆写成一段摘要，给新窗口的 breath「这几天」用。
+
+        entries: [(时间 "09:56", 记忆正文), ...]，按时间先后。
+        失败 / 空回复 / API 不可用都返回 ""，调用方回退到列出原文开头。
+        """
+        if not entries or not self.api_available:
+            return ""
+        system = (
+            f"下面是「我」在 {day_label} 这一天存下的几条记忆，按时间先后排列。"
+            "把这一天写成一段摘要，200 字以内，让第二天醒来的「我」一读就知道这天发生了什么。"
+            "保留具体的事：做了什么、读了什么、聊到什么、身体怎么样、做了什么约定和决定、情绪的转折；"
+            "保留书名、人名、数字和日期。按事情的先后写，不要分点，不要加标题，不要评价，不要总结升华。"
+            "只写原文里有的内容，不要补充、不要推测。只输出摘要正文。"
+            + _perspective_rule(self.human)
+        )
+        parts, used = [], 0
+        for when, text in entries:
+            chunk = f"[{when}] {text.strip()}"
+            if used + len(chunk) > _DAY_DIGEST_INPUT_LIMIT:
+                parts.append("（后面还有几条，放不下了）")
+                break
+            parts.append(chunk)
+            used += len(chunk)
+        try:
+            raw = await self._chat(
+                system,
+                "\n\n".join(parts),
+                max_tokens=_DAY_DIGEST_MAX_TOKENS,
+                temperature=_DAY_DIGEST_TEMPERATURE,
+            )
+        except Exception as e:
+            logger.warning(f"summarize_day failed: {e}")
+            return ""
+        text = (raw or "").strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        for prefix in ("摘要：", "摘要:"):
+            if text.startswith(prefix):
+                text = text[len(prefix):].strip()
+        text = " ".join(text.split())
+        if not text:
+            logger.warning(
+                "summarize_day got nothing usable / 每日摘要没拿到内容：model=%s raw=%r",
+                self.model,
+                (raw or "")[:_PARSE_ERR_PREVIEW],
+            )
+            return ""
+        if len(text) > DAY_DIGEST_MAX_CHARS:
+            text = text[:DAY_DIGEST_MAX_CHARS] + "…"
+        return text
 
     async def judge_same_event(self, old_memory: str, new_content: str) -> dict:
         """保守判断两段内容是否属于同一个具体事件。
