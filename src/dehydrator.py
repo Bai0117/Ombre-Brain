@@ -134,7 +134,9 @@ def trim_at_sentence(text: str, limit: int) -> str:
         return head[: cut + 1]
     return head + "…"
 _DAY_DIGEST_INPUT_LIMIT = 9000   # 一天十几条记忆
-_DAY_DIGEST_MAX_TOKENS = 4096    # thinking 模型先想再写
+# thinking 模型先想再写，推理也算在额度里。4096 在真机上连只有 1 条记忆的一天都不够：
+# deepseek-flash 读完视角铁律和十几条记忆，光想就用光了（finish_reason=length、正文为空）。
+_DAY_DIGEST_MAX_TOKENS = 16384
 _DAY_DIGEST_TEMPERATURE = 0.3
 
 # --- 默认情感坐标（与 bucket_manager 中保持一致）---
@@ -1384,7 +1386,8 @@ class Dehydrator:
             raw = await self._chat(
                 system,
                 "\n\n".join(parts),
-                max_tokens=_DAY_DIGEST_MAX_TOKENS,
+                # dehydration.digest_max_tokens 配得更大就用它（同样是「长输入、要想很久」的调用）
+                max_tokens=max(_DAY_DIGEST_MAX_TOKENS, int(getattr(self, "digest_max_tokens", 0) or 0)),
                 temperature=_DAY_DIGEST_TEMPERATURE,
             )
         except Exception as e:

@@ -275,3 +275,24 @@ async def test_prompt_asks_for_more_room_on_busy_days(monkeypatch):
     await d.summarize_day("a", [("1", "x")])
     await d.summarize_day("b", [(str(i), "x") for i in range(11)])
     assert "150 字以内" in seen[0] and "410 字以内" in seen[1]
+
+
+@pytest.mark.asyncio
+async def test_day_digest_leaves_room_for_thinking():
+    """真机上 deepseek-flash 在 4096 以内连一天 1 条记忆都想不完（正文为空）。"""
+    from dehydrator import Dehydrator
+
+    d = Dehydrator.__new__(Dehydrator)
+    d.api_available, d.human, d.model = True, "白", "stub"
+    budgets = []
+
+    async def fake_chat(system, user, max_tokens=None, **kw):
+        budgets.append(max_tokens)
+        return "好。"
+
+    d._chat = fake_chat
+    d.digest_max_tokens = 8192
+    await d.summarize_day("a", [("1", "x")])
+    d.digest_max_tokens = 32768
+    await d.summarize_day("a", [("1", "x")])
+    assert budgets == [16384, 32768]
