@@ -2,7 +2,8 @@
 github_sync.py — GitHub 仓库同步（用于 bucket 数据云端备份）
 
 策略：
-- 同步 buckets_dir 下的 .md 记忆、_sources 原文证据和经校验的 You 事务快照
+- 同步 buckets_dir 下的 .md 记忆、_sources 原文证据和经校验的 You 事务快照，
+  以及 vault 根目录下几份小 JSON：日子、书架、「不是一回事」的重复对子
 - embeddings.db 不上传（二进制，可由 /api/embedding/migrate 重算）
 - 使用 GitHub Git Trees API 批量提交（一次同步 = 一个 commit）
 - 支持手动触发 + 可选的定时自动同步
@@ -61,6 +62,9 @@ _THEM_RELATIVE_PATH = ".them/them.sqlite3"
 # 不是照着 you 抄一遍带进来的。
 _MODULE_SNAPSHOT_PATHS = (_YOU_RELATIVE_PATH, _THEM_RELATIVE_PATH)
 # 每条快照路径对应的校验函数。恢复时按路径分派——用错校验函数等于没校验。
+# vault 根目录下、不是记忆但丢了会心疼的小 JSON（tools/days、tools/shelf、tools/dedupe）。
+# 只认这几个名字、只认根目录，恢复前要能解析成 JSON 对象。
+_SIDECAR_JSON_FILES = frozenset({".days.json", ".shelf.json", ".dupe_dismissed.json"})
 _SNAPSHOT_VALIDATORS = {
     _YOU_RELATIVE_PATH: (validate_you_snapshot_file, YouStoreError, "You"),
     _THEM_RELATIVE_PATH: (validate_them_snapshot_file, ThemStoreError, "them"),
@@ -152,12 +156,26 @@ def _is_source_relative_path(relative_path: str) -> bool:
     )
 
 
+def _is_sidecar_relative_path(relative_path: str) -> bool:
+    return str(relative_path).replace("\\", "/") in _SIDECAR_JSON_FILES
+
+
+def _validate_sidecar_json(data: bytes) -> None:
+    try:
+        parsed = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise RuntimeError("sidecar JSON is unreadable") from exc
+    if not isinstance(parsed, dict):
+        raise RuntimeError("sidecar JSON must be an object")
+
+
 def _is_backup_relative_path(relative_path: str) -> bool:
     normalized = str(relative_path).replace("\\", "/")
     return (
         normalized.endswith(".md")
         or _is_source_relative_path(normalized)
         or normalized in _MODULE_SNAPSHOT_PATHS
+        or _is_sidecar_relative_path(normalized)
     )
 
 
@@ -197,6 +215,9 @@ def _iter_backup_paths(root_dir: str) -> Iterator[str]:
                 if entry.is_file(follow_symlinks=False):
                     if entry.name.endswith(".md"):
                         yield entry.path
+                    elif entry.name in _SIDECAR_JSON_FILES:
+                        if os.path.dirname(os.path.abspath(entry.path)) == os.path.abspath(root_dir):
+                            yield entry.path
                     elif entry.name.endswith(".source"):
                         relative = os.path.relpath(entry.path, root_dir).replace("\\", "/")
                         if relative.startswith("_sources/"):
@@ -478,6 +499,9 @@ class GitHubSync:
                                 data.decode("utf-8")
                             except UnicodeDecodeError as exc:
                                 raise RuntimeError("source evidence is not UTF-8") from exc
+
+                        if _is_sidecar_relative_path(rel):
+                            _validate_sidecar_json(data)
 
                         stage_path = os.path.join(staging_dir, f"{index:05d}.blob")
                         with open(stage_path, "wb") as stage_handle:

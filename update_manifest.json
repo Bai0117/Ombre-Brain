@@ -97,8 +97,8 @@
     },
     {
       "path": "src/github_sync.py",
-      "sha256": "c0e7e668a012874de6ef586cae1a20f89df6d4fac1079881c17a6195db5727bf",
-      "size": 53898
+      "sha256": "dc0a34f099790c787aac000bc5ebd1b1a7f0ab3b4de8da332742d10b8ba32143",
+      "size": 55116
     },
     {
       "path": "src/import_memory.py",
