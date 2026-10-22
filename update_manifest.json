@@ -17,8 +17,8 @@
     },
     {
       "path": "frontend/home.html",
-      "sha256": "a3b830104172551b03fed384f91b2ffb4cc75c82a249855915071ed4fd544c13",
-      "size": 39016
+      "sha256": "cbe55a5a62fc2787a25e5a25dc7cd38c370c086312aa6fb184d8eebda4c0e935",
+      "size": 39221
     },
     {
       "path": "frontend/icon.svg",
@@ -67,8 +67,8 @@
     },
     {
       "path": "src/embedding_engine.py",
-      "sha256": "d95665d5594a648ed6d4d40e0cffe9754c21f00cff66ec759a78a98ba6547143",
-      "size": 52185
+      "sha256": "8862cecd1b4765c5fb9128129f38587bbfb946f7e215bc597bd4ee1a3776170d",
+      "size": 53652
     },
     {
       "path": "src/errors.py",

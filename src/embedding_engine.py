@@ -73,6 +73,7 @@ _API_TIMEOUT_SECONDS = 30.0
 
 # 输入截断长度
 _MAX_INPUT_CHARS = 2000
+_TRANSIENT_RETRY_DELAYS = (0.5, 1.5)  # gemini_native: 连接被代理掐断时的重试间隔（秒）
 
 # 同一段文本短时间内被多条链路重复请求向量（同一个 breath(query=...) 里
 # bucket_mgr.search() 和 surface_search() 各查一次；同一个 hold() 里
@@ -336,14 +337,30 @@ class GeminiNativeEmbeddingEngine(BaseEmbeddingEngine):
         model_id = strip_native_resource_prefix(self.model)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:embedContent"
         payload = {"content": {"parts": [{"text": text[:_MAX_INPUT_CHARS]}]}}
+        # 经 WARP 出口代理时，隧道刚起来或一次抖动会让代理直接断开连接
+        # （RemoteProtocolError / ConnectError），下一秒就好了。只对这类「连接层」
+        # 失败短暂重试；超时和 HTTP 错误码照旧一次就记 OB-E001，不拖长等待。
+        transient = (httpx.ConnectError, httpx.RemoteProtocolError, httpx.ReadError, httpx.ProxyError)
         try:
-            async with httpx.AsyncClient(timeout=self.timeout_seconds) as c:
-                r = await c.post(
-                    url,
-                    headers={"x-goog-api-key": self.api_key},
-                    json=payload,
-                )
-                r.raise_for_status()
+            for attempt, delay in enumerate((0.0, *_TRANSIENT_RETRY_DELAYS)):
+                if delay:
+                    await asyncio.sleep(delay)
+                try:
+                    async with httpx.AsyncClient(timeout=self.timeout_seconds) as c:
+                        r = await c.post(
+                            url,
+                            headers={"x-goog-api-key": self.api_key},
+                            json=payload,
+                        )
+                        r.raise_for_status()
+                    break
+                except transient as e:
+                    if attempt == len(_TRANSIENT_RETRY_DELAYS):
+                        raise
+                    logger.info(
+                        f"[embedding] gemini_native transient {type(e).__name__}, retrying "
+                        f"({attempt + 1}/{len(_TRANSIENT_RETRY_DELAYS)})"
+                    )
             values = r.json().get("embedding", {}).get("values", [])
             if values and len(values) != self._dim:
                 self._dim = len(values)
