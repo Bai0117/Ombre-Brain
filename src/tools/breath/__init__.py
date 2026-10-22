@@ -186,7 +186,7 @@ async def dispatch(
             )
         )
 
-    # --- Plan 通道：与 feel 同构。plan 不参与普通浮现，没有这个分流时
+    # --- Plan 通道：与 feel 同构。普通浮现里 plan 只有一行「待办」摘要，没有这个分流时
     # domain="plan" 会落到下面的浮现模式，返回核心准则而不是 plan。 ---
     if domain.strip().lower() == "plan":
         return await _with_deletion_requests(await surface_plans(max_tokens=memory_max_tokens))

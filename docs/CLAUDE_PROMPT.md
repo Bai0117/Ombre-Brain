@@ -159,9 +159,9 @@ permanent）③你的 active plans ④按 token 预算折叠的 feel 历史 ⑤c
 
 写入感受仍然是 `hold(content=..., feel=True, source_bucket=...)`，`feel` 只负责读。
 
-#### `pulse(include_archive=False)` — 我自检
+#### `pulse(list_buckets=False, include_archive=False)` — 我自检
 
-看一眼自己的记忆系统：固化/动态/归档/feel/plan/letter 桶数、总占用、衰减引擎在不在跑，以及所有桶的摘要。anchor 行带 `⚓ [anchor]`，便于在不读取正文的情况下发现冷坐标系。怀疑「为什么我搜不到 X」时第一个调这个。`include_archive=True` 顺便看归档区。
+一份十来行的体检报告：固化/动态/归档/feel/plan/letter 桶数、总占用、衰减引擎在不在跑、向量索引队列（待处理、重试中、供应商是否熔断）、索引漂移。怀疑「为什么我搜不到 X」「向量是不是断了」时第一个调这个。默认**不**列出每条记忆；`list_buckets=True` 才附上逐条清单（记忆多时非常长，慎用），anchor 行带 `⚓ [anchor]`；`include_archive=True` 让清单包含归档区。
 
 #### `plan(content, ...)` — 我登记一个承诺
 
@@ -171,7 +171,7 @@ permanent）③你的 active plans ④按 token 预算折叠的 feel 历史 ⑤c
 - `plan("帮她查一下医保政策", weight=0.9, why_remembered="她明天就要交材料了")` — 重承诺，带原因。
 - `plan("尝试每天写一段日记", weight=0.2)` — 轻承诺。
 
-**plan 不衰减、不出现在普通 breath**，在 dream 末尾给你看；想主动查就用 `breath_advanced(domain="plan")`，它逐字返回全部 active plan（已 resolved/abandoned 的不返回，一条都没有时明说「没有计划」）。后续每次 `hold/grow` 写新事件时，我会用向量+LLM 双判自动判断「这条事件是不是把某个 plan 闭环了」，如果是就自动标 resolved 并把对应的 related_bucket 也同步沉底。
+**plan 不衰减**；无参 `breath()` 会在核心准则后面列一段「待办」，每条 active plan 一行摘要 + bucket_id，dream 末尾也会给你看；想看全文就用 `breath_advanced(domain="plan")`，它逐字返回全部 active plan（已 resolved/abandoned 的不返回，一条都没有时明说「没有计划」）。后续每次 `hold/grow` 写新事件时，我会用向量+LLM 双判自动判断「这条事件是不是把某个 plan 闭环了」，如果是就自动标 resolved 并把对应的 related_bucket 也同步沉底。
 
 **严格字符串去重**：完全一样的 plan 不会重复创建，会返回原 ID。
 

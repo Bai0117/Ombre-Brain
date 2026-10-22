@@ -1124,12 +1124,12 @@ async def release(bucket_id: str) -> str:
 
 
 @mcp.tool()
-async def pulse(include_archive: Optional[bool] = False) -> str:
-    """返回记忆系统状态摘要:固化/动态/归档/feel/plan/letter 数量、总占用、衰减引擎运行状态,以及所有桶的摘要列表；anchor 行带独立 ⚓ [anchor] 冷参考标记。include_archive=True 同时返回归档区。"""
+async def pulse(include_archive: Optional[bool] = False, list_buckets: Optional[bool] = False) -> str:
+    """记忆系统体检报告(十来行):固化/动态/归档/feel/plan/letter 数量、总占用、衰减引擎是否在跑、向量索引队列(待处理/重试/供应商熔断)、索引漂移。怀疑「为什么搜不到」「向量是不是断了」时先调它。默认不列出每条记忆;list_buckets=True 才附上逐条清单(每条一行,记忆多时非常长,慎用),anchor 行带 ⚓ [anchor] 标记;include_archive=True 让清单包含归档区。"""
     return await _with_notice(
-        _t_anchor.pulse(include_archive=include_archive),
+        _t_anchor.pulse(include_archive=include_archive, list_buckets=list_buckets),
         op="pulse",
-        args={"include_archive": include_archive},
+        args={"include_archive": include_archive, "list_buckets": list_buckets},
     )
 
 
@@ -1141,7 +1141,7 @@ async def plan(
     weight: Optional[float] = 0.5,
     why_remembered: Optional[str] = "",
 ) -> str:
-    """登记一个待办/承诺/未闭环事项。status=active(默认)/resolved/abandoned。related_bucket 可选,关联到某个普通记忆桶。weight=承诺重量 0.0-1.0(默认 0.5),与 importance 区分——importance 表示「多重要」、weight 表示「多重」。why_remembered=登记原因(可选、仅展示)。plan 不衰减、不出现在普通 breath,仅在 dream 末尾的 active 段返回;后续 hold/grow 写入新事件时系统只会提示可能已完成,实际关闭必须显式调用 trace(status="resolved")。"""
+    """登记一个待办/承诺/未闭环事项。status=active(默认)/resolved/abandoned。related_bucket 可选,关联到某个普通记忆桶。weight=承诺重量 0.0-1.0(默认 0.5),与 importance 区分——importance 表示「多重要」、weight 表示「多重」。why_remembered=登记原因(可选、仅展示)。plan 不衰减;无参 breath() 会在核心准则后列出所有 active plan(每条一行摘要+bucket_id),全文用 breath(domain="plan");后续 hold/grow 写入新事件时系统只会提示可能已完成,实际关闭必须显式调用 trace(status="resolved")。"""
     return await _with_notice(
         _t_plan.plan_create(
             content=content, status=status, related_bucket=related_bucket,

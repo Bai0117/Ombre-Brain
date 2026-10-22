@@ -84,6 +84,49 @@ async def test_pulse_shows_special_bucket_counts_separately(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_pulse_is_a_short_health_report_unless_the_list_is_asked_for(monkeypatch):
+    from tools.anchor import core as anchor_core
+
+    class FakeDecay:
+        is_running = True
+
+        async def ensure_started(self):
+            return None
+
+        def calculate_score(self, _meta):
+            return 1.0
+
+    listed = []
+
+    class FakeBucketManager:
+        async def get_stats(self):
+            return {"permanent_count": 0, "dynamic_count": 590, "archive_count": 0, "total_size_kb": 1.0}
+
+        async def list_all(self, include_archive=False):
+            listed.append(include_archive)
+            return [
+                {"id": f"b{i:03d}", "content": "x", "metadata": {"type": "dynamic", "name": f"记忆{i}"}}
+                for i in range(590)
+            ]
+
+    monkeypatch.setattr(anchor_core.rt, "decay_engine", FakeDecay(), raising=False)
+    monkeypatch.setattr(anchor_core.rt, "bucket_mgr", FakeBucketManager(), raising=False)
+    monkeypatch.setattr(anchor_core.rt, "embedding_engine", None, raising=False)
+
+    short = await anchor_core.pulse()
+    assert "动态桶: 590 个" in short
+    assert "衰减引擎: 运行中" in short
+    assert "[b000]" not in short and "=== 记忆列表 ===" not in short
+    assert "pulse(list_buckets=True)" in short
+    assert len(short.splitlines()) < 20
+    assert listed == []  # did not even read every bucket
+
+    full = await anchor_core.pulse(list_buckets=True)
+    assert "=== 记忆列表 ===" in full
+    assert full.count("💭 [b") == 590
+
+
+@pytest.mark.asyncio
 async def test_pulse_marks_anchor_without_replacing_icon_and_release_clears_it(
     monkeypatch,
 ):
@@ -156,7 +199,7 @@ async def test_pulse_marks_anchor_without_replacing_icon_and_release_clears_it(
     monkeypatch.setattr(anchor_core.rt, "embedding_engine", None, raising=False)
     monkeypatch.setattr(anchor_core.rt, "mark_op", None, raising=False)
 
-    before = await anchor_core.pulse()
+    before = await anchor_core.pulse(list_buckets=True)
     anchor_line = next(line for line in before.splitlines() if "anchor-1" in line)
     ordinary_line = next(line for line in before.splitlines() if "ordinary-1" in line)
 
@@ -165,7 +208,7 @@ async def test_pulse_marks_anchor_without_replacing_icon_and_release_clears_it(
     assert "⚓ [anchor]" not in ordinary_line
 
     await anchor_core.anchor_release("anchor-1")
-    after = await anchor_core.pulse()
+    after = await anchor_core.pulse(list_buckets=True)
 
     assert "⚓ [anchor]" not in after
 

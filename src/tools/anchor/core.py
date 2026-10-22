@@ -73,7 +73,16 @@ async def anchor_release(bucket_id: str) -> str:
     return f"我把它从 anchor 移开了。它会重新参与默认浮现。当前 {result['count']}/{result['limit']}。"
 
 
-async def pulse(include_archive: Optional[bool] = False) -> str:
+async def pulse(
+    include_archive: Optional[bool] = False,
+    list_buckets: Optional[bool] = False,
+) -> str:
+    """体检报告；list_buckets=True 才附上每条记忆一行的清单。
+
+    以前默认就把所有桶逐行列出：几百条记忆时是几万 token，一次自检就把上下文
+    塞满，而清单对「系统哪里坏了」几乎没有帮助——有用的是上面那十来行：各类
+    计数、衰减引擎、向量队列/熔断、索引漂移。翻记忆用 Dashboard 或 breath_* 更合适。
+    """
     if include_archive is None:
         include_archive = False
     await rt.decay_engine.ensure_started()
@@ -134,6 +143,12 @@ async def pulse(include_archive: Optional[bool] = False) -> str:
                 )
     except Exception as e:
         rt.logger.warning(f"pulse index/storage drift check failed: {e}")
+
+    if not list_buckets:
+        return status + (
+            "\n（只给体检报告。要逐条清单用 pulse(list_buckets=True)——记忆多时会很长；"
+            "省 token 的目录用 breath_advanced(catalog=True)。）"
+        )
 
     try:
         buckets = await rt.bucket_mgr.list_all(include_archive=include_archive)

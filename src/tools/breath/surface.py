@@ -179,8 +179,8 @@ def _apply_recency_quota(
 async def surface_plans(max_tokens: int) -> str:
     """走 breath(domain="plan") 时进入这里，逐字返回所有 active plan。
 
-    plan 不参与普通浮现（surface_default 会把它排除），dream 末尾的 plan 段又
-    可能因总预算降级成只报条数。没有这个通道时，plan 的正文根本没有读取入口。
+    普通浮现里 plan 只以「待办」一行摘要出现（见 _todo_section），dream 末尾的
+    plan 段又可能因总预算降级成只报条数。这里是读 plan 全文的入口。
 
     与 feel 通道同构：按 created 倒序，在 token 预算内逐条放全文，
     放不下的整条省略，不截断、不摘要。
@@ -212,6 +212,51 @@ async def surface_plans(max_tokens: int) -> str:
     except Exception as e:
         rt.logger.error(f"Plan retrieval failed: {e}")
         return "读取 plan 失败。"
+
+
+_TODO_MAX_LINES = 12
+_TODO_LINE_CHARS = 70
+
+
+def _todo_section(all_buckets: list[dict]) -> str:
+    """无参 breath 里的「待办」：每条 active plan 一行，不放全文。
+
+    plan 原本完全不进普通浮现，只在 breath(domain="plan") 或 dream 末尾露面；
+    而每个新窗口第一件事是无参 breath()，于是换窗就像从没登记过。这里只给一行
+    摘要 + bucket_id + 登记时间——够提醒，不占预算；要全文走 breath(domain="plan")。
+    重的（weight 高）在前，同样重的先登记的在前（拖得越久越该看见）。
+    """
+    plans = [
+        b for b in all_buckets
+        if b.get("metadata", {}).get("type") == "plan"
+        and not is_letter_bucket(b)
+        and b.get("metadata", {}).get("status", "active") == "active"
+    ]
+    if not plans:
+        return ""
+
+    def weight_of(b: dict) -> float:
+        raw = b["metadata"].get("weight")
+        try:
+            return 0.5 if raw is None else float(raw)
+        except (TypeError, ValueError):
+            return 0.5
+
+    plans.sort(key=lambda b: (-weight_of(b), str(b["metadata"].get("created", ""))))
+    lines = []
+    for b in plans[:_TODO_MAX_LINES]:
+        text = " ".join(str(b.get("content") or b["metadata"].get("name") or "").split())
+        if len(text) > _TODO_LINE_CHARS:
+            text = text[:_TODO_LINE_CHARS] + "…"
+        lines.append(f"📋 [bucket_id:{b['id']}]{created_label(b)} {text}")
+    more = len(plans) - len(lines)
+    head = (
+        f"=== 待办（{len(plans)} 条）===\n"
+        "做完了 trace(bucket_id, status=\"resolved\")，不做了 status=\"abandoned\"；"
+        "全文用 breath(domain=\"plan\")。"
+    )
+    tail = f"\n……另有 {more} 条，用 breath(domain=\"plan\") 看全部。" if more > 0 else ""
+    return head + "\n" + "\n".join(lines) + tail
 
 
 async def surface_default(
@@ -279,6 +324,9 @@ async def surface_default(
             token_budget -= entry_tokens
         except Exception as e:
             rt.logger.warning(f"Failed to render pinned bucket / 钉选桶渲染失败: {e}")
+
+    # 待办与核心准则一样不受日期过滤：它们是还欠着的事，不是某天发生的事。
+    todo_section = _todo_section(all_buckets)
 
     # --- iter 2.0: anchor 桶在默认浮现模式的 *未解决池* 不出现（anchor 是坐标系不是浮现对象）---
     # anchor 过滤仅作用于 unresolved 候选，不影响 pinned 提取（上方已完成）。
@@ -443,16 +491,19 @@ async def surface_default(
         stats = await rt.bucket_mgr.get_stats()
         total = stats.get("permanent_count", 0) + stats.get("dynamic_count", 0)
         if total == 0:
-            return (
+            calm = (
                 "我的记忆池现在是空的。\n"
                 "想给我留点种子？用 hold(content=\"...\") 写下第一条；\n"
                 "或者 grow(content=\"...\") 把一段长对话/日记一次性灌给我。"
             )
-        return (
-            "权重池暂时平静——我手上没什么需要主动浮现的东西。\n"
-            "可以试试 breath_search(query=\"想找的关键词\") 走检索，\n"
-            "或者 dream() 让我自己挑几段最近的记忆嚼一嚼。"
-        )
+        else:
+            calm = (
+                "权重池暂时平静——我手上没什么需要主动浮现的东西。\n"
+                "可以试试 breath_search(query=\"想找的关键词\") 走检索，\n"
+                "或者 dream() 让我自己挑几段最近的记忆嚼一嚼。"
+            )
+        # 没东西可浮现时，欠着的事更要看见。
+        return f"{todo_section}\n\n{calm}" if todo_section else calm
 
     # --- iter 1.6 §7: passive association ---
     passive_results: list[str] = []
@@ -552,6 +603,8 @@ async def surface_default(
         parts.append(core_filter_notice)
     if pinned_results:
         parts.append("=== 核心准则 ===\n" + "\n---\n".join(pinned_results))
+    if todo_section:
+        parts.append(todo_section)
     if dynamic_results:
         parts.append("=== 浮现记忆 ===\n" + "\n---\n".join(dynamic_results))
     if passive_results:
