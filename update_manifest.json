@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "7bf088566c096c16103a0dcb7e8c7e4581d24ebfaa79fb8fe9476b32f14b5723",
-      "size": 596843
+      "sha256": "9b2e8550475e0439c979d5299f7929a97ce97a4bf1b88ae1af78aaae003a69ff",
+      "size": 601559
     },
     {
       "path": "frontend/favicon-64.png",
@@ -587,8 +587,8 @@
     },
     {
       "path": "src/server.py",
-      "sha256": "da0e11177f281463e7a7fcd247ca841cba98b485fd4f0e444aaa8e666b5b4ab2",
-      "size": 82048
+      "sha256": "0d41bbd585a051dd9e2e52d947372f7a91358be3aa4f6c4bbbe1a388d6f4ec21",
+      "size": 83146
     },
     {
       "path": "src/server_app.py",
@@ -682,8 +682,18 @@
     },
     {
       "path": "src/tools/breath/surface.py",
-      "sha256": "18d48e59edf0e657bd0f0301637394594f4bedf37ef64538db55c378bd6dd6cf",
-      "size": 33358
+      "sha256": "97e2805eb5501d0cdcf6f372d785e81809c7da0d97dce8f9d8dc860491728acd",
+      "size": 33761
+    },
+    {
+      "path": "src/tools/days/__init__.py",
+      "sha256": "a4208c5668065bb46540e1e2767b3a78c1b918bca8881241ddf6675c491f8d8d",
+      "size": 637
+    },
+    {
+      "path": "src/tools/days/core.py",
+      "sha256": "562d3b83f89bf37f901a01b66ab1ff83907ee5829d9ced11513fabf8345678ae",
+      "size": 7646
     },
     {
       "path": "src/tools/dedupe.py",
@@ -842,8 +852,8 @@
     },
     {
       "path": "src/web/__init__.py",
-      "sha256": "c1dbc3e08641255bb123d72a6704d1fc9551e5e1e3cb86d0ff43095b6d4f1659",
-      "size": 2400
+      "sha256": "0ae6b1369b9c2a4a968e51b5a29e94fcdf06420a73d0e1cba85b583399d2f319",
+      "size": 2452
     },
     {
       "path": "src/web/_shared.py",
@@ -869,6 +879,11 @@
       "path": "src/web/dashboard.py",
       "sha256": "a8e0cff57daed012fc6d167474be0e2a27a2b98372a31d81bff529e32abaef92",
       "size": 7073
+    },
+    {
+      "path": "src/web/days.py",
+      "sha256": "1c29d8a46ca1991ffa22c4e23b439f3bf0b31d727aacd1c3c988f9834c6115d5",
+      "size": 2140
     },
     {
       "path": "src/web/embedding.py",

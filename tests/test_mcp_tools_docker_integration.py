@@ -42,6 +42,7 @@ EXPECTED_TOOLS = {
     "I",
     "dream",
     "now",
+    "days",
 }
 EXPECTED_TOOL_ORDER = (
     "breath",
@@ -61,6 +62,7 @@ EXPECTED_TOOL_ORDER = (
     "feel",
     "I",
     "now",
+    "days",
 )
 
 EXPECTED_TOOL_PROPERTIES = {
@@ -166,6 +168,8 @@ EXPECTED_TOOL_PROPERTIES = {
     "dream": {"window_hours"},
     # 0 参数报时：读服务器时钟，按 config.yaml 的 timezone 换算。
     "now": set(),
+    # 纪念日：无参看全部；date+title 记下；delete_id 删。
+    "days": {"date", "title", "yearly", "count", "delete_id"},
 }
 
 EXPECTED_REQUIRED_PROPERTIES = {

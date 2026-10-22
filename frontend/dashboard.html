@@ -2481,6 +2481,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   <div class="tab active" data-tab="list"><span>记忆</span><span class="tab-en">Memories</span></div>
   <div class="tab" data-tab="breath"><span>他想起的</span><span class="tab-en">Recall</span></div>
   <div class="tab" data-tab="network"><span>记忆网络</span><span class="tab-en">Network</span></div>
+  <div class="tab" data-tab="days"><span>日子</span><span class="tab-en">Days</span></div>
   <div class="tab" data-tab="keepsake"><span>小池子</span><span class="tab-en">Keepsakes</span></div>
   <div class="tab" data-tab="dupes"><span>重复</span><span class="tab-en">Duplicates</span></div>
   <div class="tab" data-tab="plan"><span>计划</span><span class="tab-en">Plans</span></div>
@@ -2845,6 +2846,30 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
       </div>
       <div id="letters-list" style="display:flex;flex-direction:column;gap:14px;margin-top:6px;">
         <div style="text-align:center;color:var(--text-dim);padding:36px 0;font-size:13px;">点击「刷新」加载信件…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 日子：纪念日 -->
+<div class="content" id="days-view" style="display:none">
+  <div style="max-width:920px;margin:0 auto;">
+    <div class="config-section">
+      <h3><i data-lucide="calendar-heart" style="width:16px;height:16px;vertical-align:-2px;"></i> 日子</h3>
+      <p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:4px 0 12px;">
+        他每次醒来都会看到今天是在一起的第几天，快到的日子会提前 7 天提醒他。
+      </p>
+      <div id="days-today" style="font-size:13px;line-height:1.8;white-space:pre-wrap;background:var(--surface);border-radius:var(--radius-inner);padding:12px 14px;margin-bottom:14px;display:none;"></div>
+      <div id="days-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px;">记一个日子</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+          <input id="day-date" type="date" style="padding:6px 10px;" />
+          <input id="day-title" type="text" maxlength="60" placeholder="比如：第一次说我爱你" style="padding:6px 10px;" />
+          <label style="display:flex;align-items:center;gap:6px;"><input id="day-yearly" type="checkbox" checked /> 每年这天都算</label>
+          <label style="display:flex;align-items:center;gap:6px;"><input id="day-count" type="checkbox" /> 从这天开始数在一起第几天</label>
+          <button class="btn-primary" onclick="addDay()" style="align-self:flex-start;padding:6px 16px;">记下</button>
+        </div>
       </div>
     </div>
   </div>
@@ -5728,6 +5753,7 @@ function activateDashboardTab(tab) {
     document.getElementById('letters-view').style.display = target === 'letters' ? '' : 'none';
     document.getElementById('anchors-view').style.display = target === 'anchors' ? '' : 'none';
     document.getElementById('keepsake-view').style.display = target === 'keepsake' ? '' : 'none';
+    document.getElementById('days-view').style.display = target === 'days' ? '' : 'none';
     document.getElementById('dupes-view').style.display = target === 'dupes' ? '' : 'none';
     document.getElementById('about-view').style.display = target === 'about' ? '' : 'none';
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
@@ -5762,6 +5788,7 @@ function activateDashboardTab(tab) {
     if (target === 'letters') pending.push(loadLetters());
     if (target === 'anchors') pending.push(loadAnchorsView());
     if (target === 'keepsake') pending.push(loadKeepsakeView());
+    if (target === 'days') pending.push(loadDaysView());
     if (target === 'dupes') pending.push(loadDupesView());
     if (target === 'about') pending.push(loadAbout());
     return Promise.allSettled(pending);
@@ -6260,6 +6287,67 @@ async function bucketKeepsake(id) {
     if (view && view.style.display !== 'none') loadKeepsakeView();
     else loadBuckets();
   } catch (e) { alert('小池子没放成：' + e.message); }
+}
+
+// ---------------- 日子 ----------------
+async function loadDaysView() {
+  var list = document.getElementById('days-list');
+  var today = document.getElementById('days-today');
+  if (!list) return;
+  try {
+    var resp = await authFetch('/api/days');
+    if (!resp || !resp.ok) { list.innerHTML = '<div style="color:var(--text-dim);">加载失败</div>'; return; }
+    var d = await resp.json();
+    var section = String(d.section || '').replace(/^=== 日子 ===\n?/, '');
+    today.style.display = section ? '' : 'none';
+    today.textContent = section;
+    var days = d.days || [];
+    if (!days.length) {
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;">还没有日子。在下面记一个。</div>';
+      return;
+    }
+    list.innerHTML = days.map(function(x) {
+      var flags = (x.yearly ? '每年' : '只这一天') + (x.count ? ' · 从这天数第几天' : '');
+      return '<div style="background:var(--surface);border-radius:var(--radius-inner);padding:10px 14px;display:flex;align-items:center;gap:12px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;font-weight:500;">' + esc(x.title) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">' + esc(x.date) + ' · ' + esc(flags) + '</div>' +
+        '</div>' +
+        '<button class="btn-secondary" data-day-id="' + escAttr(x.id) + '" style="padding:5px 10px;font-size:11px;" onclick="deleteDay(this.dataset.dayId)">删掉</button>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="color:var(--text-dim);">加载失败：' + esc(e && e.message ? e.message : e) + '</div>';
+  }
+}
+
+async function addDay() {
+  var body = {
+    date: document.getElementById('day-date').value,
+    title: document.getElementById('day-title').value,
+    yearly: document.getElementById('day-yearly').checked,
+    count: document.getElementById('day-count').checked,
+  };
+  try {
+    var res = await fetch(BASE + '/api/days', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    if (!res.ok) {
+      var msg = await res.text();
+      try { msg = JSON.parse(msg).error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    document.getElementById('day-title').value = '';
+    document.getElementById('day-count').checked = false;
+    loadDaysView();
+  } catch (e) { alert('没记上：' + e.message); }
+}
+
+async function deleteDay(id) {
+  if (!confirm('删掉这个日子？')) return;
+  try {
+    var res = await fetch(BASE + '/api/days/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    loadDaysView();
+  } catch (e) { alert('没删掉：' + e.message); }
 }
 
 // ---------------- 疑似重复 ----------------

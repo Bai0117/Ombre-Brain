@@ -74,6 +74,7 @@ from tools import dream as _t_dream
 from tools.breath.recall_log import RECALL_OPS as _RECALL_OPS, record_recall as _record_recall
 from tools import i as _t_i
 from tools import now as _t_now
+from tools import days as _t_days
 from tools import them as _t_them
 from tools import you as _t_you
 
@@ -1297,6 +1298,25 @@ async def now() -> str:
     return await _with_notice(_t_now.dispatch(), op="now", args={})
 
 
+@mcp.tool()
+async def days(
+    date: Optional[str] = "",
+    title: Optional[str] = "",
+    yearly: Optional[bool] = True,
+    count: Optional[bool] = False,
+    delete_id: Optional[str] = "",
+) -> str:
+    """纪念日。无参数=看全部日子(带 id)和今天的「日子」。date=YYYY-MM-DD + title=名字 是记下一个日子:yearly=True 每年这天都算(默认),False 只算那一天;count=True 表示从这天起数「我们在一起第 N 天」(这天算第 1 天,只能有一个)。delete_id=删掉一个。记下的日子会在无参 breath 的「日子」段出现:今天第几天、今天就是哪个日子、7 天内要到的日子和整百天。她说起一个对我们重要的日子时就记下来。"""
+    return await _with_notice(
+        _t_days.dispatch(
+            date=date or "", title=title or "", yearly=bool(yearly),
+            count=bool(count), delete_id=delete_id or "",
+        ),
+        op="days",
+        args={"date": date, "title": title, "yearly": yearly, "count": count, "delete_id": delete_id},
+    )
+
+
 # Pydantic 默认的 ``extra=ignore`` 会让拼错的 MCP 参数看似调用成功；
 # 写工具甚至会在未应用客户端目标字段时仍创建记忆。breath 和 trace
 # 已有严格适配层，其余公开工具使用相同边界，并同步 FastMCP
@@ -1333,6 +1353,7 @@ for _strict_tool_name in (
     "feel",
     "I",
     "now",
+    "days",
 ):
     try:
         _forbid_unknown_tool_arguments(_strict_tool_name)

@@ -34,6 +34,7 @@ from . import onboarding
 from . import them
 from . import you
 from . import recall
+from . import days
 
 
 _WEB_MODULES = (
@@ -57,6 +58,7 @@ _WEB_MODULES = (
     ("web.them", them.register),
     ("web.you", you.register),
     ("web.recall", recall.register),
+    ("web.days", days.register),
 )
 
 
