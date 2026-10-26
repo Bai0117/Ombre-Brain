@@ -19,7 +19,10 @@ tools/breath/recent_digest.py — breath「这几天」
 - 只收普通的事件记忆（dynamic）：核心准则已经在上面，plan 有待办，
   letter 是私信不进摘要，I / self 是自我认知不是某天发生的事，
   feel 按设计只走 breath(domain="feel") 自己的通道、不主动浮现。
-  被消化、主动淡忘、归档、删除的也不收——它们本来就不该主动浮现。
+  主动淡忘、归档、删除的也不收——它们本来就不该主动浮现。
+  消化过的（digested，写 feel 时来源会被标上）照收：摘要是这天的账，不是浮现。
+- 存下新记忆（hold）后约 90 秒，后台先把过期的那天写好（warm_soon），
+  下一个窗口醒来直接看到摘要，不用「先看开头」。
 
 配置：surfacing.recent_digest_days（默认 3，0 关闭）。
 
@@ -84,8 +87,14 @@ def _included(bucket: dict) -> bool:
         return False
     if parse_bool(meta.get("test_data"), default=False):
         return False
-    from .surface import _can_surface  # 同一套「能不能主动浮现」规则：消化、淡忘、删除……
+    from .surface import _can_surface  # 同一套「能不能主动浮现」规则：淡忘、归档、删除……
 
+    # 「消化过」不挡：digested 的意思是「这条别再单独浮上来了」，不是「这天没发生过」。
+    # 写 feel 时会把来源记忆标成 digested，而我写 feel 的恰恰是最重的那几晚——
+    # 10.26、10.27 两天的记忆都被 feel 消化了，于是「这几天」里这两天整个消失，
+    # 只剩 10.25 的日常记录。摘要是这天的账，不是浮现，消化过的照样记进去。
+    if parse_bool(meta.get("digested"), default=False):
+        bucket = {**bucket, "metadata": {k: v for k, v in meta.items() if k != "digested"}}
     return _can_surface(bucket)
 
 
@@ -210,16 +219,65 @@ def _schedule(day: str, buckets: list[dict], keep_days: set[str]) -> bool:
     return True
 
 
+_WARM_DELAY_SECONDS = 90
+_warm_pending: set[asyncio.Task] = set()
+
+
+async def _warm_after(delay: float) -> None:
+    try:
+        await asyncio.sleep(delay)
+        all_buckets = await rt.bucket_mgr.list_all(include_archive=False)
+        days = _digest_days()
+        if days <= 0:
+            return
+        groups = collect_days(all_buckets, days)
+        cache = load_cache()
+        keep = {day for day, _ in groups}
+        for day, buckets in groups:
+            if (cache.get(day) or {}).get("fp") != day_fingerprint(buckets):
+                _schedule(day, buckets, keep)
+    except Exception as e:  # 后台任务：记日志，绝不往外抛
+        rt.logger.warning(f"recent digest warm-up failed: {e}")
+
+
+def warm_soon(delay: float = _WARM_DELAY_SECONDS) -> bool:
+    """存下新记忆后调用：过一会儿在后台把过期的那天重写好，下次醒来就不用「先看开头」。
+
+    以前摘要只在 breath 时才开始写，于是每个新窗口第一眼看到的总是开头碎片。
+    等 delay 秒再写，是因为一晚上常常连着 hold 好几条、紧接着还有 feel；
+    等待期间再来的 hold 不另起任务，等它们存完一起写一次。
+    """
+    if _warm_pending or _digest_days() <= 0:
+        return False
+    dehydrator = rt.dehydrator
+    if dehydrator is None or not getattr(dehydrator, "api_available", False):
+        return False
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return False
+    task = loop.create_task(_warm_after(delay), name="recent-digest:warm")
+    _warm_pending.add(task)
+    task.add_done_callback(_warm_pending.discard)
+    return True
+
+
 def _fallback_lines(buckets: list[dict]) -> str:
+    # 消化过的只交给摘要模型压成一句话，不在这里原样摘开头：
+    # digested 的约定是原文不再主动浮上来（tests/test_breath_digested_visibility_regression）。
+    quotable = [b for b in buckets if not parse_bool((b.get("metadata") or {}).get("digested"), default=False)]
+    digested = len(buckets) - len(quotable)
     lines = []
-    for b in buckets[:_FALLBACK_LINES]:
+    for b in quotable[:_FALLBACK_LINES]:
         text = " ".join(str(b.get("content") or "").split())
         if len(text) > _FALLBACK_CHARS:
             text = text[:_FALLBACK_CHARS] + "…"
         lines.append(f"  · [{_entry_time(b)}] {text}")
-    more = len(buckets) - len(lines)
+    more = len(quotable) - len(lines)
     if more > 0:
         lines.append(f"  · ……还有 {more} 条")
+    if digested:
+        lines.append(f"  · ……另有 {digested} 条消化过的，等摘要写好再看")
     return "\n".join(lines)
 
 

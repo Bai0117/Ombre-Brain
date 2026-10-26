@@ -81,7 +81,7 @@ def test_groups_recent_days_and_keeps_only_event_memories(runtime):
     assert [d for d, _ in days] == ["2026-10-24", "2026-10-23", "2026-10-22"]
     ids = {d: [b["id"] for b in bs] for d, bs in days}
     assert ids["2026-10-24"] == ["d"], "feel 只走自己的通道"
-    assert ids["2026-10-23"] == ["c", "legacy"]
+    assert ids["2026-10-23"] == ["dig", "c", "legacy"], "消化过的照样算这天的事"
     assert ids["2026-10-22"] == ["b", "a"], "按本地时间分天、天内按先后"
 
 
@@ -422,3 +422,69 @@ async def test_long_lines_are_capped_but_every_line_kept():
     first, rest = out.split("。", 1)
     assert len(first) <= 92, "单行被限在 line_cap 以内（在逗号处断）"
     assert rest == "下午改了后台。晚上她画好了猫猫月月。", "后面的事都在"
+
+def test_digested_memories_still_count_for_the_day(runtime):
+    """写 feel 会把来源标成 digested；那天发生的事不能因此从「这几天」消失。"""
+    from tools.breath.recent_digest import collect_days
+
+    buckets = [
+        _mem("night", "很重的一晚", "2026-10-24T03:19:00+08:00", digested=True),
+        _mem("fade", "主动淡忘的", "2026-10-24T08:00:00+08:00", dont_surface=True),
+        _mem("gone", "归档的", "2026-10-24T08:00:00+08:00", type="archived"),
+    ]
+    days = collect_days(buckets, 3, NOW)
+    assert [(d, [b["id"] for b in bs]) for d, bs in days] == [("2026-10-24", ["night"])]
+
+
+@pytest.mark.asyncio
+async def test_hold_warms_the_digest_once_after_a_pause(runtime, monkeypatch):
+    from tools import _runtime as rt
+    from tools.breath import recent_digest
+
+    stub, tmp = runtime
+    buckets = [_mem("a", "今晚的事", datetime.now(TZ).isoformat(timespec="seconds"))]
+
+    class Mgr:
+        async def list_all(self, include_archive=False):
+            return buckets
+
+    monkeypatch.setattr(rt, "bucket_mgr", Mgr())
+    assert recent_digest.warm_soon(delay=0) is True
+    assert recent_digest.warm_soon(delay=0) is False, "等待中再来的 hold 不另起任务"
+    for _ in range(50):
+        await asyncio.sleep(0)
+        if not recent_digest._warm_pending and not recent_digest._tasks:
+            break
+    assert len(stub.calls) == 1
+    cache = json.loads((tmp / ".recent_digest.json").read_text(encoding="utf-8"))
+    assert cache  # 写好了，下次 breath 直接是摘要
+
+
+@pytest.mark.asyncio
+async def test_long_line_does_not_end_inside_brackets():
+    d = _bare()
+
+    async def fake_chat(system, user, **kw):
+        line = (
+            "白下午醒来，睡了约十小时，补了前几天的债；我教她下次先剥壳再腌料酒姜片。"
+            + "我们聊了小时候自学做饭的厨房黑历史，牛肉切太粗、猪肉开大火糊了、蒸笼没加水。" * 3
+            + "一起看了几部电影，很喜欢其中一部，另一部血浆片有点恶心。"
+            "白给我看了三张她的画（7.31坐姿红背心、8.28白袍长剑、9.10十二头身时装、10.1速写、10.20猫猫月月）画得很好。"
+        )
+        return f"[1] {line}"
+
+    d._chat = fake_chat
+    out = await d.summarize_day("10.25", [("15:50", "x")])
+    assert "（" not in out or "）" in out, out
+    assert out.endswith("。")
+
+
+def test_fallback_never_quotes_digested_text(runtime):
+    from tools.breath.recent_digest import _fallback_lines
+
+    out = _fallback_lines([
+        _mem("a", "普通的一条", "2026-10-24T09:00:00+08:00"),
+        _mem("b", "消化过的原文不该露出来", "2026-10-24T10:00:00+08:00", digested=True),
+    ])
+    assert "普通的一条" in out
+    assert "消化过的原文" not in out and "另有 1 条消化过的" in out

@@ -267,7 +267,7 @@ async def dispatch(
     # 这里返回值只承载业务正文。
 
     try:
-        return await _store(
+        result = await _store(
             feel=feel,
             pinned=pinned,
             content=content,
@@ -293,6 +293,14 @@ async def dispatch(
         # 为什么不让 media_store 直接抛 ToolInputError：ombrebrain/ 这个包
         # 全文零处 import 顶层 errors 模块，那条分层边界比省一层翻译值钱。
         raise ToolInputError(str(exc)) from exc
+    # 「这几天」的摘要过一会儿在后台重写，下次醒来就是写好的（失败不影响这次 hold）
+    try:
+        from tools.breath.recent_digest import warm_soon
+
+        warm_soon()
+    except Exception as e:
+        rt.logger.warning(f"recent digest warm-up not scheduled: {e}")
+    return result
 
 
 async def _store(

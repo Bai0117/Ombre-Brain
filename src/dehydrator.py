@@ -1498,8 +1498,17 @@ class Dehydrator:
                 continue
             if len(sentence) > line_cap:
                 head = sentence[:line_cap]
-                cut = max(head.rfind(p) for p in "。！？；，、")
+                # 先找句号分号，找不到再退到逗号顿号；顿号常在括号里的清单中间，
+                # 只用逗号断会剩下「（7.31坐姿红背心。」这种半个括号。
+                cut = max(head.rfind(p) for p in "。！？；")
+                if cut < line_cap // 2:
+                    cut = max(head.rfind(p) for p in "，、")
                 sentence = head[:cut] if cut >= line_cap // 2 else head
+                # 断在没合上的括号里：退到括号前
+                for left, right in ("（）", "()", "《》", "「」"):
+                    open_at = sentence.rfind(left)
+                    if open_at > sentence.rfind(right) and open_at >= line_cap // 3:
+                        sentence = sentence[:open_at]
             sentence = sentence.rstrip("，,；;、 ")
             if sentence and sentence[-1] not in "。！？":
                 sentence += "。"
