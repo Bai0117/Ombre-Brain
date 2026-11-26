@@ -1447,10 +1447,21 @@
   .note-cell.selected { outline:2px solid var(--accent); outline-offset:2px; }
   .note-cell img { width:100%; height:100%; object-fit:contain; }
   .note-cell .note-dot { position:absolute; top:2px; right:4px; width:8px; height:8px; border-radius:50%; background:#e5534b; }
-  .note-sticker { width:34px; height:34px; flex:0 0 34px; display:inline-flex; align-items:center; justify-content:center;
-    border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-size:12px; font-weight:700; color:#2b2b2b; }
-  .note-sticker img { width:100%; height:100%; object-fit:contain; }
-  .note-card { background:var(--surface); border-radius:var(--radius-inner); padding:12px 14px; margin-bottom:12px; }
+  .notes-day-page { position:fixed; inset:0; z-index:9000; background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .notes-day-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top, 0px) + 12px) 18px 12px; background:var(--bg); }
+  .notes-day-body { max-width:560px; margin:0 auto; padding:6px 18px calc(env(safe-area-inset-bottom, 0px) + 40px); }
+  .note-box { border:2px solid var(--text); border-radius:3px; padding:16px 18px 20px; margin-top:22px; }
+  .note-box-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .note-box-date { display:inline-block; text-align:center; font-weight:700; line-height:1.3; }
+  .note-box-date .wd { font-size:17px; padding:0 10px 4px; border-bottom:2px solid var(--text); }
+  .note-box-date .md { font-size:19px; padding-top:4px; letter-spacing:.5px; }
+  .note-box-time { font-size:12px; color:var(--text-dim); }
+  .note-sticker-big { width:116px; height:116px; margin:4px auto 16px; display:flex; align-items:center; justify-content:center;
+    border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-size:30px; font-weight:700; color:#2b2b2b; }
+  .note-sticker-big img { width:100%; height:100%; object-fit:contain; }
+  .note-box-text { font-size:14px; line-height:1.85; white-space:pre-wrap; }
+  .note-thread { padding:4px 4px 0; }
   .note-comment { font-size:12.5px; line-height:1.7; padding:6px 10px; border-left:2px solid var(--border); margin-top:6px; }
   .note-comment.from-ai { border-left-color:var(--accent); }
   .note-comment .note-new { font-size:10px; color:var(--accent); margin-left:6px; }
@@ -2913,9 +2924,18 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <button class="btn-secondary" onclick="notesShiftMonth(1)" style="padding:4px 10px;" title="下个月">›</button>
       </div>
       <div id="notes-grid" class="notes-grid"></div>
-      <div id="notes-day" style="margin-top:18px;"></div>
     </div>
   </div>
+</div>
+
+<!-- 小记·一天：点格子打开的一整页，只放这一天；几条各占一个框 -->
+<div id="notes-day-page" class="notes-day-page" style="display:none" role="dialog" aria-modal="true">
+  <div class="notes-day-head">
+    <button class="btn-secondary" onclick="closeNoteDay()" title="回到月历" style="padding:4px 12px;font-size:16px;">‹</button>
+    <div id="notes-day-title" style="font-weight:700;font-size:16px;"></div>
+    <span style="width:44px;"></span>
+  </div>
+  <div id="notes-day" class="notes-day-body"></div>
 </div>
 
 <!-- 书架 / 片单 -->
@@ -6654,14 +6674,6 @@ var NOTE_STICKERS = {
 };
 var _notes = { year: 0, month: 0, notes: [], selected: '' };
 
-function _noteSticker(mood, cls) {
-  var m = Number(mood || 0);
-  var s = NOTE_STICKERS[m];
-  if (!s) return '<span class="' + cls + '" style="border:2px dashed var(--border);color:var(--text-dim);" title="没贴团子"></span>';
-  var inner = s.src ? '<img src="' + escAttr(s.src) + '" alt="' + m + '">' : String(m);
-  return '<span class="' + cls + '" style="background:' + (s.src ? 'transparent' : s.color) + ';" title="团子 ' + m + '">' + inner + '</span>';
-}
-
 function _notesPad(n) { return (n < 10 ? '0' : '') + n; }
 function _notesMonthKey() { return _notes.year + '-' + _notesPad(_notes.month); }
 
@@ -6678,8 +6690,8 @@ async function loadNotesView() {
     if (d.unseen_replies) { tip.style.display = ''; tip.textContent = '主人回了你 ' + d.unseen_replies + ' 条，带小红点的那天去看看。'; }
     else { tip.style.display = 'none'; }
     renderNotesMonth();
-    if (_notes.selected && _notes.selected.slice(0, 7) === _notesMonthKey()) openNoteDay(_notes.selected);
-    else document.getElementById('notes-day').innerHTML = '';
+    if (_notes.selected && _notes.selected.slice(0, 7) === _notesMonthKey() && _noteDayIsOpen()) openNoteDay(_notes.selected);
+    else closeNoteDay();
   } catch (e) {
     grid.innerHTML = '<div style="color:var(--text-dim);grid-column:1/-1;">加载失败：' + esc(e && e.message ? e.message : e) + '</div>';
   }
@@ -6725,13 +6737,40 @@ function _noteWho(a) { return a === 'user' ? '我' : '主人'; }
 
 function _noteTime(iso) { var t = String(iso || ''); return t.length >= 16 ? t.slice(11, 16) : ''; }
 
+function _noteDayIsOpen() { return document.getElementById('notes-day-page').style.display !== 'none'; }
+
+function closeNoteDay() {
+  var page = document.getElementById('notes-day-page');
+  if (!page || page.style.display === 'none') return;
+  page.style.display = 'none';
+  document.body.style.overflow = '';
+  _notes.selected = '';
+  renderNotesMonth();
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeNoteDay(); });
+
+function _noteBigSticker(mood) {
+  var m = Number(mood || 0);
+  var s = NOTE_STICKERS[m];
+  if (!s) return '';
+  if (s.src) return '<div class="note-sticker-big"><img src="' + escAttr(s.src) + '" alt="' + m + '"></div>';
+  return '<div class="note-sticker-big" style="background:' + s.color + ';" title="团子 ' + m + '">' + m + '</div>';
+}
+
 async function openNoteDay(day) {
+  var ns = _notes.notes.filter(function(n) { return n.date === day; });
+  if (!ns.length) return;
   _notes.selected = day;
   renderNotesMonth();
+  var page = document.getElementById('notes-day-page');
   var box = document.getElementById('notes-day');
-  var ns = _notes.notes.filter(function(n) { return n.date === day; });
-  if (!ns.length) { box.innerHTML = ''; return; }
-  box.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:10px;">' + esc(day) + '</div>' + ns.map(function(n) {
+  var wasOpen = _noteDayIsOpen();
+  var scrollY = page.scrollTop;
+  var parts = day.split('-');
+  var wd = ['Sun.', 'Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.'][new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getDay()];
+  document.getElementById('notes-day-title').textContent = parts[0] + '.' + parts[1] + '.' + parts[2];
+  box.innerHTML = ns.map(function(n) {
     var byId = {};
     (n.comments || []).forEach(function(c) { byId[c.id] = c; });
     var comments = (n.comments || []).filter(function(c) { return !c.deleted; }).map(function(c) {
@@ -6747,23 +6786,32 @@ async function openNoteDay(day) {
         (c.author === 'user' ? '<a href="javascript:void(0)" style="font-size:11px;color:var(--text-dim);margin-left:12px;" data-note="' + escAttr(n.id) + '" data-comment="' + escAttr(c.id) + '" onclick="deleteNoteComment(this)">删除</a>' : '') +
       '</div>';
     }).join('');
-    return '<div class="note-card">' +
-      '<div style="display:flex;gap:10px;align-items:flex-start;">' + _noteSticker(n.mood, 'note-sticker') +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:11px;color:var(--text-dim);">' + esc(_noteTime(n.created)) + (Number(n.mood) ? ' · 团子 ' + esc(n.mood) : '') + '</div>' +
-          '<div style="font-size:13.5px;line-height:1.8;white-space:pre-wrap;margin-top:2px;">' + esc(n.content) + '</div>' +
+    return '<div class="note-box">' +
+        '<div class="note-box-top">' +
+          '<div class="note-box-date"><div class="wd">' + wd + '</div><div class="md">' + esc(parts[1] + '.' + parts[2]) + '</div></div>' +
+          '<div class="note-box-time">' + esc(_noteTime(n.created)) + '</div>' +
         '</div>' +
+        _noteBigSticker(n.mood) +
+        '<div class="note-box-text">' + esc(n.content) + '</div>' +
       '</div>' +
-      comments +
-      '<div style="margin-top:10px;">' +
-        '<div id="note-replying-' + escAttr(n.id) + '" style="font-size:11px;color:var(--text-dim);display:none;margin-bottom:4px;"></div>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<textarea id="note-input-' + escAttr(n.id) + '" rows="1" maxlength="1000" placeholder="评论一下…" style="flex:1;padding:6px 10px;font-size:12.5px;resize:vertical;"></textarea>' +
-          '<button class="btn-primary" data-note="' + escAttr(n.id) + '" onclick="postNoteComment(this.dataset.note)" style="padding:6px 14px;font-size:12px;">发</button>' +
+      '<div class="note-thread">' +
+        comments +
+        '<div style="margin-top:10px;">' +
+          '<div id="note-replying-' + escAttr(n.id) + '" style="font-size:11px;color:var(--text-dim);display:none;margin-bottom:4px;"></div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<textarea id="note-input-' + escAttr(n.id) + '" rows="1" maxlength="1000" placeholder="评论一下…" style="flex:1;padding:6px 10px;font-size:12.5px;resize:vertical;"></textarea>' +
+            '<button class="btn-primary" data-note="' + escAttr(n.id) + '" onclick="postNoteComment(this.dataset.note)" style="padding:6px 14px;font-size:12px;">发</button>' +
+          '</div>' +
         '</div>' +
-      '</div>' +
-    '</div>';
+      '</div>';
   }).join('');
+  if (!wasOpen) {
+    page.style.display = '';
+    page.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  } else {
+    page.scrollTop = scrollY;   // 发完评论重画时别跳回顶上
+  }
   // 点开就算看过了：把主人的回复标成已读
   var withNew = ns.filter(function(n) { return (n.comments || []).some(function(c) { return c.author === 'ai' && !c.seen; }); })
     .map(function(n) { return n.id; });
