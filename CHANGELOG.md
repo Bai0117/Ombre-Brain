@@ -11,7 +11,8 @@
   - 存在 vault 根目录 `.notes.json`，和 days / shelf 一样进 GitHub 备份；
     不合并、不压缩、不衰减；小记没有删除入口。
   - 写：`note(content, mood, date)`；读：无参看最近 7 条，`date` 看一天，
-    `month` 看一个月的团子，`note_id` 看一条；回她：`note(note_id, reply, comment_id)`。
+    `month` 看一个月的团子，`note_id` 看一条，`comments=True` 只看她的评论
+    （不管评在哪天的小记下面）；回她：`note(note_id, reply, comment_id)`。
   - 无参 `breath()` 新增「小记」段：最近一条小记，加她还没被我看过的评论，
     提醒一次就清。
   - 后台新增「小记」页：一个月一张格子纸，写过的日子贴团子；点开一天看

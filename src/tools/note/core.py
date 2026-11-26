@@ -346,6 +346,31 @@ def _month_text(month: str) -> str:
     )
 
 
+def _comments_text(limit: int = 15) -> str:
+    """她的评论：不管评在哪天的小记下面，从新到旧。没看过的带 🆕，看完即算看过。"""
+    notes = load_notes()
+    pairs = [
+        (n, c) for n in notes for c in n["comments"]
+        if c.get("author") == "user" and not is_deleted(c)
+    ]
+    if not pairs:
+        return "她还没评论过小记。"
+    pairs.sort(key=lambda nc: str(nc[1].get("created") or ""), reverse=True)
+    shown = pairs[:limit]
+    unseen = sum(1 for _, c in shown if not c.get("seen"))
+    lines = []
+    for n, c in shown:
+        first = " ".join(str(n.get("content", "")).split())[:30]
+        new = " 🆕" if not c.get("seen") else ""
+        lines.append(
+            f"[{c['id']}]{new} {_md(n.get('date', ''))} 的小记 [id={n['id']}]「{first}」下：\n"
+            f"  她：{c.get('content', '')}"
+        )
+    mark_seen("ai", {n["id"] for n, _ in shown})
+    head = f"=== 她的评论（最近 {len(shown)} 条" + (f"，{unseen} 条新的" if unseen else "") + "）==="
+    return head + "\n" + "\n".join(lines) + "\n\n回她：note(note_id=..., reply=\"...\", comment_id=...)。"
+
+
 def _recent_text(limit: int = 7) -> str:
     notes = _ordered(load_notes())[::-1]
     if not notes:
@@ -366,6 +391,7 @@ async def dispatch(
     note_id: str = "",
     reply: str = "",
     comment_id: str = "",
+    comments: bool = False,
 ) -> str:
     content = str(content or "").strip()
     reply = str(reply or "").strip()
@@ -384,6 +410,8 @@ async def dispatch(
             return f"回好了 [{c['id']}]。"
         if comment_id:
             raise ValueError("comment_id 只在回复时用，要和 reply、note_id 一起给")
+        if comments:
+            return _comments_text()
         if note_id:
             note = next((n for n in load_notes() if n["id"] == note_id), None)
             if note is None:

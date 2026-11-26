@@ -162,6 +162,24 @@ async def test_tool_write_read_reply(vault):
 
 
 @pytest.mark.asyncio
+async def test_tool_lists_only_her_comments_across_notes(vault):
+    old = note.add_note("很早以前的", note_date="2026-10-01")
+    for i in range(8):
+        note.add_note(f"新的{i}")
+    assert "她还没评论过小记" in await note.dispatch(comments=True)
+    hers = note.add_comment(old["id"], "user", "翻到老的了")
+    note.add_comment(old["id"], "ai", "我的回复不该出现")
+    typo = note.add_comment(old["id"], "user", "打措字")
+    note.delete_comment(old["id"], typo["id"])
+
+    out = await note.dispatch(comments=True)
+    assert "翻到老的了" in out and "🆕" in out and "1 条新的" in out
+    assert "我的回复不该出现" not in out and "打措字" not in out
+    assert f"[id={old['id']}]" in out and hers["id"] in out
+    assert "🆕" not in await note.dispatch(comments=True)      # 看过一次就不再标新
+
+
+@pytest.mark.asyncio
 async def test_tool_rejects_bad_input(vault):
     with pytest.raises(ToolInputError):
         await note.dispatch(content="x", reply="y")
