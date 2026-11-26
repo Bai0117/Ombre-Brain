@@ -1465,14 +1465,35 @@
   .notes-board-toggle .filter-btn { position:relative; padding:6px 20px; }
   .notes-board-toggle .note-dot { position:absolute; top:2px; right:6px; width:7px; height:7px; border-radius:50%; background:#e5534b; }
   .notes-write-page { z-index:9001; }
-  #notes-write-date { width:100%; box-sizing:border-box; padding:8px 12px; font-size:14px; border-radius:12px !important; }
-  .notes-mood-pick { display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin:16px 0; }
-  .note-mood-opt { aspect-ratio:1; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none;
-    border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-weight:700; font-size:15px; color:#2b2b2b; opacity:.45; }
-  .note-mood-opt img { width:100%; height:100%; object-fit:contain; }
-  .note-mood-opt.on { opacity:1; outline:2px solid var(--text); outline-offset:3px; }
-  #notes-write-text { width:100%; box-sizing:border-box; min-height:180px; resize:vertical; padding:12px 14px;
-    font-size:14px; line-height:1.8; border-radius:14px !important; }
+  /* 底部圆钮：点开团子圈时 + 转 45° 成 × */
+  #notes-fab.notes-fab { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 22px); transform:translateX(-50%) !important;
+    z-index:9003; width:62px !important; height:62px !important; min-width:0 !important; padding:0 !important; border-radius:50% !important;
+    border:2.5px solid var(--text) !important; background:var(--bg) !important; color:var(--text) !important;
+    box-shadow:0 4px 14px rgba(0,0,0,.25) !important; align-items:center; justify-content:center; cursor:pointer; }
+  #notes-fab.notes-fab svg { transition:transform .32s cubic-bezier(.3,1.4,.5,1); }
+  #notes-fab.notes-fab.open svg { transform:rotate(135deg); }
+  .notes-ring-page { position:fixed; inset:0; z-index:9002; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+  .notes-ring-page.over-write { z-index:9004; }
+  .notes-ring { position:relative; width:min(92vw, 420px); aspect-ratio:1; }
+  .notes-ring-ask { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-weight:700; font-size:17px;
+    padding:2px 10px; background:linear-gradient(transparent 55%, var(--g-low, rgba(127,127,127,.15)) 55%); white-space:nowrap; }
+  .note-ring-opt { position:absolute; width:19%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-weight:700; font-size:16px; color:#2b2b2b; user-select:none;
+    transform:translate(-50%,-50%) scale(0); animation:noteRingIn .36s cubic-bezier(.3,1.5,.5,1) forwards; }
+  .note-ring-opt img { width:100%; height:100%; object-fit:contain; }
+  .note-ring-opt.on { outline:2px solid var(--text); outline-offset:3px; }
+  @keyframes noteRingIn { to { transform:translate(-50%,-50%) scale(1); } }
+  .notes-icon-btn { width:44px !important; height:44px !important; min-width:0 !important; padding:0 !important; display:flex !important;
+    align-items:center; justify-content:center; background:transparent !important; border:none !important; box-shadow:none !important; color:var(--text) !important; }
+  #notes-write-page .notes-icon-btn { background:transparent !important; border:none !important; box-shadow:none !important; }
+  .note-write-date { position:relative; cursor:pointer; }
+  .note-write-date input { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+  #notes-write-sticker { cursor:pointer; }
+  .note-sticker-label { text-align:center; font-weight:700; font-size:17px; margin:-6px 0 14px; }
+  .note-sticker-label span { padding:0 8px; background:linear-gradient(transparent 55%, var(--g-low, rgba(127,127,127,.15)) 55%); }
+  #notes-write-page #notes-write-text { width:100%; box-sizing:border-box; min-height:200px; resize:none; padding:4px 2px !important;
+    font-size:14.5px; line-height:1.85; background:transparent !important; border:none !important; box-shadow:none !important; border-radius:0 !important; }
+  #notes-write-page #notes-write-text:focus { box-shadow:none !important; background:transparent !important; }
   .note-box-tools { font-size:12px; color:var(--text-dim); text-align:right; }
   .note-box-tools a { color:var(--text-dim); margin-left:10px; }
   .note-box.is-target { box-shadow:0 0 0 3px var(--border-strong, var(--border)); }
@@ -2976,33 +2997,47 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <button class="btn-secondary" onclick="notesShiftMonth(1)" style="padding:4px 10px;" title="下个月">›</button>
       </div>
       <div id="notes-grid" class="notes-grid"></div>
-      <div id="notes-write-row" style="display:none;text-align:center;margin-top:18px;">
-        <button class="btn-primary" onclick="openNoteWrite()" style="padding:8px 22px;">写一条</button>
-      </div>
+      <div id="notes-fab-spacer" style="display:none;height:96px;"></div>
     </div>
   </div>
 </div>
 
-<!-- 小记·写一条（她的板）：选日子、贴团子、写正文；改的时候也是这一页 -->
+<!-- 小记·她的板：底部圆钮。点一下转成 ×，弹出团子圈选心情；选完进写一条 -->
+<button id="notes-fab" class="notes-fab" style="display:none" onclick="toggleNoteRing()" aria-label="写一条" title="写一条">
+  <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+</button>
+<div id="notes-ring-page" class="notes-ring-page" style="display:none" role="dialog" aria-modal="true">
+  <div id="notes-ring" class="notes-ring">
+    <div class="notes-ring-ask">今天怎么样？</div>
+  </div>
+</div>
+
+<!-- 小记·写一条（她的板）：一个框里是日子、大团子、团子名、正文；× 不写了，✓ 贴上。改的时候也是这一页 -->
 <div id="notes-write-page" class="notes-day-page notes-write-page" style="display:none" role="dialog" aria-modal="true">
   <div class="notes-day-head">
-    <button class="btn-secondary" onclick="closeNoteWrite()" title="不写了" style="padding:4px 12px;font-size:16px;">‹</button>
-    <div id="notes-write-title" style="font-weight:700;font-size:16px;">写一条</div>
-    <span style="width:44px;"></span>
+    <button class="notes-icon-btn" onclick="closeNoteWrite()" title="不写了" aria-label="不写了">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div id="notes-write-title" style="font-weight:700;font-size:15px;color:var(--text-dim);"></div>
+    <button class="notes-icon-btn" onclick="saveNoteWrite()" title="贴上" aria-label="贴上">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </div>
   <div class="notes-day-body">
-    <div class="note-box">
-      <input id="notes-write-date" type="date" />
-      <div id="notes-write-moods" class="notes-mood-pick"></div>
+    <div class="note-box note-write-box">
+      <div class="note-box-top">
+        <label class="note-box-date note-write-date" title="换个日子">
+          <div class="wd" id="notes-write-wd"></div><div class="md" id="notes-write-md"></div>
+          <input id="notes-write-date" type="date" onchange="noteWriteDateChanged()" />
+        </label>
+      </div>
+      <div id="notes-write-sticker" onclick="openNoteRing('change')" title="换个团子"></div>
       <textarea id="notes-write-text" rows="8" maxlength="2000" placeholder="今天的小蘑菇怎么样？"></textarea>
-    </div>
-    <div style="text-align:center;margin-top:20px;">
-      <button class="btn-primary" onclick="saveNoteWrite()" style="padding:9px 30px;">贴上</button>
     </div>
   </div>
 </div>
 
-<!-- 小记·一天：点格子打开的一整页，只放这一天；几条各占一个框 -->
+<!-- 小记·一天：点格子打开的一整页，只放这一天；几条各占一个框 --><!-- 小记·一天：点格子打开的一整页，只放这一天；几条各占一个框 -->
 <div id="notes-day-page" class="notes-day-page" style="display:none" role="dialog" aria-modal="true">
   <div class="notes-day-head">
     <button class="btn-secondary" onclick="closeNoteDay()" title="回到月历" style="padding:4px 12px;font-size:16px;">‹</button>
@@ -6010,6 +6045,7 @@ function activateDashboardTab(tab) {
     if (target === 'keepsake') pending.push(loadKeepsakeView());
     if (target === 'days') pending.push(loadDaysView());
     if (target === 'notes') pending.push(loadNotesView());
+    if (typeof _notesSyncFab === 'function') _notesSyncFab();
     if (target === 'shelf') pending.push(loadShelfView());
     if (target === 'album') pending.push(loadAlbumView());
     if (target === 'dupes') pending.push(loadDupesView());
@@ -6742,18 +6778,19 @@ async function deleteAlbumPhoto() {
 
 // ---------------- 书架 ----------------
 // ===================== 小记 =====================
-// 团子：1~10 各一张。现在是占位的颜色团，等她画好了把 src 填上（图片地址或 data: URL）就会换成画。
+// 团子：1~10 各一张。现在是占位的颜色团，等她画好了把 src 填上（图片地址或 data: URL）就会换成画；
+// label 是团子的名字（比如「心动」），写小记时显示在大团子下面，空着就不显示。
 var NOTE_STICKERS = {
-  1:  { color: '#6f8190', src: '' },
-  2:  { color: '#8fa3b4', src: '' },
-  3:  { color: '#aebccb', src: '' },
-  4:  { color: '#c9cbd6', src: '' },
-  5:  { color: '#d4d6c4', src: '' },
-  6:  { color: '#a9c9b4', src: '' },
-  7:  { color: '#f2c6c6', src: '' },
-  8:  { color: '#f6d58a', src: '' },
-  9:  { color: '#f9c74f', src: '' },
-  10: { color: '#ffe066', src: '' }
+  1:  { color: '#6f8190', src: '', label: '' },
+  2:  { color: '#8fa3b4', src: '', label: '' },
+  3:  { color: '#aebccb', src: '', label: '' },
+  4:  { color: '#c9cbd6', src: '', label: '' },
+  5:  { color: '#d4d6c4', src: '', label: '' },
+  6:  { color: '#a9c9b4', src: '', label: '' },
+  7:  { color: '#f2c6c6', src: '', label: '' },
+  8:  { color: '#f6d58a', src: '', label: '' },
+  9:  { color: '#f9c74f', src: '', label: '' },
+  10: { color: '#ffe066', src: '', label: '' }
 };
 var _notes = { year: 0, month: 0, notes: [], selected: '', whose: 'ai', unseen: {} };
 
@@ -6776,7 +6813,7 @@ function _notesRenderChrome() {
     if (_notes.unseen[w] && !dot) b.insertAdjacentHTML('beforeend', '<span class="note-dot"></span>');
     if (!_notes.unseen[w] && dot) dot.remove();
   });
-  document.getElementById('notes-write-row').style.display = _notes.whose === 'user' ? '' : 'none';
+  _notesSyncFab();
   var tip = document.getElementById('notes-unseen');
   var k = _notes.unseen[_notes.whose] || 0;
   if (k) { tip.style.display = ''; tip.textContent = '主人回了你 ' + k + ' 条，带小红点的那天去看看。'; }
@@ -6854,11 +6891,13 @@ function closeNoteDay() {
   document.body.style.overflow = '';
   _notes.selected = '';
   renderNotesMonth();
+  _notesSyncFab();
 }
 
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
-  if (document.getElementById('notes-write-page').style.display !== 'none') closeNoteWrite();
+  if (document.getElementById('notes-ring-page').style.display !== 'none') closeNoteRing();
+  else if (document.getElementById('notes-write-page').style.display !== 'none') closeNoteWrite();
   else closeNoteDay();
 });
 
@@ -6866,8 +6905,9 @@ function _noteBigSticker(mood) {
   var m = Number(mood || 0);
   var s = NOTE_STICKERS[m];
   if (!s) return '';
-  if (s.src) return '<div class="note-sticker-big"><img src="' + escAttr(s.src) + '" alt="' + m + '"></div>';
-  return '<div class="note-sticker-big" style="background:' + s.color + ';" title="团子 ' + m + '">' + m + '</div>';
+  var label = s.label ? '<div class="note-sticker-label"><span>' + esc(s.label) + '</span></div>' : '';
+  if (s.src) return '<div class="note-sticker-big"><img src="' + escAttr(s.src) + '" alt="' + m + '"></div>' + label;
+  return '<div class="note-sticker-big" style="background:' + s.color + ';" title="团子 ' + m + '">' + m + '</div>' + label;
 }
 
 async function openNoteDay(day) {
@@ -6921,6 +6961,7 @@ async function openNoteDay(day) {
     page.style.display = '';
     page.scrollTop = 0;
     document.body.style.overflow = 'hidden';
+    _notesSyncFab();
   } else {
     page.scrollTop = scrollY;   // 发完评论重画时别跳回顶上
   }
@@ -6995,51 +7036,119 @@ async function deleteNoteComment(el) {
   }
 }
 
-// ---------- 她的板：写一条 / 改一条 / 删一条 ----------
+// ---------- 她的板：圆钮 → 团子圈 → 写一条；改一条直接进写一条 ----------
 var _noteWrite = { id: '', mood: 0 };
+var _noteRingMode = 'new';   // new：选完进写一条；change：在写一条里换团子
 
 function _notesTodayKey() {
   var now = new Date();
   return now.getFullYear() + '-' + _notesPad(now.getMonth() + 1) + '-' + _notesPad(now.getDate());
 }
 
-function _noteRenderMoodPick() {
-  var cells = [];
+// 圆钮只在「我的」板、小记页开着、没在写的时候出现
+function _notesSyncFab() {
+  var fab = document.getElementById('notes-fab');
+  var view = document.getElementById('notes-view');
+  var writing = document.getElementById('notes-write-page').style.display !== 'none';
+  var show = _notes.whose === 'user' && view && view.style.display !== 'none' && !_noteDayIsOpen() && !writing;
+  fab.style.display = show ? 'flex' : 'none';
+  document.getElementById('notes-fab-spacer').style.display = _notes.whose === 'user' ? '' : 'none';
+}
+
+function toggleNoteRing() {
+  if (document.getElementById('notes-ring-page').style.display !== 'none') closeNoteRing();
+  else openNoteRing('new');
+}
+
+function openNoteRing(mode) {
+  _noteRingMode = mode || 'new';
+  var page = document.getElementById('notes-ring-page');
+  var ring = document.getElementById('notes-ring');
+  ring.querySelectorAll('.note-ring-opt').forEach(function(x) { x.remove(); });
+  var current = _noteRingMode === 'change' ? _noteWrite.mood : 0;
   for (var m = 1; m <= 10; m++) {
     var st = NOTE_STICKERS[m];
-    var face = st.src ? '<img src="' + escAttr(st.src) + '" alt="' + m + '">' : String(m);
-    cells.push('<div class="note-mood-opt' + (m === _noteWrite.mood ? ' on' : '') + '" data-m="' + m + '" style="background:' +
-      (st.src ? 'transparent' : st.color) + ';" onclick="notePickMood(Number(this.dataset.m))" title="团子 ' + m + '">' + face + '</div>');
+    var a = (-90 + (m - 1) * 36) * Math.PI / 180;   // 从正上方顺时针一圈
+    var el = document.createElement('div');
+    el.className = 'note-ring-opt' + (m === current ? ' on' : '');
+    el.dataset.m = m;
+    el.title = st.label || ('团子 ' + m);
+    el.style.left = (50 + 38 * Math.cos(a)) + '%';
+    el.style.top = (50 + 38 * Math.sin(a)) + '%';
+    el.style.background = st.src ? 'transparent' : st.color;
+    el.style.animationDelay = ((m - 1) * 0.025) + 's';
+    el.innerHTML = st.src ? '<img src="' + escAttr(st.src) + '" alt="' + m + '">' : String(m);
+    el.onclick = function() { noteRingPick(Number(this.dataset.m)); };
+    ring.appendChild(el);
   }
-  document.getElementById('notes-write-moods').innerHTML = cells.join('');
+  page.classList.toggle('over-write', _noteRingMode === 'change');
+  page.style.display = '';
+  document.getElementById('notes-fab').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
-function notePickMood(m) {
-  _noteWrite.mood = (_noteWrite.mood === m) ? 0 : m;   // 再点一下就是不贴
-  _noteRenderMoodPick();
+function closeNoteRing() {
+  document.getElementById('notes-ring-page').style.display = 'none';
+  document.getElementById('notes-fab').classList.remove('open');
+  if (!_noteDayIsOpen() && document.getElementById('notes-write-page').style.display === 'none') document.body.style.overflow = '';
 }
 
-function openNoteWrite(nid) {
+function noteRingPick(m) {
+  if (_noteRingMode === 'change') {
+    _noteWrite.mood = m;
+    _noteRenderWriteSticker();
+    closeNoteRing();
+    return;
+  }
+  closeNoteRing();
+  openNoteWrite('', m);
+}
+
+function _noteRenderWriteSticker() {
+  document.getElementById('notes-write-sticker').innerHTML = _noteWrite.mood
+    ? _noteBigSticker(_noteWrite.mood)
+    : '<div class="note-sticker-big" style="border:2px dashed var(--border);color:var(--text-dim);font-size:14px;font-weight:500;">贴一个</div>';
+}
+
+function _noteRenderWriteDate(day) {
+  var p = day.split('-');
+  var wd = ['Sun.', 'Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.'][new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay()];
+  document.getElementById('notes-write-wd').textContent = wd;
+  document.getElementById('notes-write-md').textContent = p[1] + '.' + p[2];
+}
+
+function noteWriteDateChanged() {
+  var el = document.getElementById('notes-write-date');
+  if (!el.value) el.value = _notesTodayKey();
+  if (el.value > _notesTodayKey()) el.value = _notesTodayKey();   // 不写明天
+  _noteRenderWriteDate(el.value);
+}
+
+function openNoteWrite(nid, mood) {
   var n = nid ? _notes.notes.filter(function(x) { return x.id === nid; })[0] : null;
-  _noteWrite = { id: n ? n.id : '', mood: n ? Number(n.mood || 0) : 0 };
-  document.getElementById('notes-write-title').textContent = n ? '改一条' : '写一条';
+  _noteWrite = { id: n ? n.id : '', mood: n ? Number(n.mood || 0) : Number(mood || 0) };
+  document.getElementById('notes-write-title').textContent = n ? '改一条' : '';
+  var day = n ? n.date : (_notes.selected && _notes.whose === 'user' ? _notes.selected : _notesTodayKey());
   var dateEl = document.getElementById('notes-write-date');
   dateEl.max = _notesTodayKey();
-  dateEl.value = n ? n.date : (_notes.selected && _notes.whose === 'user' ? _notes.selected : _notesTodayKey());
+  dateEl.value = day;
+  _noteRenderWriteDate(day);
+  _noteRenderWriteSticker();
   document.getElementById('notes-write-text').value = n ? n.content : '';
-  _noteRenderMoodPick();
   document.getElementById('notes-write-page').style.display = '';
   document.body.style.overflow = 'hidden';
+  _notesSyncFab();
 }
 
 function closeNoteWrite() {
   document.getElementById('notes-write-page').style.display = 'none';
   if (!_noteDayIsOpen()) document.body.style.overflow = '';
+  _notesSyncFab();
 }
 
 async function saveNoteWrite() {
   var content = (document.getElementById('notes-write-text').value || '').trim();
-  var day = document.getElementById('notes-write-date').value;
+  var day = document.getElementById('notes-write-date').value || _notesTodayKey();
   if (!content) { alert('还没写呢'); return; }
   var body = JSON.stringify({ content: content, mood: _noteWrite.mood, date: day });
   try {
