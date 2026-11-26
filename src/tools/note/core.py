@@ -128,8 +128,12 @@ def _clean_date(value: str) -> str:
     return d.isoformat()
 
 
-def _sort_key(n: dict):
-    return (str(n.get("date") or ""), str(n.get("created") or ""))
+def _ordered(notes: list[dict]) -> list[dict]:
+    """从旧到新。同一天同一秒写下的几条，按写入文件的先后排（created 只精确到秒）。"""
+    return [n for _, n in sorted(
+        enumerate(notes),
+        key=lambda pair: (str(pair[1].get("date") or ""), str(pair[1].get("created") or ""), pair[0]),
+    )]
 
 
 def add_note(content: str, mood=0, note_date: str = "") -> dict:
@@ -269,7 +273,7 @@ def notes_section() -> str:
         notes = load_notes()
         if not notes:
             return ""
-        latest = max(notes, key=_sort_key)
+        latest = _ordered(notes)[-1]
         content = str(latest.get("content") or "")
         if len(content) > _SECTION_PREVIEW:
             content = content[:_SECTION_PREVIEW] + f"…（全文 note(note_id=\"{latest['id']}\")）"
@@ -289,7 +293,7 @@ def notes_section() -> str:
 
 
 def _day_text(day: str) -> str:
-    notes = sorted((n for n in load_notes() if n.get("date") == day), key=_sort_key)
+    notes = _ordered([n for n in load_notes() if n.get("date") == day])
     if not notes:
         return f"{day} 没有小记。"
     mark_seen("ai", {n["id"] for n in notes})
@@ -297,7 +301,7 @@ def _day_text(day: str) -> str:
 
 
 def _month_text(month: str) -> str:
-    notes = sorted((n for n in load_notes() if str(n.get("date", "")).startswith(month)), key=_sort_key)
+    notes = _ordered([n for n in load_notes() if str(n.get("date", "")).startswith(month)])
     if not notes:
         return f"{month} 一条小记都没有。"
     by_day: dict[str, list[dict]] = {}
@@ -316,7 +320,7 @@ def _month_text(month: str) -> str:
 
 
 def _recent_text(limit: int = 7) -> str:
-    notes = sorted(load_notes(), key=_sort_key, reverse=True)
+    notes = _ordered(load_notes())[::-1]
     if not notes:
         return (
             "还没写过小记。想到什么就 note(content=\"...\", mood=1~10)；"

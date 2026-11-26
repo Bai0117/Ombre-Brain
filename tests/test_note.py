@@ -93,6 +93,24 @@ def test_breath_section_shows_latest_and_nags_once(vault):
     assert "今天的" in second and "那天怎么了" not in second
 
 
+def test_same_second_notes_keep_write_order(vault, monkeypatch):
+    fixed = note_core._now()
+    monkeypatch.setattr(note_core, "_now", lambda: fixed)
+    note.add_note("先写的", mood=7)
+    note.add_note("后写的", mood=3)
+    assert "后写的" in note.notes_section()
+
+
+@pytest.mark.asyncio
+async def test_recent_lists_newest_first_within_same_second(vault, monkeypatch):
+    fixed = note_core._now()
+    monkeypatch.setattr(note_core, "_now", lambda: fixed)
+    note.add_note("先写的")
+    note.add_note("后写的")
+    out = await note.dispatch()
+    assert out.index("后写的") < out.index("先写的")
+
+
 def test_breath_section_empty_without_notes(vault):
     assert note.notes_section() == ""
 

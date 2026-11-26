@@ -42,6 +42,7 @@ def register(mcp) -> None:
         )
         if month:
             notes = [n for n in notes if str(n.get("date", "")).startswith(month)]
+        # 同一秒写下的几条按写入先后排；文件里本来就是写入顺序，稳定排序会保住它。
         notes.sort(key=lambda n: (str(n.get("date") or ""), str(n.get("created") or "")))
         return JSONResponse({
             "notes": notes,
