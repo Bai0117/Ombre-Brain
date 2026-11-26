@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "b0367404ee8c772ede24f4c293cc47a7ff98e9121c8c9ee82cb29ac7aa6152b5",
-      "size": 660610
+      "sha256": "a4eb428472b36f4970eb10e72f660e4fcc91cfb9e49547de02c5f78fd8d405e3",
+      "size": 662187
     },
     {
       "path": "frontend/favicon-64.png",
@@ -59,6 +59,11 @@
       "path": "frontend/stickers/sticker-her-2.png",
       "sha256": "e4bc803d5f5578757531e5a8603c7437cacfd6bea6bb12c9358ed0d69d008c3a",
       "size": 111501
+    },
+    {
+      "path": "frontend/stickers/sticker-his-2.png",
+      "sha256": "2dd554fa9d86448cd8b65c620ec8a5269f288583d782d84f38e6ebb42cda1d88",
+      "size": 90296
     },
     {
       "path": "frontend/title-font-OFL.txt",

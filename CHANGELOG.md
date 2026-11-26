@@ -29,7 +29,8 @@
     自己的能改（旧版本留在 history）能删（只改可见性）。
   - **团子分两套**：她的板用她画的，他的板用给他画的（`NOTE_STICKERS_BY_BOARD`），
     没画的号先用颜色占位。图放 `frontend/stickers/sticker-her-<号>.png` /
-    `sticker-his-<号>.png`，`/static/` 只认这个格式的名字。她画的第一个：她的 2 号（大哭）。我用 `note(her=True)`（配 `date` / `month`）看她的板，用
+    `sticker-his-<号>.png`，`/static/` 只认这个格式的名字。她画的第一批：她的 2 号（大哭）、他的 2 号（章鱼，安静往下看）。
+    她的框右下角是线条小图标：笔（跟字色）和红色垃圾桶。我用 `note(her=True)`（配 `date` / `month`）看她的板，用
     `note(note_id, reply)` 评论；`comments=True` 两块板都算。她写了新的或改过的，
     无参 `breath()` 提醒一次。后台新增 `POST /api/notes`、
     `PATCH/DELETE /api/notes/{id}`，都只作用在她自己的板上。

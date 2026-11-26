@@ -1497,7 +1497,14 @@
     font-size:14.5px; line-height:1.85; background:transparent !important; border:none !important; box-shadow:none !important; border-radius:0 !important; }
   #notes-write-page #notes-write-text:focus { box-shadow:none !important; background:transparent !important; }
   .note-box-tools { font-size:12px; color:var(--text-dim); text-align:right; }
-  .note-box-tools a { color:var(--text-dim); margin-left:10px; }
+  /* 框右下角的改 / 删：线条小图标，笔跟着字色（暗色白、白天黑），垃圾桶红色 */
+  .note-box-actions { display:flex; justify-content:flex-end; gap:6px; margin:8px -6px -8px 0; }
+  #notes-day-page button.note-act { width:32px !important; height:32px !important; min-width:0 !important; padding:0 !important;
+    display:flex !important; align-items:center; justify-content:center; background:transparent !important; border:none !important;
+    box-shadow:none !important; border-radius:50% !important; cursor:pointer; }
+  #notes-day-page button.note-act-edit { color:var(--text) !important; }
+  #notes-day-page button.note-act-del { color:#e5534b !important; }
+  #notes-day-page button.note-act:active { background:var(--g-low, rgba(127,127,127,.15)) !important; transform:none !important; }
   .note-box.is-target { box-shadow:0 0 0 3px var(--border-strong, var(--border)); }
   .notes-day-page { display:flex; flex-direction:column; }
   .notes-day-body { flex:1 0 auto; width:100%; box-sizing:border-box; }
@@ -6800,7 +6807,9 @@ var NOTE_STICKERS_BY_BOARD = {
   user: {
     2: { src: '/static/sticker-her-2.png', label: '' }
   },
-  ai: {}
+  ai: {
+    2: { src: '/static/sticker-his-2.png', label: '' }
+  }
 };
 function _noteSticker(m, whose) {
   var base = NOTE_STICKERS[m];
@@ -6960,15 +6969,20 @@ async function openNoteDay(day) {
     return '<div class="note-box' + (n.id === _noteCompose.noteId && ns.length > 1 ? ' is-target' : '') + '" data-note="' + escAttr(n.id) + '" onclick="noteSetTarget(this.dataset.note)">' +
         '<div class="note-box-top">' +
           '<div class="note-box-date"><div class="wd">' + wd + '</div><div class="md">' + esc(parts[1] + '.' + parts[2]) + '</div></div>' +
-          '<div class="note-box-tools">' + esc(_noteTime(n.created)) + (n.edited ? ' · 改过' : '') +
-            ((n.author || 'ai') === 'user'
-              ? '<br><a href="javascript:void(0)" data-note="' + escAttr(n.id) + '" onclick="event.stopPropagation();openNoteWrite(this.dataset.note)">改</a>' +
-                '<a href="javascript:void(0)" data-note="' + escAttr(n.id) + '" onclick="event.stopPropagation();deleteOwnNote(this.dataset.note)">删</a>'
-              : '') +
-          '</div>' +
+          '<div class="note-box-tools">' + esc(_noteTime(n.created)) + (n.edited ? ' · 改过' : '') + '</div>' +
         '</div>' +
         _noteBigSticker(n.mood, n.author || 'ai') +
         '<div class="note-box-text">' + esc(n.content) + '</div>' +
+        ((n.author || 'ai') === 'user'
+          ? '<div class="note-box-actions">' +
+              '<button class="note-act note-act-edit" data-note="' + escAttr(n.id) + '" onclick="event.stopPropagation();openNoteWrite(this.dataset.note)" title="改" aria-label="改">' +
+                '<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 20l1-4.2L15.8 5a2 2 0 0 1 2.8 0l.4.4a2 2 0 0 1 0 2.8L8.2 19 4 20zM14 7l3 3M4 20h6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+              '</button>' +
+              '<button class="note-act note-act-del" data-note="' + escAttr(n.id) + '" onclick="event.stopPropagation();deleteOwnNote(this.dataset.note)" title="删" aria-label="删">' +
+                '<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7h16M9.5 7V4.8h5V7M6 7l1 12.2a1.8 1.8 0 0 0 1.8 1.6h6.4a1.8 1.8 0 0 0 1.8-1.6L18 7M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+              '</button>' +
+            '</div>'
+          : '') +
       '</div>' +
       '<div class="note-thread">' + comments + '</div>';
   }).join('');
