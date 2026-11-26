@@ -111,6 +111,25 @@ async def test_recent_lists_newest_first_within_same_second(vault, monkeypatch):
     assert out.index("后写的") < out.index("先写的")
 
 
+def test_deleted_comment_is_hidden_but_kept(vault):
+    n = note.add_note("x")
+    typo = note.add_comment(n["id"], "user", "打措字了")
+    reply = note.add_comment(n["id"], "ai", "错字我也喜欢", reply_to=typo["id"])
+    with pytest.raises(PermissionError):
+        note.delete_comment(n["id"], reply["id"], "user")
+    note.delete_comment(n["id"], typo["id"], "user")
+    with pytest.raises(LookupError):
+        note.delete_comment(n["id"], typo["id"], "user")
+    with pytest.raises(LookupError):
+        note.add_comment(n["id"], "ai", "回一条删掉的", reply_to=typo["id"])
+
+    stored = _stored(vault)[0]["comments"][0]
+    assert stored["deleted"] is True and stored["content"] == "打措字了"   # 原文还在
+    shown = note_core._render(note.load_notes()[0])
+    assert "打措字了" not in shown and "（那条她删了）" in shown
+    assert "打措字了" not in note.notes_section()                        # 删了的不再提醒
+
+
 def test_breath_section_empty_without_notes(vault):
     assert note.notes_section() == ""
 
@@ -236,7 +255,19 @@ async def test_dashboard_api(vault, monkeypatch):
     body = json.loads((await listing(_Req(query={"month": month}))).body)
     assert body["unseen_replies"] == 0
 
-    # 后台没有写小记、删小记的入口
+    # 后台没有写小记、删小记的入口；能删的只有她自己的评论
     assert ("POST", "/api/notes") not in mcp.routes
-    assert not any(method == "DELETE" for method, _ in mcp.routes)
+    assert [path for method, path in mcp.routes if method == "DELETE"] == [
+        "/api/notes/{note_id}/comments/{comment_id}"
+    ]
+
+    delete = mcp.routes[("DELETE", "/api/notes/{note_id}/comments/{comment_id}")]
+    hers = json.loads(res.body)["comment"]["id"]
+    mine = next(c["id"] for c in note.load_notes()[0]["comments"] if c["author"] == "ai")
+    assert (await delete(_Req("DELETE", path_params={"note_id": n["id"], "comment_id": mine}))).status_code == 403
+    assert json.loads((await delete(_Req("DELETE", path_params={"note_id": n["id"], "comment_id": hers}))).body)["ok"]
+    assert (await delete(_Req("DELETE", path_params={"note_id": n["id"], "comment_id": hers}))).status_code == 404
+    shown = json.loads((await listing(_Req(query={"month": month}))).body)["notes"][0]["comments"]
+    gone = next(c for c in shown if c["id"] == hers)
+    assert gone["deleted"] is True and gone["content"] == ""      # 原文不发给页面
 

@@ -21,17 +21,20 @@ tools/note/core.py — 小记
     reply_to  回的是哪条评论的 id（空 = 直接评论这条小记）
     seen      对方看过没有：她的评论我在 breath / note 里看到一次就算看过；
               我的回复她在后台点开那天就算看过
+    deleted   她删掉了自己的这条评论（只有她能删她自己的）：从此两边都看不见，
+              原文仍留在文件里——只改可见性，不抹去（呼应 rule.md 第 1、9 条）
 
 规矩：
 - 小记只有我能写；她能看、能评论、能回我的回复。
-- 小记和评论都不合并、不压缩、不衰减，也没有删除入口——写下的就留着。
+- 小记和评论都不合并、不压缩、不衰减。小记没有删除入口；她可以删掉
+  自己打错的评论，删了就看不见，原文仍留在文件里。
 - 不进普通 breath 浮现和 dream；无参 breath 的「小记」段只带最近一条，
   外加她还没被我看过的评论，看过一次就不再提。
 
 进 GitHub 备份（github_sync 的 sidecar 白名单）。
 
 对外暴露：MOOD_MIN / MOOD_MAX / load_notes / add_note / add_comment /
-          mark_seen / notes_section / dispatch
+          delete_comment / is_deleted / mark_seen / notes_section / dispatch
 ========================================
 """
 
@@ -174,7 +177,7 @@ def add_comment(note_id: str, author: str, content: str, reply_to: str = "") -> 
         note = next((n for n in notes if n["id"] == str(note_id or "").strip()), None)
         if note is None:
             raise LookupError(f"没有 id 是 {note_id} 的小记")
-        if reply_to and not any(c.get("id") == reply_to for c in note["comments"]):
+        if reply_to and not any(c.get("id") == reply_to and not is_deleted(c) for c in note["comments"]):
             raise LookupError(f"这条小记下面没有 id 是 {reply_to} 的评论")
         comment = {
             "id": "c_" + secrets.token_hex(3),
@@ -185,6 +188,28 @@ def add_comment(note_id: str, author: str, content: str, reply_to: str = "") -> 
             "seen": False,
         }
         note["comments"].append(comment)
+        _save_all(notes)
+    return comment
+
+
+def is_deleted(comment: dict) -> bool:
+    return bool(comment.get("deleted"))
+
+
+def delete_comment(note_id: str, comment_id: str, author: str = "user") -> dict:
+    """删掉一条评论：只能删自己写的。删了两边都看不见，原文留在文件里。"""
+    with _LOCK:
+        notes = load_notes()
+        note = next((n for n in notes if n["id"] == str(note_id or "").strip()), None)
+        if note is None:
+            raise LookupError(f"没有 id 是 {note_id} 的小记")
+        comment = next((c for c in note["comments"] if c.get("id") == str(comment_id or "").strip()), None)
+        if comment is None or is_deleted(comment):
+            raise LookupError(f"这条小记下面没有 id 是 {comment_id} 的评论")
+        if comment.get("author") != author:
+            raise PermissionError("只能删自己写的评论")
+        comment["deleted"] = True
+        comment["deleted_at"] = _now().isoformat(timespec="seconds")
         _save_all(notes)
     return comment
 
@@ -215,7 +240,7 @@ def _unseen_from_user(notes: list[dict]) -> list[tuple[dict, dict]]:
     out = []
     for n in notes:
         for c in n["comments"]:
-            if c.get("author") == "user" and not c.get("seen"):
+            if c.get("author") == "user" and not c.get("seen") and not is_deleted(c):
                 out.append((n, c))
     out.sort(key=lambda nc: str(nc[1].get("created") or ""))
     return out
@@ -247,10 +272,12 @@ def _comment_lines(note: dict) -> list[str]:
     by_id = {c.get("id"): c for c in note["comments"]}
     lines = []
     for c in note["comments"]:
+        if is_deleted(c):
+            continue
         head = f"  💬 [{c.get('id')}] {_who(c.get('author'))}"
         target = by_id.get(c.get("reply_to") or "")
         if target is not None:
-            head += f" 回{_who(target.get('author'))}"
+            head += f" 回{_who(target.get('author'))}" + ("（那条她删了）" if is_deleted(target) else "")
         new = " 🆕" if c.get("author") == "user" and not c.get("seen") else ""
         lines.append(f"{head}{new}：{c.get('content', '')}")
     return lines
@@ -259,7 +286,7 @@ def _comment_lines(note: dict) -> list[str]:
 def _render(note: dict, with_comments: bool = True) -> str:
     head = f"[id={note['id']}] {_md(note.get('date', ''))} · {_mood_label(note.get('mood'))}"
     out = [head, note.get("content", "")]
-    if with_comments and note["comments"]:
+    if with_comments and any(not is_deleted(c) for c in note["comments"]):
         out += _comment_lines(note)
     return "\n".join(out)
 
@@ -311,7 +338,7 @@ def _month_text(month: str) -> str:
     for day, ns in by_day.items():
         moods = " ".join(str(int(n.get("mood") or 0)) for n in ns)
         first = " ".join(str(ns[-1].get("content", "")).split())[:40]
-        talk = sum(len(n["comments"]) for n in ns)
+        talk = sum(1 for n in ns for c in n["comments"] if not is_deleted(c))
         rows.append(f"{_md(day)}  团子 {moods}  {first}" + (f"  💬{talk}" if talk else ""))
     return (
         f"=== {month}：{len(by_day)} 天写了 {len(notes)} 条 ===\n" + "\n".join(rows)

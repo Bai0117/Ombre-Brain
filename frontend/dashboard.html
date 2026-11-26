@@ -6734,9 +6734,9 @@ async function openNoteDay(day) {
   box.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:10px;">' + esc(day) + '</div>' + ns.map(function(n) {
     var byId = {};
     (n.comments || []).forEach(function(c) { byId[c.id] = c; });
-    var comments = (n.comments || []).map(function(c) {
+    var comments = (n.comments || []).filter(function(c) { return !c.deleted; }).map(function(c) {
       var target = c.reply_to ? byId[c.reply_to] : null;
-      var head = _noteWho(c.author) + (target ? ' 回 ' + _noteWho(target.author) : '');
+      var head = _noteWho(c.author) + (target ? ' 回 ' + _noteWho(target.author) + (target.deleted ? '（已删）' : '') : '');
       var isNew = c.author === 'ai' && !c.seen;
       return '<div class="note-comment' + (c.author === 'ai' ? ' from-ai' : '') + '">' +
         '<span style="font-weight:600;">' + esc(head) + '</span>' +
@@ -6744,6 +6744,7 @@ async function openNoteDay(day) {
         (isNew ? '<span class="note-new">新</span>' : '') +
         '<div style="white-space:pre-wrap;">' + esc(c.content) + '</div>' +
         '<a href="javascript:void(0)" style="font-size:11px;color:var(--text-dim);" data-note="' + escAttr(n.id) + '" data-reply="' + escAttr(c.id) + '" data-who="' + escAttr(_noteWho(c.author)) + '" onclick="noteReplyTo(this)">回复</a>' +
+        (c.author === 'user' ? '<a href="javascript:void(0)" style="font-size:11px;color:var(--text-dim);margin-left:12px;" data-note="' + escAttr(n.id) + '" data-comment="' + escAttr(c.id) + '" onclick="deleteNoteComment(this)">删除</a>' : '') +
       '</div>';
     }).join('');
     return '<div class="note-card">' +
@@ -6790,6 +6791,18 @@ function noteCancelReply(nid) {
   delete _noteReplyTarget[nid];
   var tip = document.getElementById('note-replying-' + nid);
   tip.style.display = 'none'; tip.innerHTML = '';
+}
+
+async function deleteNoteComment(el) {
+  if (!confirm('删掉这条评论？删了你和主人都看不见了。')) return;
+  try {
+    var res = await fetch(BASE + '/api/notes/' + encodeURIComponent(el.dataset.note) + '/comments/' + encodeURIComponent(el.dataset.comment), { method: 'DELETE' });
+    var d = await res.json().catch(function() { return {}; });
+    if (!res.ok) { alert(d.error || '没删掉'); return; }
+    await loadNotesView();
+  } catch (e) {
+    alert('没删掉：' + (e && e.message ? e.message : e));
+  }
 }
 
 async function postNoteComment(nid) {
