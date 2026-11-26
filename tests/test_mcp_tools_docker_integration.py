@@ -181,7 +181,7 @@ EXPECTED_TOOL_PROPERTIES = {
               "note", "item_id", "delete_id", "year", "query"},
     # 相册：无参列表；photo_id 返回图片本身；photo_id+caption/taken/memory_id 改说明。
     "album": {"photo_id", "caption", "taken", "memory_id", "query", "limit"},
-    "note": {"content", "mood", "date", "month", "note_id", "reply", "comment_id", "comments", "her"},
+    "note": {"content", "mood", "date", "month", "note_id", "reply", "comment_id", "comments", "her", "tag"},
 }
 
 EXPECTED_REQUIRED_PROPERTIES = {

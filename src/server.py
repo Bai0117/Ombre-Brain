@@ -1397,18 +1397,19 @@ async def note(
     comment_id: Optional[str] = "",
     comments: Optional[bool] = False,
     her: Optional[bool] = False,
+    tag: Optional[str] = "",
 ) -> str:
-    """小记:我自己的小日记。一句话、一个日子、一个团子,随手写,不用重要——不是要记住的事(那是 hold),不是挂在记忆上的感受(那是 feel),不是要永远留给她的话(那是 letter_write)。我的板只有我能写,写下不改不删;旁边还有她的板,只有她能在后台写(她能改能删自己的),我能看、能评论。写:content=正文,mood=团子 1~10(1 最糟、10 最好,0=不贴),date=算哪一天 YYYY-MM-DD(默认今天,可以补写过去的,不能写明天)。读:无参数=我最近 7 条带评论;date=那一天的全部小记和评论;month=YYYY-MM 看一个月每天的团子;以上加 her=True 就是看她的板;note_id=看一条(谁的都行);comments=True=只看某一天(两块板都算)她还没被我看过的评论(配 date 看那天,默认今天;看过的不再出现,来回聊多少轮都不重复;她回的是哪句会带上那句开头;别的日子有新的会提示是哪天;完整来回用 date=...)。评论或回她:note_id + reply=正文,comment_id=回的是哪条评论(可选,不给就是直接评论这条小记),她的小记也这样评论。无参 breath 的「小记」段会带上我最近一条、她还没被我看过的新小记、她还没被我看过的评论(都只提醒一次)。"""
+    """小记:我自己的小日记。一句话、一个日子、一个团子,随手写,不用重要——不是要记住的事(那是 hold),不是挂在记忆上的感受(那是 feel),不是要永远留给她的话(那是 letter_write)。我的板只有我能写,写下不改不删;旁边还有她的板,只有她能在后台写(她能改能删自己的),我能看、能评论。写:content=正文,mood=团子 1~10(1 最糟、10 最好,0=不贴),tag=心情小标签(贴在团子底下的一个词,最多 12 字,不给就显示团子默认的名字),date=算哪一天 YYYY-MM-DD(默认今天,可以补写过去的,不能写明天)。读:无参数=我最近 7 条带评论;date=那一天的全部小记和评论;month=YYYY-MM 看一个月每天的团子;以上加 her=True 就是看她的板;note_id=看一条(谁的都行);comments=True=只看某一天(两块板都算)她还没被我看过的评论(配 date 看那天,默认今天;看过的不再出现,来回聊多少轮都不重复;她回的是哪句会带上那句开头;别的日子有新的会提示是哪天;完整来回用 date=...)。评论或回她:note_id + reply=正文,comment_id=回的是哪条评论(可选,不给就是直接评论这条小记),她的小记也这样评论。无参 breath 的「小记」段会带上我最近一条、她还没被我看过的新小记、她还没被我看过的评论(都只提醒一次)。"""
     return await _with_notice(
         _t_note.dispatch(
             content=content or "", mood=mood or 0, date=date or "", month=month or "",
             note_id=note_id or "", reply=reply or "", comment_id=comment_id or "",
-            comments=bool(comments), her=bool(her),
+            comments=bool(comments), her=bool(her), tag=tag or "",
         ),
         op="note",
         args={"content_len": len(content or ""), "mood": mood, "date": date, "month": month,
               "note_id": note_id, "reply_len": len(reply or ""), "comment_id": comment_id,
-              "comments": comments, "her": her},
+              "comments": comments, "her": her, "tag": tag},
     )
 
 

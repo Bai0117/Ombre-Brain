@@ -1491,8 +1491,13 @@
   .note-write-date { position:relative; cursor:pointer; }
   .note-write-date input { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; }
   #notes-write-sticker { cursor:pointer; }
-  .note-sticker-label { text-align:center; font-weight:700; font-size:17px; margin:-6px 0 14px; }
-  .note-sticker-label span { padding:0 8px; background:linear-gradient(transparent 55%, var(--g-low, rgba(127,127,127,.15)) 55%); }
+  .note-tag-row { text-align:center; margin:-4px 0 14px; }
+  .note-tag-pill { display:inline-block; position:relative; padding:3px 14px 3px 16px; font-weight:700; font-size:15px; line-height:1.5;
+    color:var(--text); border-radius:3px; background:color-mix(in srgb, var(--tint) 42%, transparent); }
+  .note-tag-pill::before { content:''; position:absolute; left:0; top:0; bottom:0; width:6px; border-radius:3px 0 0 3px; background:var(--tint); }
+  #notes-write-page .note-tag-edit input { width:3em; min-width:2.4em; padding:0 !important; margin:0; border:none !important; outline:none !important;
+    background:transparent !important; box-shadow:none !important; color:var(--text) !important; font:inherit; font-weight:700; text-align:center; }
+  #notes-write-page .note-tag-edit input::placeholder { color:var(--text-dim) !important; font-weight:500; }
   #notes-write-page #notes-write-text { width:100%; box-sizing:border-box; min-height:200px; resize:none; padding:4px 2px !important;
     font-size:14.5px; line-height:1.85; background:transparent !important; border:none !important; box-shadow:none !important; border-radius:0 !important; }
   #notes-write-page #notes-write-text:focus { box-shadow:none !important; background:transparent !important; }
@@ -3042,6 +3047,9 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         </label>
       </div>
       <div id="notes-write-sticker" onclick="openNoteRing('change')" title="换个团子"></div>
+      <div class="note-tag-row"><span class="note-tag-pill note-tag-edit" id="notes-write-tagwrap">
+        <input id="notes-write-tag" maxlength="12" placeholder="心情" oninput="_noteWrite.tag = this.value; noteTagFit(this)" />
+      </span></div>
       <textarea id="notes-write-text" rows="8" maxlength="2000" placeholder="今天的小蘑菇怎么样？"></textarea>
     </div>
   </div>
@@ -6788,7 +6796,8 @@ async function deleteAlbumPhoto() {
 // ---------------- 书架 ----------------
 // ===================== 小记 =====================
 // 团子：1~10 各一张。现在是占位的颜色团，等她画好了把 src 填上（图片地址或 data: URL）就会换成画；
-// label 是团子的名字（比如「心动」），写小记时显示在大团子下面，空着就不显示。
+// label 是团子的默认名字（比如「心动」）：每条小记可以自己填心情小标签（tag），没填就显示它，都空着就不显示。
+// tint 是心情小标签的底色，跟着团子的颜色走；画了图的团子单独给一个，没给就用占位色。
 var NOTE_STICKERS = {
   1:  { color: '#6f8190', src: '', label: '' },
   2:  { color: '#8fa3b4', src: '', label: '' },
@@ -6805,19 +6814,20 @@ var NOTE_STICKERS = {
 // 没画的那个号先用上面的颜色占位。图放在 frontend/stickers/sticker-her-<号>.png、sticker-his-<号>.png。
 var NOTE_STICKERS_BY_BOARD = {
   user: {
-    2: { src: '/static/sticker-her-2.png', label: '' },
-    8: { src: '/static/sticker-her-8.png', label: '嘿嘿' }
+    1: { src: '/static/sticker-her-1.png', label: '', tint: '#d9dfe8' },
+    2: { src: '/static/sticker-her-2.png', label: '', tint: '#bfe7f6' },
+    8: { src: '/static/sticker-her-8.png', label: '嘿嘿', tint: '#f9c5d6' }
   },
   ai: {
-    2: { src: '/static/sticker-his-2.png', label: '' },
-    8: { src: '/static/sticker-his-8.png', label: '抱住了' }
+    2: { src: '/static/sticker-his-2.png', label: '', tint: '#bfe7f6' },
+    8: { src: '/static/sticker-his-8.png', label: '抱住了', tint: '#f9c5d6' }
   }
 };
 function _noteSticker(m, whose) {
   var base = NOTE_STICKERS[m];
   if (!base) return null;
   var own = (NOTE_STICKERS_BY_BOARD[whose || 'ai'] || {})[m] || {};
-  return { color: base.color, src: own.src || '', label: own.label || '' };
+  return { color: base.color, src: own.src || '', label: own.label || '', tint: own.tint || base.color };
 }
 var _notes = { year: 0, month: 0, notes: [], selected: '', whose: 'ai', unseen: {} };
 
@@ -6928,11 +6938,17 @@ document.addEventListener('keydown', function(e) {
   else closeNoteDay();
 });
 
-function _noteBigSticker(mood, whose) {
+// 心情小标签：同色系的小牌子，左边一道深一点的边
+function _noteTagPill(text, tint) {
+  return '<div class="note-tag-row"><span class="note-tag-pill" style="--tint:' + escAttr(tint || '#c9cbd6') + ';">' + esc(text) + '</span></div>';
+}
+
+function _noteBigSticker(mood, whose, tag, noLabel) {
   var m = Number(mood || 0);
   var s = _noteSticker(m, whose);
   if (!s) return '';
-  var label = s.label ? '<div class="note-sticker-label"><span>' + esc(s.label) + '</span></div>' : '';
+  var word = String(tag || '').trim() || s.label;
+  var label = (!noLabel && word) ? _noteTagPill(word, s.tint) : '';
   if (s.src) return '<div class="note-sticker-big"><img src="' + escAttr(s.src) + '" alt="' + m + '"></div>' + label;
   return '<div class="note-sticker-big" style="background:' + s.color + ';" title="团子 ' + m + '">' + m + '</div>' + label;
 }
@@ -6973,7 +6989,7 @@ async function openNoteDay(day) {
           '<div class="note-box-date"><div class="wd">' + wd + '</div><div class="md">' + esc(parts[1] + '.' + parts[2]) + '</div></div>' +
           '<div class="note-box-tools">' + esc(_noteTime(n.created)) + (n.edited ? ' · 改过' : '') + '</div>' +
         '</div>' +
-        _noteBigSticker(n.mood, n.author || 'ai') +
+        _noteBigSticker(n.mood, n.author || 'ai', n.tag) +
         '<div class="note-box-text">' + esc(n.content) + '</div>' +
         ((n.author || 'ai') === 'user'
           ? '<div class="note-box-actions">' +
@@ -7069,7 +7085,7 @@ async function deleteNoteComment(el) {
 }
 
 // ---------- 她的板：圆钮 → 团子圈 → 写一条；改一条直接进写一条 ----------
-var _noteWrite = { id: '', mood: 0 };
+var _noteWrite = { id: '', mood: 0, tag: '' };
 var _noteRingMode = 'new';   // new：选完进写一条；change：在写一条里换团子
 
 function _notesTodayKey() {
@@ -7148,8 +7164,21 @@ function noteRingPick(m) {
 
 function _noteRenderWriteSticker() {
   document.getElementById('notes-write-sticker').innerHTML = _noteWrite.mood
-    ? _noteBigSticker(_noteWrite.mood, 'user')
+    ? _noteBigSticker(_noteWrite.mood, 'user', '', true)
     : '<div class="note-sticker-big" style="border:2px dashed var(--border);color:var(--text-dim);font-size:14px;font-weight:500;">贴一个</div>';
+  // 小标签：颜色跟着团子，没填的时候灰灰地提示这个团子的默认名字
+  var st = _noteWrite.mood ? _noteSticker(_noteWrite.mood, 'user') : null;
+  document.getElementById('notes-write-tagwrap').style.setProperty('--tint', st ? st.tint : '#c9cbd6');
+  var input = document.getElementById('notes-write-tag');
+  input.placeholder = (st && st.label) ? st.label : '心情';
+  input.value = _noteWrite.tag || '';
+  noteTagFit(input);
+}
+
+// 小标签的输入框跟着字数变宽，像一块贴纸
+function noteTagFit(el) {
+  var n = Math.max((el.value || el.placeholder || '').length, 2);
+  el.style.width = (n * 1.1 + 0.6) + 'em';
 }
 
 function _noteRenderWriteDate(day) {
@@ -7168,7 +7197,7 @@ function noteWriteDateChanged() {
 
 function openNoteWrite(nid, mood) {
   var n = nid ? _notes.notes.filter(function(x) { return x.id === nid; })[0] : null;
-  _noteWrite = { id: n ? n.id : '', mood: n ? Number(n.mood || 0) : Number(mood || 0) };
+  _noteWrite = { id: n ? n.id : '', mood: n ? Number(n.mood || 0) : Number(mood || 0), tag: n ? (n.tag || '') : '' };
   document.getElementById('notes-write-title').textContent = n ? '改一条' : '';
   var day = n ? n.date : (_notes.selected && _notes.whose === 'user' ? _notes.selected : _notesTodayKey());
   var dateEl = document.getElementById('notes-write-date');
@@ -7192,7 +7221,7 @@ async function saveNoteWrite() {
   var content = (document.getElementById('notes-write-text').value || '').trim();
   var day = document.getElementById('notes-write-date').value || _notesTodayKey();
   if (!content) { alert('还没写呢'); return; }
-  var body = JSON.stringify({ content: content, mood: _noteWrite.mood, date: day });
+  var body = JSON.stringify({ content: content, mood: _noteWrite.mood, date: day, tag: (_noteWrite.tag || '').trim() });
   try {
     var res = _noteWrite.id
       ? await fetch(BASE + '/api/notes/' + encodeURIComponent(_noteWrite.id), { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: body })

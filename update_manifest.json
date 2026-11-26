@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "3640516145d4b7c74ddf879197289e2766a8fff8fb2c521576f08f3d9be01796",
-      "size": 662314
+      "sha256": "2e5f915e4cf7f18729fd8310fa4f0e16991eb96cba30e8f937bb24d6d21a8253",
+      "size": 664567
     },
     {
       "path": "frontend/favicon-64.png",
@@ -54,6 +54,11 @@
       "path": "frontend/onboarding.html",
       "sha256": "421dac5d9c4a7fd5093296891b092115a8f4e172deabf3212ad3a9700f5c32e9",
       "size": 10589
+    },
+    {
+      "path": "frontend/stickers/sticker-her-1.png",
+      "sha256": "ef058bc760f4e5b1c0fb7148906b6f192e827fb6f2d81f5c3debfb286621abb0",
+      "size": 191731
     },
     {
       "path": "frontend/stickers/sticker-her-2.png",
@@ -617,8 +622,8 @@
     },
     {
       "path": "src/server.py",
-      "sha256": "c735d559cd3c908f65fe1a79971be32fd9a9e265d41da03fd4bc783fab656745",
-      "size": 89251
+      "sha256": "20e95bdaeb00c1e72251f7bb56a1426e3796518af63d7b6f10d208da8c179186",
+      "size": 89410
     },
     {
       "path": "src/server_app.py",
@@ -827,8 +832,8 @@
     },
     {
       "path": "src/tools/note/core.py",
-      "sha256": "765485ac2dfc107395025ad82b1a94379c11eea7bacbfcc66b1dca5aeb967135",
-      "size": 23753
+      "sha256": "df02bc26d31932daa71740e93897eb1f68b19e6c39c5ef4ab372e72fff2195d0",
+      "size": 24701
     },
     {
       "path": "src/tools/now/__init__.py",
@@ -992,8 +997,8 @@
     },
     {
       "path": "src/web/notes.py",
-      "sha256": "80354ba86f1f16fdd63756e533db652c56ea846f14241048e3002743c2ac8d4a",
-      "size": 7992
+      "sha256": "ef4948ba0d954f70b3238b8866d011098f36950fc155d249904eb88a95419ae7",
+      "size": 8073
     },
     {
       "path": "src/web/oauth.py",

@@ -4,8 +4,8 @@ web/notes.py — 后台「小记」页
 ========================================
 
 GET  /api/notes?month=YYYY-MM          那个月两块板的全部小记（带评论、带 author）；不给 month 就是全部
-POST /api/notes                        她在自己的板上写一条 {content, mood?, date?}
-PATCH /api/notes/{note_id}             她改自己的小记 {content?, mood?, date?}（旧版本留在 history）
+POST /api/notes                        她在自己的板上写一条 {content, mood?, date?, tag?}
+PATCH /api/notes/{note_id}             她改自己的小记 {content?, mood?, date?, tag?}（旧版本留在 history）
 DELETE /api/notes/{note_id}            她删自己的小记（只改可见性，原文留在文件里）
 POST /api/notes/{note_id}/comments     她评论或回复 {content, reply_to?}
 POST /api/notes/seen                   她点开看过了 {note_ids: [...]}，把我的回复标成已读
@@ -85,7 +85,7 @@ def register(mcp) -> None:
         try:
             note = add_note(
                 str(body.get("content") or ""), mood=body.get("mood") or 0,
-                note_date=str(body.get("date") or ""), author="user",
+                note_date=str(body.get("date") or ""), author="user", tag=str(body.get("tag") or ""),
             )
         except ValueError as e:
             return JSONResponse({"error": str(e)}, status_code=400)
@@ -169,6 +169,7 @@ def register(mcp) -> None:
             note = edit_note(
                 note_id, "user",
                 content=body.get("content"), mood=body.get("mood"), note_date=body.get("date"),
+                tag=body.get("tag"),
             )
         except LookupError as e:
             return JSONResponse({"error": str(e)}, status_code=404)

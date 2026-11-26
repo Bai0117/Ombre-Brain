@@ -424,3 +424,21 @@ async def test_sticker_images_are_served_only_by_strict_name(tmp_path, monkeypat
     for bad in ("sticker-her-11.png", "sticker-her-0.png", "sticker-her-2.png/../../secret.png",
                 "../secret.png", "sticker-cat-2.png", "sticker-her-2.PNG"):
         assert (await route(_Req(path_params={"name": bad}))).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_mood_tag_on_both_boards(vault):
+    out = await note.dispatch(content="被她画成章鱼了", mood=8, tag="抱住了")
+    assert "团子 8「抱住了」" in out
+    with pytest.raises(ToolInputError):
+        await note.dispatch(content="x", tag="这个心情小标签实在是太长太长了")
+    with pytest.raises(ToolInputError):
+        await note.dispatch(tag="光有标签")
+    hers = note.add_note("今天好累", mood=1, author="user", tag="  好累  ")
+    assert hers["tag"] == "好累"
+    assert "团子 1「好累」" in note.notes_section()
+    note.edit_note(hers["id"], "user", tag="还好")
+    stored = next(n for n in _stored(vault) if n["id"] == hers["id"])
+    assert stored["tag"] == "还好" and stored["history"][-1]["tag"] == "好累"
+    month = await note.dispatch(her=True, month=note_core._today().strftime("%Y-%m"))
+    assert "1「还好」" in month

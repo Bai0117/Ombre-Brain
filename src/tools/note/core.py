@@ -15,6 +15,7 @@ tools/note/core.py — 小记
   author    ai（我的板，缺省即是）/ user（她的板）
   date      这条算哪一天：YYYY-MM-DD（默认今天，可以补写过去的日子，不能写明天）
   mood      团子：1~10，1 最糟、10 最好；0 = 没贴
+  tag       心情小标签：贴在大团子底下的一个词（最多 12 字），空着就显示那个团子的默认名字
   content   正文，原样保存
   created   写下的时间
   seen      （只她的小记有）我看过没有：breath 或 note 里带出来一次就算看过；她改过就重新算没看过
@@ -65,6 +66,7 @@ _FILE = ".notes.json"
 MOOD_MIN, MOOD_MAX = 1, 10
 _CONTENT_MAX = 2000
 _COMMENT_MAX = 1000
+_TAG_MAX = 12
 _SECTION_PREVIEW = 300
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
@@ -151,6 +153,13 @@ def _live(notes: list[dict], whose: str | None = None) -> list[dict]:
     return [n for n in notes if not is_deleted(n) and (whose is None or note_author(n) == whose)]
 
 
+def _clean_tag(tag) -> str:
+    tag = " ".join(str(tag or "").split())
+    if len(tag) > _TAG_MAX:
+        raise ValueError(f"心情小标签最多 {_TAG_MAX} 个字")
+    return tag
+
+
 def _clean_content(content) -> str:
     content = str(content or "").strip()
     if not content:
@@ -168,7 +177,7 @@ def _ordered(notes: list[dict]) -> list[dict]:
     )]
 
 
-def add_note(content: str, mood=0, note_date: str = "", author: str = "ai") -> dict:
+def add_note(content: str, mood=0, note_date: str = "", author: str = "ai", tag: str = "") -> dict:
     """写一条小记。author=ai 写在我的板上（MCP），author=user 写在她的板上（后台）。"""
     if author not in _AUTHORS:
         raise ValueError("author 只能是 user 或 ai")
@@ -177,6 +186,7 @@ def add_note(content: str, mood=0, note_date: str = "", author: str = "ai") -> d
         "author": author,
         "date": _clean_date(note_date),
         "mood": _clean_mood(mood),
+        "tag": _clean_tag(tag),
         "content": _clean_content(content),
         "created": _now().isoformat(timespec="seconds"),
         "comments": [],
@@ -199,7 +209,7 @@ def _find_own(notes: list[dict], note_id: str, author: str) -> dict:
     return note
 
 
-def edit_note(note_id: str, author: str = "user", content=None, mood=None, note_date=None) -> dict:
+def edit_note(note_id: str, author: str = "user", content=None, mood=None, note_date=None, tag=None) -> dict:
     """她改自己的小记。改之前的版本存进 history，不抹掉；改完我要重新看一次。"""
     if author != "user":
         raise PermissionError("我的小记写下就不改")
@@ -209,13 +219,16 @@ def edit_note(note_id: str, author: str = "user", content=None, mood=None, note_
         new_content = note["content"] if content is None else _clean_content(content)
         new_mood = note.get("mood", 0) if mood is None else _clean_mood(mood)
         new_date = note["date"] if note_date in (None, "") else _clean_date(note_date)
-        if (new_content, new_mood, new_date) == (note["content"], note.get("mood", 0), note["date"]):
+        new_tag = note.get("tag", "") if tag is None else _clean_tag(tag)
+        old = (note["content"], note.get("mood", 0), note["date"], note.get("tag", ""))
+        if (new_content, new_mood, new_date, new_tag) == old:
             return note
         now = _now().isoformat(timespec="seconds")
         note.setdefault("history", []).append({
-            "content": note["content"], "mood": note.get("mood", 0), "date": note["date"], "until": now,
+            "content": old[0], "mood": old[1], "date": old[2], "tag": old[3], "until": now,
         })
-        note.update({"content": new_content, "mood": new_mood, "date": new_date, "edited": now, "seen": False})
+        note.update({"content": new_content, "mood": new_mood, "date": new_date, "tag": new_tag,
+                     "edited": now, "seen": False})
         _save_all(notes)
     return note
 
@@ -341,6 +354,12 @@ def _mood_label(mood) -> str:
     return f"团子 {mood}" if mood else "没贴团子"
 
 
+def _mood_text(note: dict) -> str:
+    """团子 8「抱住了」——有心情小标签就带上。"""
+    tag = str(note.get("tag") or "").strip()
+    return _mood_label(note.get("mood")) + (f"「{tag}」" if tag else "")
+
+
 def _who(author: str) -> str:
     return "她" if author == "user" else "我"
 
@@ -365,7 +384,7 @@ def _board(note: dict) -> str:
 
 
 def _render(note: dict, with_comments: bool = True) -> str:
-    head = f"[id={note['id']}] {_md(note.get('date', ''))} · {_mood_label(note.get('mood'))}"
+    head = f"[id={note['id']}] {_md(note.get('date', ''))} · {_mood_text(note)}"
     if note_author(note) == "user":
         head = "她的 " + head + ("（改过）" if note.get("edited") else "")
     out = [head, note.get("content", "")]
@@ -393,7 +412,7 @@ def notes_section() -> str:
             if len(content) > _SECTION_PREVIEW:
                 content = content[:_SECTION_PREVIEW] + f"…（全文 note(note_id=\"{latest['id']}\")）"
             lines += [
-                f"上一条小记 [id={latest['id']}] {_md(latest.get('date', ''))} · {_mood_label(latest.get('mood'))}",
+                f"上一条小记 [id={latest['id']}] {_md(latest.get('date', ''))} · {_mood_text(latest)}",
                 content,
             ]
         if hers_new:
@@ -405,7 +424,7 @@ def notes_section() -> str:
                 if len(content) > _SECTION_PREVIEW:
                     content = content[:_SECTION_PREVIEW] + f"…（全文 note(note_id=\"{n['id']}\")）"
                 edited = "（改过）" if n.get("edited") else ""
-                lines.append(f"  · [id={n['id']}] {_md(n.get('date', ''))} · {_mood_label(n.get('mood'))}{edited}")
+                lines.append(f"  · [id={n['id']}] {_md(n.get('date', ''))} · {_mood_text(n)}{edited}")
                 lines.append("    " + content.replace("\n", "\n    "))
             if len(hers_new) > 3:
                 lines.append(f"  ……还有 {len(hers_new) - 3} 条，note(her=True) 看。")
@@ -442,7 +461,9 @@ def _month_text(month: str, whose: str = "ai") -> str:
         by_day.setdefault(n["date"], []).append(n)
     rows = []
     for day, ns in by_day.items():
-        moods = " ".join(str(int(n.get("mood") or 0)) for n in ns)
+        moods = " ".join(
+            str(int(n.get("mood") or 0)) + (f"「{n['tag']}」" if n.get("tag") else "") for n in ns
+        )
         first = " ".join(str(ns[-1].get("content", "")).split())[:40]
         talk = sum(1 for n in ns for c in n["comments"] if not is_deleted(c))
         rows.append(f"{_md(day)}  团子 {moods}  {first}" + (f"  💬{talk}" if talk else ""))
@@ -527,6 +548,7 @@ async def dispatch(
     comment_id: str = "",
     comments: bool = False,
     her: bool = False,
+    tag: str = "",
 ) -> str:
     content = str(content or "").strip()
     whose = "user" if her else "ai"
@@ -537,8 +559,10 @@ async def dispatch(
             raise ValueError("写小记（content）和回评论（reply）请分两次调")
         if content and her:
             raise ValueError("她的小记只有她能写（后台小记页）；我能评论：note(note_id=..., reply=\"...\")")
+        if tag and not content:
+            raise ValueError("tag 是写小记时贴的心情小标签，要和 content 一起给")
         if content:
-            note = add_note(content, mood=mood, note_date=date)
+            note = add_note(content, mood=mood, note_date=date, tag=tag)
             return "写下了：\n" + _render(note, with_comments=False)
         if reply:
             if not note_id:
