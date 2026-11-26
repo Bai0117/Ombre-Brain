@@ -347,27 +347,53 @@ def _month_text(month: str) -> str:
 
 
 def _comments_text(day: str) -> str:
-    """那一天的小记底下的评论：她的和我的按时间排，像一来一回的对话。
+    """那一天的小记底下，她还没被我看过的评论。看过的不再出来，来回聊多少轮都不重复。
 
-    只看这一天，不跨天——在以前的小记下面留的话，由 breath 的「小记」段提醒一次。
+    她回的是哪句，就带上那句的开头当提示；想看完整的来回用 note(date=...)。
+    这一天没有新的、别的日子有，就说是哪几天，免得漏掉她在旧小记下面的话。
     """
-    notes = _ordered([n for n in load_notes() if n.get("date") == day])
-    if not notes:
-        return f"{day} 没有小记。"
+    notes = load_notes()
+    day_notes = _ordered([n for n in notes if n.get("date") == day])
     blocks = []
-    unseen = 0
-    for n in notes:
-        live = [c for c in n["comments"] if not is_deleted(c)]
-        if not live:
+    count = 0
+    for n in day_notes:
+        by_id = {c.get("id"): c for c in n["comments"]}
+        fresh = [
+            c for c in n["comments"]
+            if c.get("author") == "user" and not c.get("seen") and not is_deleted(c)
+        ]
+        if not fresh:
             continue
+        count += len(fresh)
         first = " ".join(str(n.get("content", "")).split())[:30]
-        unseen += sum(1 for c in live if c.get("author") == "user" and not c.get("seen"))
-        blocks.append(f"小记 [id={n['id']}]「{first}」\n" + "\n".join(_comment_lines(n)))
-    if not blocks:
-        return f"{day} 的小记下面还没有评论。"
-    mark_seen("ai", {n["id"] for n in notes})
-    head = f"=== {day} 的评论" + (f"（她有 {unseen} 条新的）" if unseen else "") + " ==="
-    return head + "\n" + "\n\n".join(blocks) + "\n\n回她：note(note_id=..., reply=\"...\", comment_id=...)。"
+        lines = [f"小记 [id={n['id']}]「{first}」"]
+        for c in fresh:
+            target = by_id.get(c.get("reply_to") or "")
+            quote = ""
+            if target is not None:
+                gist = " ".join(str(target.get("content", "")).split())
+                gist = gist[:24] + ("…" if len(gist) > 24 else "")
+                quote = f" 回{_who(target.get('author'))}「{gist}」" if not is_deleted(target) else " 回她（那条她删了）"
+            lines.append(f"  💬 [{c['id']}] 她{quote}：{c.get('content', '')}")
+        blocks.append("\n".join(lines))
+    if blocks:
+        mark_seen("ai", {n["id"] for n in day_notes})
+        out = f"=== {day} 的新评论（{count} 条）===\n" + "\n\n".join(blocks)
+        out += "\n\n回她：note(note_id=..., reply=\"...\", comment_id=...)；完整来回：note(date=\"" + day + "\")。"
+    else:
+        out = f"{day} 没有新评论。"
+    others: dict[str, int] = {}
+    for n in notes:
+        if n.get("date") == day:
+            continue
+        k = sum(1 for c in n["comments"]
+                if c.get("author") == "user" and not c.get("seen") and not is_deleted(c))
+        if k:
+            others[n["date"]] = others.get(n["date"], 0) + k
+    if others:
+        days = "、".join(f"{_md(d)}（{k}）" for d, k in sorted(others.items()))
+        out += f"\n别的日子还有新的：{days}，用 note(comments=True, date=\"YYYY-MM-DD\") 看。"
+    return out
 
 
 def _recent_text(limit: int = 7) -> str:

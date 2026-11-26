@@ -597,8 +597,8 @@
     },
     {
       "path": "src/server.py",
-      "sha256": "ced4c065e3fd773396c0cd7dc1572c57490bccfbf2b28f541c8b3479f592bc25",
-      "size": 88950
+      "sha256": "149c5e0b8539e2e0e9e22e87bfe8d655dffdcc83f600e612052a2960baef1db9",
+      "size": 89053
     },
     {
       "path": "src/server_app.py",
@@ -807,8 +807,8 @@
     },
     {
       "path": "src/tools/note/core.py",
-      "sha256": "24a7628064b65bc5822785d9892a1fdf09a792e84606a89c9d3ff78f8581a268",
-      "size": 16548
+      "sha256": "6c3b5b003fef14579f6db3f82194f4fe82ab41a39b674732087b8b396f313bd3",
+      "size": 17743
     },
     {
       "path": "src/tools/now/__init__.py",

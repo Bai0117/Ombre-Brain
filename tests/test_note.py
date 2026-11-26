@@ -162,25 +162,31 @@ async def test_tool_write_read_reply(vault):
 
 
 @pytest.mark.asyncio
-async def test_tool_comments_are_scoped_to_one_day(vault):
+async def test_tool_comments_only_unread_with_reply_hint(vault):
     old = note.add_note("很早以前的", note_date="2026-10-01")
     today = note.add_note("今天的")
-    assert "还没有评论" in await note.dispatch(comments=True)
-    note.add_comment(old["id"], "user", "翻到老的了")
-    hers = note.add_comment(today["id"], "user", "猪猪主人")
-    note.add_comment(today["id"], "ai", "只拱你一个", reply_to=hers["id"])
+    assert "没有新评论" in await note.dispatch(comments=True)
+
+    first = note.add_comment(today["id"], "user", "猪猪主人")
+    out = await note.dispatch(comments=True)
+    assert "猪猪主人" in out and "1 条" in out
+
+    mine = note.add_comment(today["id"], "ai", "猪猪主人只拱你一个，别的谁都不拱", reply_to=first["id"])
+    note.add_comment(today["id"], "user", "那你拱我", reply_to=mine["id"])
     typo = note.add_comment(today["id"], "user", "打措字")
     note.delete_comment(today["id"], typo["id"])
-
     out = await note.dispatch(comments=True)
-    assert "猪猪主人" in out and "只拱你一个" in out and "1 条新的" in out
-    assert out.index("猪猪主人") < out.index("只拱你一个")        # 按时间，一来一回
-    assert "翻到老的了" not in out and "打措字" not in out
-    assert "新的" not in await note.dispatch(comments=True)       # 看过一次就不再标新
+    assert "那你拱我" in out
+    assert "猪猪主人：" not in out and "打措字" not in out            # 看过的、删掉的都不再出来
+    assert "她 回我「猪猪主人只拱你一个，别的谁都不拱」：那你拱我" in out
+    assert "没有新评论" in await note.dispatch(comments=True)       # 第二次就没有了
 
+    note.add_comment(old["id"], "user", "翻到老的了")
+    hint = await note.dispatch(comments=True)
+    assert "没有新评论" in hint and "10.1（1）" in hint and "翻到老的了" not in hint
     older = await note.dispatch(comments=True, date="2026-10-01")
-    assert "翻到老的了" in older and "猪猪主人" not in older
-    assert "没有小记" in await note.dispatch(comments=True, date="2026-09-01")
+    assert "翻到老的了" in older and "别的日子" not in older
+    assert "没有新评论" in await note.dispatch(comments=True, date="2026-09-01")
     with pytest.raises(ToolInputError):
         await note.dispatch(comments=True, date="10.1")
 
