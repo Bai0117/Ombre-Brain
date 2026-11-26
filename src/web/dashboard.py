@@ -113,6 +113,9 @@ def register(mcp) -> None:
             "icon-512.png": "image/png",
             "manifest.json": "application/manifest+json",
             "RRPL.ttf": "font/truetype",
+            # 标题 Bai&Luar 用的 Cormorant Garamond 斜体（SIL OFL 1.1，许可证见 title-font-OFL.txt）
+            "title-font.woff2": "font/woff2",
+            "title-font-OFL.txt": "text/plain; charset=utf-8",
         }
         if name not in allowed:
             return JSONResponse({"error": "not found"}, status_code=404)

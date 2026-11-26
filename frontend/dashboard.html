@@ -6,7 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <title>Ombre Brain</title>
 <meta name="theme-color" content="#F2F2F4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1F1F22" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" sizes="64x64" href="/static/favicon-64.png">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -2171,43 +2171,43 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #000000;
-    --bg-gradient: #000000;
-    --surface: rgba(36, 36, 38, 0.6);
+    --bg: #1F1F22;                    /* 深灰，不用纯黑：她说纯黑对比太强眼睛疼 */
+    --bg-gradient: #1F1F22;
+    --surface: rgba(48, 48, 52, 0.6);
     --surface-solid: rgba(255, 255, 255, 0.06);
     --border: rgba(255, 255, 255, 0.13);
     --border-strong: rgba(255, 255, 255, 0.22);
-    --text: #FFFFFF;
-    --text-dim: #C7C7CC;
-    --text-light: #8E8E93;
-    --accent: #FFFFFF;
-    --accent-light: #D1D1D6;
+    --text: #E4E2DD;                  /* 柔白，不用纯白 */
+    --text-dim: #B3B1AC;
+    --text-light: #85858A;
+    --accent: #E4E2DD;
+    --accent-light: #C9C7C2;
     --accent-glow: rgba(255, 255, 255, 0.12);
     --positive: #8E8E93;
-    --negative: #FFFFFF;
-    --warning: #C7C7CC;
+    --negative: #E4E2DD;
+    --warning: #B3B1AC;
     --shadow-light: rgba(255, 255, 255, 0.05);
     --shadow-dark: rgba(0, 0, 0, 0.7);
     --shadow-dark-subtle: rgba(0, 0, 0, 0.4);
     --lcd: rgba(255, 255, 255, 0.07);
-    --lcd-text: #FFFFFF;
-    --lcd-dim: #C7C7CC;
+    --lcd-text: #E4E2DD;
+    --lcd-dim: #B3B1AC;
 
     --g-scene:
       radial-gradient(60% 40% at 88% 4%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0) 70%),
       radial-gradient(55% 45% at 6% 28%, rgba(120, 120, 126, 0.2) 0%, rgba(120, 120, 126, 0) 70%),
       radial-gradient(50% 40% at 96% 62%, rgba(96, 96, 102, 0.2) 0%, rgba(96, 96, 102, 0) 70%),
       radial-gradient(60% 40% at 24% 96%, rgba(86, 86, 92, 0.18) 0%, rgba(86, 86, 92, 0) 70%);
-    --g-glass: rgba(36, 36, 38, 0.56);
-    --g-hi: rgba(72, 72, 76, 0.62);
+    --g-glass: rgba(48, 48, 52, 0.56);
+    --g-hi: rgba(80, 80, 84, 0.62);
     --g-low: rgba(255, 255, 255, 0.06);
     --g-edge: rgba(255, 255, 255, 0.16);
     --g-spec: inset 0 0.5px 0 rgba(255, 255, 255, 0.3), inset 0 -0.5px 0 rgba(255, 255, 255, 0.07);
     --g-float: 0 12px 30px -16px rgba(0, 0, 0, 0.9), 0 0.5px 1.5px rgba(0, 0, 0, 0.5);
     --g-glow: 0 0 0 0.5px rgba(255, 255, 255, 0.34), 0 6px 18px -8px rgba(255, 255, 255, 0.16);
     --g-lit: rgba(255, 255, 255, 0.26);
-    --g-lit-ink: #FFFFFF;
-    --g-sunk: rgba(0, 0, 0, 0.35);
+    --g-lit-ink: #E4E2DD;
+    --g-sunk: rgba(0, 0, 0, 0.25);
     color-scheme: dark;
   }
 }
@@ -2445,6 +2445,24 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   .tab, .bucket-row, button { transition: none !important; }
   .tab:active, .bucket-row:active, button:active { transform: none !important; }
 }
+
+/* ---------- 标题：Bai&Luar，Cormorant Garamond 斜体（OFL，自带文件，不依赖外网字体） ---------- */
+@font-face {
+  font-family: 'BaiLuar Title';
+  src: url('/static/title-font.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+}
+.header h1 .ob-title {
+  font-family: 'BaiLuar Title', 'Cormorant Garamond', Didot, 'Bodoni 72', Georgia, serif !important;
+  font-style: italic !important;
+  font-weight: 600 !important;
+  font-size: 1.45em;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  line-height: 1;
+}
 </style>
 </head>
 <body>
@@ -2474,7 +2492,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
 <div class="header">
   <h1>
     <img class="ob-logo" src="/static/icon.svg" alt="OB" />
-    Ombre Brain<span class="version-badge" id="version-badge"></span>
+    <span class="ob-title">Bai&amp;Luar</span><span class="version-badge" id="version-badge"></span>
   </h1>
   <div class="header-meta">
     <!-- 记忆归属徽标：多人共用一套 OB 时（owner_count>=2）显示「这份记忆是谁的」，单人隐藏。
@@ -2494,7 +2512,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
     </span>
   </div>
   <div class="search-bar">
-    <input type="text" id="search-input" placeholder="搜索记忆 / Search memories… （粘贴完整 bucket id 可精确定位）" onkeydown="if(event.key==='Enter')doSearch()" />
+    <input type="text" id="search-input" placeholder="" aria-label="搜索记忆" onkeydown="if(event.key==='Enter')doSearch()" />
     <button onclick="doSearch()" title="搜索"><i data-lucide="search"></i></button>
   </div>
   <div class="header-actions">
@@ -2911,9 +2929,6 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   <div style="max-width:920px;margin:0 auto;">
     <div class="config-section">
       <h3><i data-lucide="notebook-pen" style="width:16px;height:16px;vertical-align:-2px;"></i> 小记</h3>
-      <p style="font-size:12px;color:var(--text-dim);line-height:1.7;margin:4px 0 12px;">
-        他随手写的小日记，每条贴一个团子（1 最糟，10 最好）。只有他能写；你可以评论，他会回你，你也能再回他。
-      </p>
       <div id="notes-unseen" style="display:none;font-size:12px;background:var(--surface);border-radius:var(--radius-inner);padding:8px 12px;margin-bottom:12px;"></div>
       <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;">
         <button class="btn-secondary" onclick="notesShiftMonth(-1)" style="padding:4px 10px;" title="上个月">‹</button>
@@ -8297,28 +8312,6 @@ function updateChick(total) { if (window.ObPet) ObPet.setCount(total || 0); }
   else document.addEventListener('DOMContentLoaded', hook);
 })();
 
-// 搜索框空闲时，placeholder 偶尔换一句
-var _phLines = [
-  '搜索记忆…',
-  '搜索一段没说出口的话…',
-  '找找那个让你停下来的瞬间…',
-  '输入一个名字，或一种心情…',
-  '它可能藏在某个 #标签 里…',
-  '搜一件你以为忘了的事…',
-  '某个深夜，某句话，某个人…'
-];
-function startPlaceholderRotation() {
-  var input = document.getElementById('search-input');
-  if (!input) return;
-  setInterval(function () {
-    if (document.activeElement === input || input.value) return;  // 有焦点或有内容时不打扰
-    var next = _phLines[Math.floor(Math.random() * _phLines.length)];
-    input.style.transition = 'opacity .4s';
-    input.style.opacity = '0.45';
-    setTimeout(function () { input.placeholder = next; input.style.opacity = '1'; }, 400);
-  }, 6500);
-}
-
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeDetail();
   if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
@@ -10144,7 +10137,6 @@ async function loadAbout() {
 window.addEventListener('DOMContentLoaded', function() {
   if (window.lucide) lucide.createIcons();
   updateChick(0);              // 小黄鸡蛋初始（loadBuckets 后会按真实总数更新）
-  startPlaceholderRotation();  // 搜索框随机 placeholder
 });
 
 // 更新/换机后发现一条记忆都没有 → 顶部红色横幅，引导从 GitHub 恢复。

@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "3c6d4445d4a34bb27f26738a2a8a8362092223d1e8d29ab2b3292534d4ef04aa",
-      "size": 641567
+      "sha256": "70771057f07f793a07e5f6310661127bc6c42ab3595b95bf4c22a42ccb68cb88",
+      "size": 641097
     },
     {
       "path": "frontend/favicon-64.png",
@@ -54,6 +54,16 @@
       "path": "frontend/onboarding.html",
       "sha256": "421dac5d9c4a7fd5093296891b092115a8f4e172deabf3212ad3a9700f5c32e9",
       "size": 10589
+    },
+    {
+      "path": "frontend/title-font-OFL.txt",
+      "sha256": "732f37009943e7f4378cf37113c9bcc4716af002a8583511aa91ed5d37683e73",
+      "size": 4504
+    },
+    {
+      "path": "frontend/title-font.woff2",
+      "sha256": "0b6719b25266b8f7f0b48e84eb8094db8d243c5b089a5fa48d350bc93f57127b",
+      "size": 23784
     },
     {
       "path": "src/VERSION",
@@ -922,8 +932,8 @@
     },
     {
       "path": "src/web/dashboard.py",
-      "sha256": "a8e0cff57daed012fc6d167474be0e2a27a2b98372a31d81bff529e32abaef92",
-      "size": 7073
+      "sha256": "df863d20e8ea492c29be5feee08525d044703f6b69a7a47ef4ecd54f1c4673b2",
+      "size": 7296
     },
     {
       "path": "src/web/days.py",
