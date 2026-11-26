@@ -11,12 +11,14 @@ web/dashboard.py — 仪表板页面 + 静态资源 + 健康检查
 """
 
 import os
+import re
 
 from starlette.requests import Request
 from starlette.responses import Response
 
 from . import _shared as sh
 
+_STICKER_RE = re.compile(r"^sticker-(her|his)-(10|[1-9])\.png$")
 _ICON_ASSETS = ("icon.svg", "favicon.svg", "favicon-64.png", "apple-touch-icon.png")
 
 
@@ -117,6 +119,16 @@ def register(mcp) -> None:
             "title-font.woff2": "font/woff2",
             "title-font-OFL.txt": "text/plain; charset=utf-8",
         }
+        # 小记的团子：她画的 sticker-her-<1~10>.png、给他画的 sticker-his-<1~10>.png，
+        # 放在 frontend/stickers/。只认这个格式的名字，拼不出别的路径。
+        if _STICKER_RE.match(name):
+            path = os.path.join(sh.repo_root, "frontend", "stickers", name)
+            try:
+                with open(path, "rb") as f:
+                    return _Resp(f.read(), media_type="image/png",
+                                 headers={"Cache-Control": "public, max-age=3600"})
+            except FileNotFoundError:
+                return JSONResponse({"error": "not found"}, status_code=404)
         if name not in allowed:
             return JSONResponse({"error": "not found"}, status_code=404)
         path = os.path.join(sh.repo_root, "frontend", name)

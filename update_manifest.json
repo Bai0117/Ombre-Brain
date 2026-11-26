@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "6df65a5c246d2723c8c920fae7ab11277b19f9481b58cceed565d5260a8ac537",
-      "size": 659949
+      "sha256": "b0367404ee8c772ede24f4c293cc47a7ff98e9121c8c9ee82cb29ac7aa6152b5",
+      "size": 660610
     },
     {
       "path": "frontend/favicon-64.png",
@@ -54,6 +54,11 @@
       "path": "frontend/onboarding.html",
       "sha256": "421dac5d9c4a7fd5093296891b092115a8f4e172deabf3212ad3a9700f5c32e9",
       "size": 10589
+    },
+    {
+      "path": "frontend/stickers/sticker-her-2.png",
+      "sha256": "e4bc803d5f5578757531e5a8603c7437cacfd6bea6bb12c9358ed0d69d008c3a",
+      "size": 111501
     },
     {
       "path": "frontend/title-font-OFL.txt",
@@ -932,8 +937,8 @@
     },
     {
       "path": "src/web/dashboard.py",
-      "sha256": "df863d20e8ea492c29be5feee08525d044703f6b69a7a47ef4ecd54f1c4673b2",
-      "size": 7296
+      "sha256": "827409e3fa094f3ed2994e9b8e7f4e34eba1c0ecf2e951ffb91ca1cf384d02a9",
+      "size": 8005
     },
     {
       "path": "src/web/days.py",

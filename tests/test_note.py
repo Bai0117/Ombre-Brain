@@ -404,3 +404,23 @@ async def test_dashboard_api_her_board(vault, monkeypatch):
     assert (await delete(_Req("DELETE", path_params={"note_id": hers["id"]}))).status_code == 404
     data = json.loads((await listing(_Req())).body)
     assert [n["content"] for n in data["notes"]] == ["他的"]
+
+
+@pytest.mark.asyncio
+async def test_sticker_images_are_served_only_by_strict_name(tmp_path, monkeypatch):
+    import web.dashboard as dash
+
+    (tmp_path / "frontend" / "stickers").mkdir(parents=True)
+    (tmp_path / "frontend" / "stickers" / "sticker-her-2.png").write_bytes(b"\x89PNG fake")
+    (tmp_path / "secret.png").write_bytes(b"nope")
+    monkeypatch.setattr(dash.sh, "repo_root", str(tmp_path))
+    mcp = _FakeMCP()
+    dash.register(mcp)
+    route = mcp.routes[("GET", "/static/{name}")]
+
+    ok = await route(_Req(path_params={"name": "sticker-her-2.png"}))
+    assert ok.status_code == 200 and ok.body == b"\x89PNG fake" and ok.media_type == "image/png"
+    assert (await route(_Req(path_params={"name": "sticker-his-2.png"}))).status_code == 404   # 还没画
+    for bad in ("sticker-her-11.png", "sticker-her-0.png", "sticker-her-2.png/../../secret.png",
+                "../secret.png", "sticker-cat-2.png", "sticker-her-2.PNG"):
+        assert (await route(_Req(path_params={"name": bad}))).status_code == 404

@@ -26,8 +26,10 @@
   - **她的小记板**（rule.md 17.1）：小记页顶上切换「他的 / 我的」。她在「我的」里
     点月历格子底下的圆钮（原地浮起、+ 转成 ×）弹出一圈 10 个团子（点 × 或空白处收起），选一个进「写一条」：一个框里是
     日子（点一下换日子）、大团子（点一下换团子）、团子名、正文，× 不写了，✓ 贴上；
-    自己的能改（旧版本留在 history）能删（只改可见性）。团子图和名字先占位
-    （`NOTE_STICKERS` 的 src / label），等她画。我用 `note(her=True)`（配 `date` / `month`）看她的板，用
+    自己的能改（旧版本留在 history）能删（只改可见性）。
+  - **团子分两套**：她的板用她画的，他的板用给他画的（`NOTE_STICKERS_BY_BOARD`），
+    没画的号先用颜色占位。图放 `frontend/stickers/sticker-her-<号>.png` /
+    `sticker-his-<号>.png`，`/static/` 只认这个格式的名字。她画的第一个：她的 2 号（大哭）。我用 `note(her=True)`（配 `date` / `month`）看她的板，用
     `note(note_id, reply)` 评论；`comments=True` 两块板都算。她写了新的或改过的，
     无参 `breath()` 提醒一次。后台新增 `POST /api/notes`、
     `PATCH/DELETE /api/notes/{id}`，都只作用在她自己的板上。

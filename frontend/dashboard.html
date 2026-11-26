@@ -6794,6 +6794,20 @@ var NOTE_STICKERS = {
   9:  { color: '#f9c74f', src: '', label: '' },
   10: { color: '#ffe066', src: '', label: '' }
 };
+// 两套团子分开：她的板用她的那套，他的板用他的那套。画了哪个就在这里填上 src / label，
+// 没画的那个号先用上面的颜色占位。图放在 frontend/stickers/sticker-her-<号>.png、sticker-his-<号>.png。
+var NOTE_STICKERS_BY_BOARD = {
+  user: {
+    2: { src: '/static/sticker-her-2.png', label: '' }
+  },
+  ai: {}
+};
+function _noteSticker(m, whose) {
+  var base = NOTE_STICKERS[m];
+  if (!base) return null;
+  var own = (NOTE_STICKERS_BY_BOARD[whose || 'ai'] || {})[m] || {};
+  return { color: base.color, src: own.src || '', label: own.label || '' };
+}
 var _notes = { year: 0, month: 0, notes: [], selected: '', whose: 'ai', unseen: {} };
 
 // 当前这块板上的小记（他的 ai / 她的 user）
@@ -6870,7 +6884,7 @@ function renderNotesMonth() {
     var cls = 'note-cell' + (ns.length ? ' has-note' : '') + (key === todayKey ? ' is-today' : '') + (key === _notes.selected ? ' selected' : '');
     if (!ns.length) { cells.push('<div class="' + cls + '">' + label + '</div>'); continue; }
     var mood = Number(ns[ns.length - 1].mood || 0);
-    var s = NOTE_STICKERS[mood];
+    var s = _noteSticker(mood, _notes.whose);
     var unseen = ns.some(function(n) { return (n.comments || []).some(function(c) { return c.author === 'ai' && !c.seen; }); });
     var face = s && s.src ? '<img src="' + escAttr(s.src) + '" alt="' + mood + '">' : label;
     var bg = s ? (s.src ? 'transparent' : s.color) : 'var(--surface)';
@@ -6903,9 +6917,9 @@ document.addEventListener('keydown', function(e) {
   else closeNoteDay();
 });
 
-function _noteBigSticker(mood) {
+function _noteBigSticker(mood, whose) {
   var m = Number(mood || 0);
-  var s = NOTE_STICKERS[m];
+  var s = _noteSticker(m, whose);
   if (!s) return '';
   var label = s.label ? '<div class="note-sticker-label"><span>' + esc(s.label) + '</span></div>' : '';
   if (s.src) return '<div class="note-sticker-big"><img src="' + escAttr(s.src) + '" alt="' + m + '"></div>' + label;
@@ -6953,7 +6967,7 @@ async function openNoteDay(day) {
               : '') +
           '</div>' +
         '</div>' +
-        _noteBigSticker(n.mood) +
+        _noteBigSticker(n.mood, n.author || 'ai') +
         '<div class="note-box-text">' + esc(n.content) + '</div>' +
       '</div>' +
       '<div class="note-thread">' + comments + '</div>';
@@ -7064,7 +7078,7 @@ function openNoteRing(mode) {
   ring.querySelectorAll('.note-ring-opt').forEach(function(x) { x.remove(); });
   var current = _noteRingMode === 'change' ? _noteWrite.mood : 0;
   for (var m = 1; m <= 10; m++) {
-    var st = NOTE_STICKERS[m];
+    var st = _noteSticker(m, 'user');
     var a = (-90 + (m - 1) * 36) * Math.PI / 180;   // 从正上方顺时针一圈
     var el = document.createElement('div');
     el.className = 'note-ring-opt' + (m === current ? ' on' : '');
@@ -7118,7 +7132,7 @@ function noteRingPick(m) {
 
 function _noteRenderWriteSticker() {
   document.getElementById('notes-write-sticker').innerHTML = _noteWrite.mood
-    ? _noteBigSticker(_noteWrite.mood)
+    ? _noteBigSticker(_noteWrite.mood, 'user')
     : '<div class="note-sticker-big" style="border:2px dashed var(--border);color:var(--text-dim);font-size:14px;font-weight:500;">贴一个</div>';
 }
 
