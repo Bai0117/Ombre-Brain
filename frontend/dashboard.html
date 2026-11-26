@@ -1465,11 +1465,13 @@
   .notes-board-toggle .filter-btn { position:relative; padding:6px 20px; }
   .notes-board-toggle .note-dot { position:absolute; top:2px; right:6px; width:7px; height:7px; border-radius:50%; background:#e5534b; }
   .notes-write-page { z-index:9001; }
-  /* 底部圆钮：点开团子圈时 + 转 45° 成 × */
-  #notes-fab.notes-fab { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 22px); transform:translateX(-50%) !important;
-    z-index:9003; width:62px !important; height:62px !important; min-width:0 !important; padding:0 !important; border-radius:50% !important;
+  /* 圆钮在月历框里、格子底下；点开团子圈时原地浮到圈上面，+ 转成 × */
+  .notes-fab-slot { display:flex; justify-content:center; margin:22px 0 4px; height:62px; }
+  #notes-fab.notes-fab { position:relative; transform:none !important; z-index:1;
+    width:62px !important; height:62px !important; min-width:0 !important; padding:0 !important; border-radius:50% !important;
     border:2.5px solid var(--text) !important; background:var(--bg) !important; color:var(--text) !important;
-    box-shadow:0 4px 14px rgba(0,0,0,.25) !important; align-items:center; justify-content:center; cursor:pointer; }
+    box-shadow:0 4px 14px rgba(0,0,0,.25) !important; display:flex !important; align-items:center; justify-content:center; cursor:pointer; }
+  #notes-fab.notes-fab.lifted { position:fixed; z-index:9003; }
   #notes-fab.notes-fab svg { transition:transform .32s cubic-bezier(.3,1.4,.5,1); }
   #notes-fab.notes-fab.open svg { transform:rotate(135deg); }
   .notes-ring-page { position:fixed; inset:0; z-index:9002; background:var(--bg); display:flex; align-items:center; justify-content:center; }
@@ -2997,16 +2999,17 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <button class="btn-secondary" onclick="notesShiftMonth(1)" style="padding:4px 10px;" title="下个月">›</button>
       </div>
       <div id="notes-grid" class="notes-grid"></div>
-      <div id="notes-fab-spacer" style="display:none;height:96px;"></div>
+      <div id="notes-fab-slot" class="notes-fab-slot" style="display:none">
+        <button id="notes-fab" class="notes-fab" onclick="toggleNoteRing()" aria-label="写一条" title="写一条">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- 小记·她的板：底部圆钮。点一下转成 ×，弹出团子圈选心情；选完进写一条 -->
-<button id="notes-fab" class="notes-fab" style="display:none" onclick="toggleNoteRing()" aria-label="写一条" title="写一条">
-  <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-</button>
-<div id="notes-ring-page" class="notes-ring-page" style="display:none" role="dialog" aria-modal="true">
+<div id="notes-ring-page" class="notes-ring-page" style="display:none" role="dialog" aria-modal="true" onclick="if(event.target===this||event.target.id==='notes-ring')closeNoteRing()">
   <div id="notes-ring" class="notes-ring">
     <div class="notes-ring-ask">今天怎么样？</div>
   </div>
@@ -6045,7 +6048,6 @@ function activateDashboardTab(tab) {
     if (target === 'keepsake') pending.push(loadKeepsakeView());
     if (target === 'days') pending.push(loadDaysView());
     if (target === 'notes') pending.push(loadNotesView());
-    if (typeof _notesSyncFab === 'function') _notesSyncFab();
     if (target === 'shelf') pending.push(loadShelfView());
     if (target === 'album') pending.push(loadAlbumView());
     if (target === 'dupes') pending.push(loadDupesView());
@@ -7045,14 +7047,9 @@ function _notesTodayKey() {
   return now.getFullYear() + '-' + _notesPad(now.getMonth() + 1) + '-' + _notesPad(now.getDate());
 }
 
-// 圆钮只在「我的」板、小记页开着、没在写的时候出现
+// 圆钮在月历框里，只在「我的」板出现（它跟着页面走，切到别的标签自然看不见）
 function _notesSyncFab() {
-  var fab = document.getElementById('notes-fab');
-  var view = document.getElementById('notes-view');
-  var writing = document.getElementById('notes-write-page').style.display !== 'none';
-  var show = _notes.whose === 'user' && view && view.style.display !== 'none' && !_noteDayIsOpen() && !writing;
-  fab.style.display = show ? 'flex' : 'none';
-  document.getElementById('notes-fab-spacer').style.display = _notes.whose === 'user' ? '' : 'none';
+  document.getElementById('notes-fab-slot').style.display = _notes.whose === 'user' ? '' : 'none';
 }
 
 function toggleNoteRing() {
@@ -7083,13 +7080,26 @@ function openNoteRing(mode) {
   }
   page.classList.toggle('over-write', _noteRingMode === 'change');
   page.style.display = '';
-  document.getElementById('notes-fab').classList.add('open');
+  if (_noteRingMode === 'new') {
+    var fab = document.getElementById('notes-fab');
+    var r = fab.getBoundingClientRect();
+    fab.style.left = r.left + 'px'; fab.style.top = r.top + 'px';
+    fab.classList.add('lifted');
+    requestAnimationFrame(function() { fab.classList.add('open'); });
+  }
   document.body.style.overflow = 'hidden';
 }
 
 function closeNoteRing() {
   document.getElementById('notes-ring-page').style.display = 'none';
-  document.getElementById('notes-fab').classList.remove('open');
+  var fab = document.getElementById('notes-fab');
+  if (fab.classList.contains('lifted')) {
+    fab.classList.remove('open');
+    setTimeout(function() {
+      if (fab.classList.contains('open')) return;   // 这期间又被点开了
+      fab.classList.remove('lifted'); fab.style.left = ''; fab.style.top = '';
+    }, 330);
+  }
   if (!_noteDayIsOpen() && document.getElementById('notes-write-page').style.display === 'none') document.body.style.overflow = '';
 }
 
@@ -7101,6 +7111,8 @@ function noteRingPick(m) {
     return;
   }
   closeNoteRing();
+  var fab = document.getElementById('notes-fab');
+  fab.classList.remove('lifted', 'open'); fab.style.left = ''; fab.style.top = '';
   openNoteWrite('', m);
 }
 
