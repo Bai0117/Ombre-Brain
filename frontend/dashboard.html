@@ -1450,7 +1450,7 @@
   .notes-day-page { position:fixed; inset:0; z-index:9000; background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .notes-day-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between;
     padding:calc(env(safe-area-inset-top, 0px) + 12px) 18px 12px; background:var(--bg); }
-  .notes-day-body { max-width:560px; margin:0 auto; padding:6px 18px calc(env(safe-area-inset-bottom, 0px) + 40px); }
+  .notes-day-body { max-width:560px; margin:0 auto; padding:6px 18px 24px; }
   .note-box { border:2px solid var(--text); border-radius:3px; padding:16px 18px 20px; margin-top:22px; }
   .note-box-top { display:flex; justify-content:space-between; align-items:flex-start; }
   .note-box-date { display:inline-block; text-align:center; font-weight:700; line-height:1.3; }
@@ -1462,6 +1462,24 @@
   .note-sticker-big img { width:100%; height:100%; object-fit:contain; }
   .note-box-text { font-size:14px; line-height:1.85; white-space:pre-wrap; }
   .note-thread { padding:4px 4px 0; }
+  .note-box.is-target { box-shadow:0 0 0 3px var(--border-strong, var(--border)); }
+  .notes-day-page { display:flex; flex-direction:column; }
+  .notes-day-body { flex:1 0 auto; width:100%; box-sizing:border-box; }
+  .notes-compose { position:sticky; bottom:0; z-index:1; background:var(--bg);
+    padding:8px 18px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+  .notes-compose-row, .notes-compose-hint { max-width:560px; margin:0 auto; }
+  .notes-compose-row { display:flex; align-items:flex-end; gap:10px; }
+  .notes-compose-hint { font-size:11.5px; color:var(--text-dim); padding:0 4px 6px; }
+  .notes-compose-hint a { color:var(--text-dim); margin-left:8px; }
+  /* 一行时正好 46px 高、圆角 23px → 两头是整圆的胶囊；打多行时变成圆角矩形 */
+  #notes-day-page #notes-compose-input { flex:1; height:46px; min-height:46px; max-height:132px; resize:none; box-sizing:border-box;
+    padding:12px 18px; font-size:14px; line-height:20px; border-radius:23px !important; overflow-y:auto; }
+  /* 全局 button:not(...) 规则带 !important 且特指度高（十几个 :not），用 #notes-day-page 压过它，保住白底黑箭头 */
+  #notes-day-page button.notes-send { flex:0 0 46px; width:46px !important; height:46px !important; min-width:0 !important;
+    border-radius:50% !important; border:none !important; padding:0 !important; cursor:pointer; display:flex !important;
+    align-items:center; justify-content:center; background:#ECEBE8 !important; color:#18181B !important;
+    box-shadow:0 1px 3px rgba(0,0,0,.25) !important; backdrop-filter:none !important; }
+  #notes-day-page button.notes-send:active { transform:scale(.94) !important; background:#DAD9D6 !important; }
   .note-comment { font-size:12.5px; line-height:1.7; padding:6px 10px; border-left:2px solid var(--border); margin-top:6px; }
   .note-comment.from-ai { border-left-color:var(--accent); }
   .note-comment .note-new { font-size:10px; color:var(--accent); margin-left:6px; }
@@ -2951,6 +2969,15 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
     <span style="width:44px;"></span>
   </div>
   <div id="notes-day" class="notes-day-body"></div>
+  <div class="notes-compose">
+    <div id="notes-compose-hint" class="notes-compose-hint" style="display:none"></div>
+    <div class="notes-compose-row">
+      <textarea id="notes-compose-input" rows="1" maxlength="1000" placeholder="小蘑菇，说给我听。" oninput="noteComposeGrow(this)"></textarea>
+      <button class="notes-send" onclick="postNoteComment()" aria-label="发送" title="发送">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- 书架 / 片单 -->
@@ -6776,6 +6803,9 @@ function _noteBigSticker(mood) {
 async function openNoteDay(day) {
   var ns = _notes.notes.filter(function(n) { return n.date === day; });
   if (!ns.length) return;
+  if (_notes.selected !== day || !ns.some(function(n) { return n.id === _noteCompose.noteId; })) {
+    _noteCompose = { noteId: ns[ns.length - 1].id, replyTo: '', who: '' };
+  }
   _notes.selected = day;
   renderNotesMonth();
   var page = document.getElementById('notes-day-page');
@@ -6801,7 +6831,7 @@ async function openNoteDay(day) {
         (c.author === 'user' ? '<a href="javascript:void(0)" style="font-size:11px;color:var(--text-dim);margin-left:12px;" data-note="' + escAttr(n.id) + '" data-comment="' + escAttr(c.id) + '" onclick="deleteNoteComment(this)">删除</a>' : '') +
       '</div>';
     }).join('');
-    return '<div class="note-box">' +
+    return '<div class="note-box' + (n.id === _noteCompose.noteId && ns.length > 1 ? ' is-target' : '') + '" data-note="' + escAttr(n.id) + '" onclick="noteSetTarget(this.dataset.note)">' +
         '<div class="note-box-top">' +
           '<div class="note-box-date"><div class="wd">' + wd + '</div><div class="md">' + esc(parts[1] + '.' + parts[2]) + '</div></div>' +
           '<div class="note-box-time">' + esc(_noteTime(n.created)) + '</div>' +
@@ -6809,17 +6839,9 @@ async function openNoteDay(day) {
         _noteBigSticker(n.mood) +
         '<div class="note-box-text">' + esc(n.content) + '</div>' +
       '</div>' +
-      '<div class="note-thread">' +
-        comments +
-        '<div style="margin-top:10px;">' +
-          '<div id="note-replying-' + escAttr(n.id) + '" style="font-size:11px;color:var(--text-dim);display:none;margin-bottom:4px;"></div>' +
-          '<div style="display:flex;gap:8px;">' +
-            '<textarea id="note-input-' + escAttr(n.id) + '" rows="1" maxlength="1000" placeholder="评论一下…" style="flex:1;padding:6px 10px;font-size:12.5px;resize:vertical;"></textarea>' +
-            '<button class="btn-primary" data-note="' + escAttr(n.id) + '" onclick="postNoteComment(this.dataset.note)" style="padding:6px 14px;font-size:12px;">发</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+      '<div class="note-thread">' + comments + '</div>';
   }).join('');
+  _noteComposeHint();
   if (!wasOpen) {
     page.style.display = '';
     page.scrollTop = 0;
@@ -6841,19 +6863,46 @@ async function openNoteDay(day) {
   }
 }
 
-var _noteReplyTarget = {};
-function noteReplyTo(el) {
-  var nid = el.dataset.note;
-  _noteReplyTarget[nid] = el.dataset.reply;
-  var tip = document.getElementById('note-replying-' + nid);
-  tip.style.display = '';
-  tip.innerHTML = '回复 ' + esc(el.dataset.who) + ' · <a href="javascript:void(0)" data-note="' + escAttr(nid) + '" onclick="noteCancelReply(this.dataset.note)">取消</a>';
-  document.getElementById('note-input-' + nid).focus();
+// 底部只有一个评论框：评哪条小记、回哪条评论，记在这里
+var _noteCompose = { noteId: '', replyTo: '', who: '' };
+
+function _noteDayNotes() { return _notes.notes.filter(function(n) { return n.date === _notes.selected; }); }
+
+function _noteComposeHint() {
+  var hint = document.getElementById('notes-compose-hint');
+  var ns = _noteDayNotes();
+  var target = ns.filter(function(n) { return n.id === _noteCompose.noteId; })[0];
+  var text = '';
+  if (_noteCompose.replyTo) text = '回复 ' + esc(_noteCompose.who);
+  else if (ns.length > 1 && target) text = '评论 ' + esc(_noteTime(target.created)) + ' 那条 · 点别的框换一条';
+  if (_noteCompose.replyTo) text += '<a href="javascript:void(0)" onclick="noteCancelReply()">取消</a>';
+  hint.innerHTML = text;
+  hint.style.display = text ? '' : 'none';
+  document.querySelectorAll('#notes-day .note-box').forEach(function(b) {
+    b.classList.toggle('is-target', ns.length > 1 && b.dataset.note === _noteCompose.noteId);
+  });
 }
-function noteCancelReply(nid) {
-  delete _noteReplyTarget[nid];
-  var tip = document.getElementById('note-replying-' + nid);
-  tip.style.display = 'none'; tip.innerHTML = '';
+
+function noteSetTarget(nid) {
+  if (_noteCompose.noteId === nid && !_noteCompose.replyTo) return;
+  _noteCompose = { noteId: nid, replyTo: '', who: '' };
+  _noteComposeHint();
+}
+
+function noteReplyTo(el) {
+  _noteCompose = { noteId: el.dataset.note, replyTo: el.dataset.reply, who: el.dataset.who };
+  _noteComposeHint();
+  document.getElementById('notes-compose-input').focus();
+}
+
+function noteCancelReply() {
+  _noteCompose.replyTo = ''; _noteCompose.who = '';
+  _noteComposeHint();
+}
+
+function noteComposeGrow(el) {
+  el.style.height = '46px';
+  el.style.height = Math.min(Math.max(el.scrollHeight, 46), 132) + 'px';
 }
 
 async function deleteNoteComment(el) {
@@ -6868,19 +6917,23 @@ async function deleteNoteComment(el) {
   }
 }
 
-async function postNoteComment(nid) {
-  var input = document.getElementById('note-input-' + nid);
+async function postNoteComment() {
+  var input = document.getElementById('notes-compose-input');
   var content = (input.value || '').trim();
-  if (!content) return;
+  var nid = _noteCompose.noteId;
+  if (!content || !nid) return;
   try {
     var res = await fetch(BASE + '/api/notes/' + encodeURIComponent(nid) + '/comments', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ content: content, reply_to: _noteReplyTarget[nid] || '' })
+      body: JSON.stringify({ content: content, reply_to: _noteCompose.replyTo || '' })
     });
     var d = await res.json().catch(function() { return {}; });
     if (!res.ok) { alert(d.error || '没发出去'); return; }
-    delete _noteReplyTarget[nid];
+    input.value = ''; noteComposeGrow(input);
+    _noteCompose.replyTo = ''; _noteCompose.who = '';
     await loadNotesView();
+    var page = document.getElementById('notes-day-page');
+    page.scrollTop = page.scrollHeight;   // 发完滚到最底，看见刚发的那句
   } catch (e) {
     alert('没发出去：' + (e && e.message ? e.message : e));
   }
