@@ -77,6 +77,7 @@ from tools import now as _t_now
 from tools import days as _t_days
 from tools import shelf as _t_shelf
 from tools import album as _t_album
+from tools import note as _t_note
 from tools import them as _t_them
 from tools import you as _t_you
 
@@ -1385,6 +1386,28 @@ async def album(
     return text
 
 
+@mcp.tool()
+async def note(
+    content: Optional[str] = "",
+    mood: Optional[int] = 0,
+    date: Optional[str] = "",
+    month: Optional[str] = "",
+    note_id: Optional[str] = "",
+    reply: Optional[str] = "",
+    comment_id: Optional[str] = "",
+) -> str:
+    """小记:我自己的小日记。一句话、一个日子、一个团子,随手写,不用重要——不是要记住的事(那是 hold),不是挂在记忆上的感受(那是 feel),不是要永远留给她的话(那是 letter_write)。只有我能写;她在后台「小记」页能看、能评论,我能回她。写下的不合并、不压缩、不衰减,也不能删。写:content=正文,mood=团子 1~10(1 最糟、10 最好,0=不贴),date=算哪一天 YYYY-MM-DD(默认今天,可以补写过去的,不能写明天)。读:无参数=最近 7 条带评论;date=那一天的全部小记和评论;month=YYYY-MM 看一个月每天的团子;note_id=看一条。回她:note_id + reply=回复正文,comment_id=回的是哪条评论(可选,不给就是直接评论这条小记)。无参 breath 的「小记」段会带上最近一条,和她还没被我看过的评论(只提醒一次)。"""
+    return await _with_notice(
+        _t_note.dispatch(
+            content=content or "", mood=mood or 0, date=date or "", month=month or "",
+            note_id=note_id or "", reply=reply or "", comment_id=comment_id or "",
+        ),
+        op="note",
+        args={"content_len": len(content or ""), "mood": mood, "date": date, "month": month,
+              "note_id": note_id, "reply_len": len(reply or ""), "comment_id": comment_id},
+    )
+
+
 # Pydantic 默认的 ``extra=ignore`` 会让拼错的 MCP 参数看似调用成功；
 # 写工具甚至会在未应用客户端目标字段时仍创建记忆。breath 和 trace
 # 已有严格适配层，其余公开工具使用相同边界，并同步 FastMCP
@@ -1424,6 +1447,7 @@ for _strict_tool_name in (
     "days",
     "shelf",
     "album",
+    "note",
 ):
     try:
         _forbid_unknown_tool_arguments(_strict_tool_name)

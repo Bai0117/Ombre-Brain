@@ -37,6 +37,7 @@ from . import recall
 from . import days
 from . import shelf
 from . import album
+from . import notes
 
 
 _WEB_MODULES = (
@@ -63,6 +64,7 @@ _WEB_MODULES = (
     ("web.days", days.register),
     ("web.shelf", shelf.register),
     ("web.album", album.register),
+    ("web.notes", notes.register),
 )
 
 

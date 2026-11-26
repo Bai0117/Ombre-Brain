@@ -24,6 +24,7 @@ async def test_sync_uploads_root_sidecars_only(monkeypatch, tmp_path):
     (vault / ".days.json").write_text('{"days": []}', encoding="utf-8")
     (vault / ".shelf.json").write_text('{"items": []}', encoding="utf-8")
     (vault / ".dupe_dismissed.json").write_text("{}", encoding="utf-8")
+    (vault / ".notes.json").write_text('{"notes": []}', encoding="utf-8")
     (vault / ".recall_log.jsonl").write_text("{}\n", encoding="utf-8")       # 不备份
     (vault / "dynamic" / ".days.json").write_text("{}", encoding="utf-8")      # 不在根目录，不备份
     sync = GitHubSync(token="t", repo="owner/repo")
@@ -37,12 +38,13 @@ async def test_sync_uploads_root_sidecars_only(monkeypatch, tmp_path):
     result = await sync.sync(str(vault))
 
     assert result["ok"] is True
-    assert set(captured) == {"dynamic/a.md", ".days.json", ".shelf.json", ".dupe_dismissed.json"}
+    assert set(captured) == {"dynamic/a.md", ".days.json", ".shelf.json", ".dupe_dismissed.json", ".notes.json"}
 
 
 def test_restore_accepts_only_known_sidecar_names():
     assert _is_backup_relative_path(".days.json")
     assert _is_backup_relative_path(".shelf.json")
+    assert _is_backup_relative_path(".notes.json")
     assert not _is_backup_relative_path(".recall_log.jsonl")
     assert not _is_backup_relative_path("dynamic/.days.json")
     assert not _is_backup_relative_path("config.json")

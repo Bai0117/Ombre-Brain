@@ -43,6 +43,7 @@ from .. import _runtime as rt
 from ..plan.core import is_letter_bucket
 from ..plan.summary import fresh_summary, schedule_plan_summaries
 from ..days import days_section
+from ..note import notes_section
 from .keepsake import SECTION as KEEPSAKE_SECTION, pick_keepsakes
 from . import self_section as _self
 from .recent_digest import _digest_days, collect_days, recent_digest_section
@@ -430,6 +431,13 @@ async def surface_default(
     except Exception as e:
         rt.logger.warning(f"days section failed / 日子段异常: {e}")
         days_text = ""
+    # 「小记」：我上一条小记，和她还没被我看过的评论（带出来即算看过）。
+    # 带日期范围的 breath 在看别的日子，不放，也就不会把她的评论悄悄标成已读。
+    try:
+        notes_text = "" if date_scoped else notes_section()
+    except Exception as e:
+        rt.logger.warning(f"notes section failed / 小记段异常: {e}")
+        notes_text = ""
     # 待办与核心准则一样不受日期过滤：它们是还欠着的事，不是某天发生的事。
     todo_section = _todo_section(all_buckets)
     # 「这几天」：最近几天每天一段摘要。带日期范围的 breath 本身就在看特定的日子，不再叠一层。
@@ -623,14 +631,16 @@ async def surface_default(
             continue
 
     if not pinned_results and not dynamic_results:
+        # 小记段已经把她的评论标成看过了，这里提前返回也得把它带上，不然那几句话就丢了。
+        notes_head = f"{notes_text}\n\n" if notes_text else ""
         if pinned_omitted:
-            return _pin_budget_notice(
+            return notes_head + _pin_budget_notice(
                 required=pinned_required_tokens,
                 limit=max_tokens,
                 omitted=pinned_omitted,
             )
         if dynamic_omitted:
-            return _budget_notice(
+            return notes_head + _budget_notice(
                 omitted=dynamic_omitted,
                 used=max_tokens - token_budget,
                 limit=max_tokens,
@@ -652,7 +662,7 @@ async def surface_default(
                 "或者 dream() 让我自己挑几段最近的记忆嚼一嚼。"
             )
         # 没东西可浮现时，欠着的事更要看见。
-        head = "\n\n".join(x for x in (days_text, todo_section, recent_section) if x)
+        head = "\n\n".join(x for x in (days_text, notes_text, todo_section, recent_section) if x)
         return f"{head}\n\n{calm}" if head else calm
 
     # --- iter 1.6 §7: passive association ---
@@ -783,6 +793,8 @@ async def surface_default(
         parts.append(days_text)
     if self_results:
         parts.append(f"=== {_self.SECTION} ===\n" + "\n---\n".join(self_results))
+    if notes_text:
+        parts.append(notes_text)
     if todo_section:
         parts.append(todo_section)
     if recent_section:

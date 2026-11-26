@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "49efdefb43342fd2c99ed707d69c5e4364d398713777194a6a4a22ce62590bd9",
-      "size": 625778
+      "sha256": "3db6ef4281c3475d73e020c0ea9a3ea1892deaed751f863883c5d8d44ee06341",
+      "size": 638455
     },
     {
       "path": "frontend/favicon-64.png",
@@ -57,8 +57,8 @@
     },
     {
       "path": "src/VERSION",
-      "sha256": "050b1be586f238ff4c9b66a45397a4df7bd9de6a8809205f4f7dba0234d93790",
-      "size": 6
+      "sha256": "c6ca5c049c05d2d1c3bca4546cbbc83c2ab0124ee8c160d1e1b4fe39e3fee3ee",
+      "size": 5
     },
     {
       "path": "src/bm25_index.py",
@@ -77,8 +77,8 @@
     },
     {
       "path": "src/dehydrator.py",
-      "sha256": "d6c7336589e6901f122d607188478221cda198662029b00709a52b85c947cb39",
-      "size": 75956
+      "sha256": "7b1bdf0a12efb3f8d901e4284d27bac4b3384f7a3bbf5d7ced012de9e234c15d",
+      "size": 76587
     },
     {
       "path": "src/deletion_requests.py",
@@ -97,8 +97,8 @@
     },
     {
       "path": "src/github_sync.py",
-      "sha256": "dc0a34f099790c787aac000bc5ebd1b1a7f0ab3b4de8da332742d10b8ba32143",
-      "size": 55116
+      "sha256": "a0a7e2f6424e6a9beec13827cb3373cb5ec62fe933b526c5adc84b93068d3eb7",
+      "size": 55144
     },
     {
       "path": "src/import_memory.py",
@@ -587,8 +587,8 @@
     },
     {
       "path": "src/server.py",
-      "sha256": "daaa5142cb36dacde4dc8561f2b9023cce0822d9977136e820188e6876aff048",
-      "size": 87034
+      "sha256": "756edfc36625941a8bae0bf32216bb6db27a07811d96b252f0f81fcd02153348",
+      "size": 88679
     },
     {
       "path": "src/server_app.py",
@@ -682,8 +682,8 @@
     },
     {
       "path": "src/tools/breath/recent_digest.py",
-      "sha256": "115e0e4de14d2c71eeebf99fbc13f98aa3257a50921708a294df366ec4616e75",
-      "size": 9804
+      "sha256": "bedfd02a26c1e7b492458c15bd99749b5539fbc1774d5658a82b466d1f1dad01",
+      "size": 12801
     },
     {
       "path": "src/tools/breath/search.py",
@@ -697,8 +697,8 @@
     },
     {
       "path": "src/tools/breath/surface.py",
-      "sha256": "f8cbffcc04d07a6bf867200b102fd2cdde568a5358cde5f8e3ba1d121b68c084",
-      "size": 35877
+      "sha256": "7144f252254b221dda149f6a12c5bb1c0248ef82d5f8179f5891744cba4ceed2",
+      "size": 36602
     },
     {
       "path": "src/tools/days/__init__.py",
@@ -762,8 +762,8 @@
     },
     {
       "path": "src/tools/hold/__init__.py",
-      "sha256": "72de6e2c8a2d34b2382bc532dc1838762c6e77a641d8a67a81756466e1260484",
-      "size": 13894
+      "sha256": "072c8db9655fc835011254374ac28e3b4b8edf7bc0a78a5aefa22ba2d2dec6f3",
+      "size": 14227
     },
     {
       "path": "src/tools/hold/core.py",
@@ -789,6 +789,16 @@
       "path": "src/tools/i/core.py",
       "sha256": "eb13253ce149906e25a72c4540899636be08f883c865bdbfe534a53d05827135",
       "size": 26810
+    },
+    {
+      "path": "src/tools/note/__init__.py",
+      "sha256": "25803d51fa9e3f049cc69cd5be197fdfb37f098acb1c8ce2b10ccc2bcdbda8b2",
+      "size": 677
+    },
+    {
+      "path": "src/tools/note/core.py",
+      "sha256": "29927947f62e4a5200b269d8f52db5ee126a89ca2c17be94e6715a66535ce879",
+      "size": 13418
     },
     {
       "path": "src/tools/now/__init__.py",
@@ -882,8 +892,8 @@
     },
     {
       "path": "src/web/__init__.py",
-      "sha256": "d3fa7fbcf62b949c24c7a0f533ddd9ccfc79737fbeaee09f9b9561afbc224358",
-      "size": 2562
+      "sha256": "1af703df92b8cfebd0bc31a14a8ecab9e8ac4f325f2d196360ec85aa7cd6165d",
+      "size": 2617
     },
     {
       "path": "src/web/_shared.py",
@@ -949,6 +959,11 @@
       "path": "src/web/meta.py",
       "sha256": "34a42d611ca96ed25a4deee880ba7af4f1472c8518d28b4ae16a89e8561c4148",
       "size": 68441
+    },
+    {
+      "path": "src/web/notes.py",
+      "sha256": "8167514ee8d7603b775663a8f15f3b921ece956691749424c8e8bc0c85d9c64a",
+      "size": 3666
     },
     {
       "path": "src/web/oauth.py",
@@ -1017,5 +1032,5 @@
     }
   ],
   "rollout_strategy": "single-node",
-  "version": "3.6.14"
+  "version": "3.7.0"
 }

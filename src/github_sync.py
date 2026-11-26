@@ -62,9 +62,9 @@ _THEM_RELATIVE_PATH = ".them/them.sqlite3"
 # 不是照着 you 抄一遍带进来的。
 _MODULE_SNAPSHOT_PATHS = (_YOU_RELATIVE_PATH, _THEM_RELATIVE_PATH)
 # 每条快照路径对应的校验函数。恢复时按路径分派——用错校验函数等于没校验。
-# vault 根目录下、不是记忆但丢了会心疼的小 JSON（tools/days、tools/shelf、tools/dedupe）。
+# vault 根目录下、不是记忆但丢了会心疼的小 JSON（tools/days、tools/shelf、tools/dedupe、tools/note）。
 # 只认这几个名字、只认根目录，恢复前要能解析成 JSON 对象。
-_SIDECAR_JSON_FILES = frozenset({".days.json", ".shelf.json", ".dupe_dismissed.json"})
+_SIDECAR_JSON_FILES = frozenset({".days.json", ".shelf.json", ".dupe_dismissed.json", ".notes.json"})
 _SNAPSHOT_VALIDATORS = {
     _YOU_RELATIVE_PATH: (validate_you_snapshot_file, YouStoreError, "You"),
     _THEM_RELATIVE_PATH: (validate_them_snapshot_file, ThemStoreError, "them"),
