@@ -1456,12 +1456,25 @@
   .note-box-date { display:inline-block; text-align:center; font-weight:700; line-height:1.3; }
   .note-box-date .wd { font-size:17px; padding:0 10px 4px; border-bottom:2px solid var(--text); }
   .note-box-date .md { font-size:19px; padding-top:4px; letter-spacing:.5px; }
-  .note-box-time { font-size:12px; color:var(--text-dim); }
   .note-sticker-big { width:116px; height:116px; margin:4px auto 16px; display:flex; align-items:center; justify-content:center;
     border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-size:30px; font-weight:700; color:#2b2b2b; }
   .note-sticker-big img { width:100%; height:100%; object-fit:contain; }
   .note-box-text { font-size:14px; line-height:1.85; white-space:pre-wrap; }
   .note-thread { padding:4px 4px 0; }
+  .notes-board-toggle { display:flex; justify-content:center; gap:8px; margin:2px 0 14px; }
+  .notes-board-toggle .filter-btn { position:relative; padding:6px 20px; }
+  .notes-board-toggle .note-dot { position:absolute; top:2px; right:6px; width:7px; height:7px; border-radius:50%; background:#e5534b; }
+  .notes-write-page { z-index:9001; }
+  #notes-write-date { width:100%; box-sizing:border-box; padding:8px 12px; font-size:14px; border-radius:12px !important; }
+  .notes-mood-pick { display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin:16px 0; }
+  .note-mood-opt { aspect-ratio:1; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none;
+    border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-weight:700; font-size:15px; color:#2b2b2b; opacity:.45; }
+  .note-mood-opt img { width:100%; height:100%; object-fit:contain; }
+  .note-mood-opt.on { opacity:1; outline:2px solid var(--text); outline-offset:3px; }
+  #notes-write-text { width:100%; box-sizing:border-box; min-height:180px; resize:vertical; padding:12px 14px;
+    font-size:14px; line-height:1.8; border-radius:14px !important; }
+  .note-box-tools { font-size:12px; color:var(--text-dim); text-align:right; }
+  .note-box-tools a { color:var(--text-dim); margin-left:10px; }
   .note-box.is-target { box-shadow:0 0 0 3px var(--border-strong, var(--border)); }
   .notes-day-page { display:flex; flex-direction:column; }
   .notes-day-body { flex:1 0 auto; width:100%; box-sizing:border-box; }
@@ -2944,11 +2957,15 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   </div>
 </div>
 
-<!-- 小记：他的小日记。一个月一张格子纸，写过的日子贴上团子；点开一天看小记、评论、回复 -->
+<!-- 小记：他的小日记和她的小日记，顶上切换。一个月一张格子纸，写过的日子贴上团子；点开一天看小记、评论、回复 -->
 <div class="content" id="notes-view" style="display:none">
   <div style="max-width:920px;margin:0 auto;">
     <div class="config-section">
       <h3><i data-lucide="notebook-pen" style="width:16px;height:16px;vertical-align:-2px;"></i> 小记</h3>
+      <div class="notes-board-toggle">
+        <button class="filter-btn active" data-whose="ai" onclick="notesSwitchBoard('ai')">他的</button>
+        <button class="filter-btn" data-whose="user" onclick="notesSwitchBoard('user')">我的</button>
+      </div>
       <div id="notes-unseen" style="display:none;font-size:12px;background:var(--surface);border-radius:var(--radius-inner);padding:8px 12px;margin-bottom:12px;"></div>
       <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;">
         <button class="btn-secondary" onclick="notesShiftMonth(-1)" style="padding:4px 10px;" title="上个月">‹</button>
@@ -2959,6 +2976,28 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <button class="btn-secondary" onclick="notesShiftMonth(1)" style="padding:4px 10px;" title="下个月">›</button>
       </div>
       <div id="notes-grid" class="notes-grid"></div>
+      <div id="notes-write-row" style="display:none;text-align:center;margin-top:18px;">
+        <button class="btn-primary" onclick="openNoteWrite()" style="padding:8px 22px;">写一条</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 小记·写一条（她的板）：选日子、贴团子、写正文；改的时候也是这一页 -->
+<div id="notes-write-page" class="notes-day-page notes-write-page" style="display:none" role="dialog" aria-modal="true">
+  <div class="notes-day-head">
+    <button class="btn-secondary" onclick="closeNoteWrite()" title="不写了" style="padding:4px 12px;font-size:16px;">‹</button>
+    <div id="notes-write-title" style="font-weight:700;font-size:16px;">写一条</div>
+    <span style="width:44px;"></span>
+  </div>
+  <div class="notes-day-body">
+    <div class="note-box">
+      <input id="notes-write-date" type="date" />
+      <div id="notes-write-moods" class="notes-mood-pick"></div>
+      <textarea id="notes-write-text" rows="8" maxlength="2000" placeholder="今天的小蘑菇怎么样？"></textarea>
+    </div>
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn-primary" onclick="saveNoteWrite()" style="padding:9px 30px;">贴上</button>
     </div>
   </div>
 </div>
@@ -6716,7 +6755,33 @@ var NOTE_STICKERS = {
   9:  { color: '#f9c74f', src: '' },
   10: { color: '#ffe066', src: '' }
 };
-var _notes = { year: 0, month: 0, notes: [], selected: '' };
+var _notes = { year: 0, month: 0, notes: [], selected: '', whose: 'ai', unseen: {} };
+
+// 当前这块板上的小记（他的 ai / 她的 user）
+function _notesBoard() { return _notes.notes.filter(function(n) { return (n.author || 'ai') === _notes.whose; }); }
+
+function notesSwitchBoard(whose) {
+  if (_notes.whose === whose) return;
+  _notes.whose = whose;
+  closeNoteDay();
+  _notesRenderChrome();
+  renderNotesMonth();
+}
+
+function _notesRenderChrome() {
+  document.querySelectorAll('.notes-board-toggle .filter-btn').forEach(function(b) {
+    var w = b.dataset.whose;
+    b.classList.toggle('active', w === _notes.whose);
+    var dot = b.querySelector('.note-dot');
+    if (_notes.unseen[w] && !dot) b.insertAdjacentHTML('beforeend', '<span class="note-dot"></span>');
+    if (!_notes.unseen[w] && dot) dot.remove();
+  });
+  document.getElementById('notes-write-row').style.display = _notes.whose === 'user' ? '' : 'none';
+  var tip = document.getElementById('notes-unseen');
+  var k = _notes.unseen[_notes.whose] || 0;
+  if (k) { tip.style.display = ''; tip.textContent = '主人回了你 ' + k + ' 条，带小红点的那天去看看。'; }
+  else { tip.style.display = 'none'; }
+}
 
 function _notesPad(n) { return (n < 10 ? '0' : '') + n; }
 function _notesMonthKey() { return _notes.year + '-' + _notesPad(_notes.month); }
@@ -6730,9 +6795,8 @@ async function loadNotesView() {
     if (!resp || !resp.ok) { grid.innerHTML = '<div style="color:var(--text-dim);grid-column:1/-1;">加载失败</div>'; return; }
     var d = await resp.json();
     _notes.notes = d.notes || [];
-    var tip = document.getElementById('notes-unseen');
-    if (d.unseen_replies) { tip.style.display = ''; tip.textContent = '主人回了你 ' + d.unseen_replies + ' 条，带小红点的那天去看看。'; }
-    else { tip.style.display = 'none'; }
+    _notes.unseen = d.unseen_by_board || { ai: d.unseen_replies || 0 };
+    _notesRenderChrome();
     renderNotesMonth();
     if (_notes.selected && _notes.selected.slice(0, 7) === _notesMonthKey() && _noteDayIsOpen()) openNoteDay(_notes.selected);
     else closeNoteDay();
@@ -6754,7 +6818,7 @@ function renderNotesMonth() {
   document.getElementById('notes-year').textContent = _notes.year;
   document.getElementById('notes-month').textContent = names[_notes.month - 1];
   var byDay = {};
-  _notes.notes.forEach(function(n) { (byDay[n.date] = byDay[n.date] || []).push(n); });
+  _notesBoard().forEach(function(n) { (byDay[n.date] = byDay[n.date] || []).push(n); });
   var now = new Date();
   var todayKey = now.getFullYear() + '-' + _notesPad(now.getMonth() + 1) + '-' + _notesPad(now.getDate());
   var isThisMonth = _notesMonthKey() === todayKey.slice(0, 7);
@@ -6792,7 +6856,11 @@ function closeNoteDay() {
   renderNotesMonth();
 }
 
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeNoteDay(); });
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('notes-write-page').style.display !== 'none') closeNoteWrite();
+  else closeNoteDay();
+});
 
 function _noteBigSticker(mood) {
   var m = Number(mood || 0);
@@ -6803,8 +6871,8 @@ function _noteBigSticker(mood) {
 }
 
 async function openNoteDay(day) {
-  var ns = _notes.notes.filter(function(n) { return n.date === day; });
-  if (!ns.length) return;
+  var ns = _notesBoard().filter(function(n) { return n.date === day; });
+  if (!ns.length) { closeNoteDay(); return; }
   if (_notes.selected !== day || !ns.some(function(n) { return n.id === _noteCompose.noteId; })) {
     _noteCompose = { noteId: ns[ns.length - 1].id, replyTo: '', who: '' };
   }
@@ -6836,7 +6904,12 @@ async function openNoteDay(day) {
     return '<div class="note-box' + (n.id === _noteCompose.noteId && ns.length > 1 ? ' is-target' : '') + '" data-note="' + escAttr(n.id) + '" onclick="noteSetTarget(this.dataset.note)">' +
         '<div class="note-box-top">' +
           '<div class="note-box-date"><div class="wd">' + wd + '</div><div class="md">' + esc(parts[1] + '.' + parts[2]) + '</div></div>' +
-          '<div class="note-box-time">' + esc(_noteTime(n.created)) + '</div>' +
+          '<div class="note-box-tools">' + esc(_noteTime(n.created)) + (n.edited ? ' · 改过' : '') +
+            ((n.author || 'ai') === 'user'
+              ? '<br><a href="javascript:void(0)" data-note="' + escAttr(n.id) + '" onclick="event.stopPropagation();openNoteWrite(this.dataset.note)">改</a>' +
+                '<a href="javascript:void(0)" data-note="' + escAttr(n.id) + '" onclick="event.stopPropagation();deleteOwnNote(this.dataset.note)">删</a>'
+              : '') +
+          '</div>' +
         '</div>' +
         _noteBigSticker(n.mood) +
         '<div class="note-box-text">' + esc(n.content) + '</div>' +
@@ -6868,7 +6941,7 @@ async function openNoteDay(day) {
 // 底部只有一个评论框：评哪条小记、回哪条评论，记在这里
 var _noteCompose = { noteId: '', replyTo: '', who: '' };
 
-function _noteDayNotes() { return _notes.notes.filter(function(n) { return n.date === _notes.selected; }); }
+function _noteDayNotes() { return _notesBoard().filter(function(n) { return n.date === _notes.selected; }); }
 
 function _noteComposeHint() {
   var hint = document.getElementById('notes-compose-hint');
@@ -6914,6 +6987,82 @@ async function deleteNoteComment(el) {
   if (!confirm('删掉这条评论？删了你和主人都看不见了。')) return;
   try {
     var res = await fetch(BASE + '/api/notes/' + encodeURIComponent(el.dataset.note) + '/comments/' + encodeURIComponent(el.dataset.comment), { method: 'DELETE' });
+    var d = await res.json().catch(function() { return {}; });
+    if (!res.ok) { alert(d.error || '没删掉'); return; }
+    await loadNotesView();
+  } catch (e) {
+    alert('没删掉：' + (e && e.message ? e.message : e));
+  }
+}
+
+// ---------- 她的板：写一条 / 改一条 / 删一条 ----------
+var _noteWrite = { id: '', mood: 0 };
+
+function _notesTodayKey() {
+  var now = new Date();
+  return now.getFullYear() + '-' + _notesPad(now.getMonth() + 1) + '-' + _notesPad(now.getDate());
+}
+
+function _noteRenderMoodPick() {
+  var cells = [];
+  for (var m = 1; m <= 10; m++) {
+    var st = NOTE_STICKERS[m];
+    var face = st.src ? '<img src="' + escAttr(st.src) + '" alt="' + m + '">' : String(m);
+    cells.push('<div class="note-mood-opt' + (m === _noteWrite.mood ? ' on' : '') + '" data-m="' + m + '" style="background:' +
+      (st.src ? 'transparent' : st.color) + ';" onclick="notePickMood(Number(this.dataset.m))" title="团子 ' + m + '">' + face + '</div>');
+  }
+  document.getElementById('notes-write-moods').innerHTML = cells.join('');
+}
+
+function notePickMood(m) {
+  _noteWrite.mood = (_noteWrite.mood === m) ? 0 : m;   // 再点一下就是不贴
+  _noteRenderMoodPick();
+}
+
+function openNoteWrite(nid) {
+  var n = nid ? _notes.notes.filter(function(x) { return x.id === nid; })[0] : null;
+  _noteWrite = { id: n ? n.id : '', mood: n ? Number(n.mood || 0) : 0 };
+  document.getElementById('notes-write-title').textContent = n ? '改一条' : '写一条';
+  var dateEl = document.getElementById('notes-write-date');
+  dateEl.max = _notesTodayKey();
+  dateEl.value = n ? n.date : (_notes.selected && _notes.whose === 'user' ? _notes.selected : _notesTodayKey());
+  document.getElementById('notes-write-text').value = n ? n.content : '';
+  _noteRenderMoodPick();
+  document.getElementById('notes-write-page').style.display = '';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNoteWrite() {
+  document.getElementById('notes-write-page').style.display = 'none';
+  if (!_noteDayIsOpen()) document.body.style.overflow = '';
+}
+
+async function saveNoteWrite() {
+  var content = (document.getElementById('notes-write-text').value || '').trim();
+  var day = document.getElementById('notes-write-date').value;
+  if (!content) { alert('还没写呢'); return; }
+  var body = JSON.stringify({ content: content, mood: _noteWrite.mood, date: day });
+  try {
+    var res = _noteWrite.id
+      ? await fetch(BASE + '/api/notes/' + encodeURIComponent(_noteWrite.id), { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: body })
+      : await fetch(BASE + '/api/notes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: body });
+    var d = await res.json().catch(function() { return {}; });
+    if (!res.ok) { alert(d.error || '没贴上'); return; }
+    closeNoteWrite();
+    var parts = day.split('-');
+    _notes.year = Number(parts[0]); _notes.month = Number(parts[1]);
+    var wasOpen = _noteDayIsOpen();
+    await loadNotesView();
+    if (!wasOpen) openNoteDay(day);
+  } catch (e) {
+    alert('没贴上：' + (e && e.message ? e.message : e));
+  }
+}
+
+async function deleteOwnNote(nid) {
+  if (!confirm('删掉这条小记？删了你和主人都看不见了。')) return;
+  try {
+    var res = await fetch(BASE + '/api/notes/' + encodeURIComponent(nid), { method: 'DELETE' });
     var d = await res.json().catch(function() { return {}; });
     if (!res.ok) { alert(d.error || '没删掉'); return; }
     await loadNotesView();

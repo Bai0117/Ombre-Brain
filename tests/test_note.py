@@ -285,10 +285,9 @@ async def test_dashboard_api(vault, monkeypatch):
     body = json.loads((await listing(_Req(query={"month": month}))).body)
     assert body["unseen_replies"] == 0
 
-    # 后台没有写小记、删小记的入口；能删的只有她自己的评论
-    assert ("POST", "/api/notes") not in mcp.routes
-    assert [path for method, path in mcp.routes if method == "DELETE"] == [
-        "/api/notes/{note_id}/comments/{comment_id}"
+    # 后台的写、改、删都只作用在她自己的板上（见 test_dashboard_api_her_board）
+    assert sorted(path for method, path in mcp.routes if method == "DELETE") == [
+        "/api/notes/{note_id}", "/api/notes/{note_id}/comments/{comment_id}",
     ]
 
     delete = mcp.routes[("DELETE", "/api/notes/{note_id}/comments/{comment_id}")]
@@ -301,3 +300,107 @@ async def test_dashboard_api(vault, monkeypatch):
     gone = next(c for c in shown if c["id"] == hers)
     assert gone["deleted"] is True and gone["content"] == ""      # 原文不发给页面
 
+
+# ---------------- 她的板 ----------------
+
+def test_her_note_edit_keeps_history_and_resets_seen(vault):
+    hers = note.add_note("打措字的小记", mood=4, author="user")
+    assert note.note_author(hers) == "user" and hers["seen"] is False
+    note.mark_seen("ai", [hers["id"]])
+    edited = note.edit_note(hers["id"], "user", content="打错字的小记", mood=6)
+    assert edited["content"] == "打错字的小记" and edited["mood"] == 6
+    assert edited["seen"] is False and edited["edited"]                  # 改过要我重新看
+    stored = _stored(vault)[0]
+    assert stored["history"][0]["content"] == "打措字的小记"            # 旧版本留着
+    assert note.edit_note(hers["id"], "user", content="打错字的小记")["history"] == stored["history"]  # 没变就不记
+
+
+def test_boards_are_guarded(vault):
+    mine = note.add_note("我的")
+    hers = note.add_note("她的", author="user")
+    with pytest.raises(PermissionError):
+        note.edit_note(mine["id"], "user", content="改他的")
+    with pytest.raises(PermissionError):
+        note.delete_note(mine["id"], "user")
+    with pytest.raises(PermissionError):
+        note.edit_note(hers["id"], "ai", content="我替她改")
+    note.delete_note(hers["id"], "user")
+    with pytest.raises(LookupError):
+        note.add_comment(hers["id"], "ai", "评一条删掉的")
+    assert _stored(vault)[1]["deleted"] is True and _stored(vault)[1]["content"] == "她的"   # 原文还在
+
+
+def test_breath_tells_me_her_new_notes_once(vault):
+    note.add_note("我的那条", mood=8)
+    hers = note.add_note("她今天的", mood=9, author="user")
+    first = note.notes_section()
+    assert "我的那条" in first and "她写了 1 条新小记" in first and "她今天的" in first
+    assert "她写了" not in note.notes_section()
+    note.edit_note(hers["id"], "user", content="她改过的")
+    again = note.notes_section()
+    assert "她改过的" in again and "（改过）" in again
+    note.delete_note(hers["id"], "user")
+    deleted_one = note.add_note("又写一条", author="user")
+    note.delete_note(deleted_one["id"], "user")
+    assert "又写一条" not in note.notes_section()                    # 删掉的不提
+
+
+def test_breath_section_with_only_her_notes(vault):
+    note.add_note("只有她写了", author="user")
+    out = note.notes_section()
+    assert out.startswith("=== 小记 ===") and "上一条小记" not in out and "只有她写了" in out
+
+
+@pytest.mark.asyncio
+async def test_tool_reads_her_board_and_cannot_write_it(vault):
+    note.add_note("我的小记")
+    hers = note.add_note("她的小记", mood=7, author="user")
+    out = await note.dispatch(her=True)
+    assert "她的小记" in out and "我的小记" not in out
+    assert "我的小记" in await note.dispatch() and "她的小记" not in await note.dispatch()
+    today = note_core._today()
+    assert "她的小记" in await note.dispatch(her=True, date=today.isoformat())
+    assert "团子 7" in await note.dispatch(her=True, month=today.strftime("%Y-%m"))
+    with pytest.raises(ToolInputError):
+        await note.dispatch(her=True, content="我替她写")
+    assert (await note.dispatch(note_id=hers["id"], reply="写得好")).startswith("回好了")
+    hers_c = note.add_comment(hers["id"], "user", "嘿嘿")
+    out = await note.dispatch(comments=True)
+    assert "她的小记 [id=" in out and "嘿嘿" in out and hers_c["id"] in out
+
+
+@pytest.mark.asyncio
+async def test_dashboard_api_her_board(vault, monkeypatch):
+    import web.notes as notes_web
+
+    monkeypatch.setattr(notes_web.sh, "_require_auth", lambda _r: None)
+    mcp = _FakeMCP()
+    notes_web.register(mcp)
+    mine = note.add_note("他的")
+    create = mcp.routes[("POST", "/api/notes")]
+    res = await create(_Req("POST", {"content": "她写的", "mood": 9}))
+    hers = json.loads(res.body)["note"]
+    assert hers["author"] == "user" and hers["mood"] == 9
+    assert (await create(_Req("POST", {"content": ""}))).status_code == 400
+    assert (await create(_Req("POST", {"content": "x", "mood": 11}))).status_code == 400
+
+    edit = mcp.routes[("PATCH", "/api/notes/{note_id}")]
+    res = await edit(_Req("PATCH", {"content": "她改的"}, {"note_id": hers["id"]}))
+    body = json.loads(res.body)["note"]
+    assert body["content"] == "她改的" and "history" not in body
+    assert (await edit(_Req("PATCH", {"content": "改他的"}, {"note_id": mine["id"]}))).status_code == 403
+    assert (await edit(_Req("PATCH", {"content": "x"}, {"note_id": "n_nope"}))).status_code == 404
+
+    note.add_comment(hers["id"], "ai", "我评她的")
+    listing = mcp.routes[("GET", "/api/notes")]
+    data = json.loads((await listing(_Req())).body)
+    assert {n["author"] for n in data["notes"]} == {"ai", "user"}
+    assert all("history" not in n for n in data["notes"])
+    assert data["unseen_by_board"] == {"ai": 0, "user": 1}
+
+    delete = mcp.routes[("DELETE", "/api/notes/{note_id}")]
+    assert (await delete(_Req("DELETE", path_params={"note_id": mine["id"]}))).status_code == 403
+    assert json.loads((await delete(_Req("DELETE", path_params={"note_id": hers["id"]}))).body)["ok"]
+    assert (await delete(_Req("DELETE", path_params={"note_id": hers["id"]}))).status_code == 404
+    data = json.loads((await listing(_Req())).body)
+    assert [n["content"] for n in data["notes"]] == ["他的"]

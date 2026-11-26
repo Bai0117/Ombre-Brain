@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "3b2e2c7dc53d398b8927f8833d556183b4e308adb10ad1d3099d71c6fa95fa5c",
-      "size": 644863
+      "sha256": "bdbb1f52ac1b6f60944963817b2516687916190130f68210c5d02878b41557b9",
+      "size": 652490
     },
     {
       "path": "frontend/favicon-64.png",
@@ -597,8 +597,8 @@
     },
     {
       "path": "src/server.py",
-      "sha256": "149c5e0b8539e2e0e9e22e87bfe8d655dffdcc83f600e612052a2960baef1db9",
-      "size": 89053
+      "sha256": "c735d559cd3c908f65fe1a79971be32fd9a9e265d41da03fd4bc783fab656745",
+      "size": 89251
     },
     {
       "path": "src/server_app.py",
@@ -802,13 +802,13 @@
     },
     {
       "path": "src/tools/note/__init__.py",
-      "sha256": "ca7b5e3551e60745cff8692ad7d579f5fd51256afcecc8a8e57b5734354c3c9e",
-      "size": 743
+      "sha256": "a38a10d08a19d3d2d704d6f1be1bab83dd8089209edd8f85826b7b0bcc9ad7eb",
+      "size": 876
     },
     {
       "path": "src/tools/note/core.py",
-      "sha256": "6c3b5b003fef14579f6db3f82194f4fe82ab41a39b674732087b8b396f313bd3",
-      "size": 17743
+      "sha256": "765485ac2dfc107395025ad82b1a94379c11eea7bacbfcc66b1dca5aeb967135",
+      "size": 23753
     },
     {
       "path": "src/tools/now/__init__.py",
@@ -972,8 +972,8 @@
     },
     {
       "path": "src/web/notes.py",
-      "sha256": "f39af1863ad8682f41a2d8cf35499c9d867ad4cd4339afdc247db3b3dd3cb4bd",
-      "size": 5146
+      "sha256": "80354ba86f1f16fdd63756e533db652c56ea846f14241048e3002743c2ac8d4a",
+      "size": 7992
     },
     {
       "path": "src/web/oauth.py",
