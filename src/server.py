@@ -1397,7 +1397,7 @@ async def note(
     comment_id: Optional[str] = "",
     comments: Optional[bool] = False,
 ) -> str:
-    """小记:我自己的小日记。一句话、一个日子、一个团子,随手写,不用重要——不是要记住的事(那是 hold),不是挂在记忆上的感受(那是 feel),不是要永远留给她的话(那是 letter_write)。只有我能写;她在后台「小记」页能看、能评论,我能回她。写下的不合并、不压缩、不衰减,也不能删。写:content=正文,mood=团子 1~10(1 最糟、10 最好,0=不贴),date=算哪一天 YYYY-MM-DD(默认今天,可以补写过去的,不能写明天)。读:无参数=最近 7 条带评论;date=那一天的全部小记和评论;month=YYYY-MM 看一个月每天的团子;note_id=看一条;comments=True=只看她的评论,不管评在哪天的小记下面,从新到旧,没看过的带 🆕。回她:note_id + reply=回复正文,comment_id=回的是哪条评论(可选,不给就是直接评论这条小记)。无参 breath 的「小记」段会带上最近一条,和她还没被我看过的评论(只提醒一次)。"""
+    """小记:我自己的小日记。一句话、一个日子、一个团子,随手写,不用重要——不是要记住的事(那是 hold),不是挂在记忆上的感受(那是 feel),不是要永远留给她的话(那是 letter_write)。只有我能写;她在后台「小记」页能看、能评论,我能回她。写下的不合并、不压缩、不衰减,也不能删。写:content=正文,mood=团子 1~10(1 最糟、10 最好,0=不贴),date=算哪一天 YYYY-MM-DD(默认今天,可以补写过去的,不能写明天)。读:无参数=最近 7 条带评论;date=那一天的全部小记和评论;month=YYYY-MM 看一个月每天的团子;note_id=看一条;comments=True=只看某一天小记底下的评论(她的和我的按时间排;配 date 看那天,默认今天;以前小记下面的新留言由 breath 提醒)。回她:note_id + reply=回复正文,comment_id=回的是哪条评论(可选,不给就是直接评论这条小记)。无参 breath 的「小记」段会带上最近一条,和她还没被我看过的评论(只提醒一次)。"""
     return await _with_notice(
         _t_note.dispatch(
             content=content or "", mood=mood or 0, date=date or "", month=month or "",

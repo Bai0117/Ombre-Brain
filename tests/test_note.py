@@ -162,21 +162,27 @@ async def test_tool_write_read_reply(vault):
 
 
 @pytest.mark.asyncio
-async def test_tool_lists_only_her_comments_across_notes(vault):
+async def test_tool_comments_are_scoped_to_one_day(vault):
     old = note.add_note("很早以前的", note_date="2026-10-01")
-    for i in range(8):
-        note.add_note(f"新的{i}")
-    assert "她还没评论过小记" in await note.dispatch(comments=True)
-    hers = note.add_comment(old["id"], "user", "翻到老的了")
-    note.add_comment(old["id"], "ai", "我的回复不该出现")
-    typo = note.add_comment(old["id"], "user", "打措字")
-    note.delete_comment(old["id"], typo["id"])
+    today = note.add_note("今天的")
+    assert "还没有评论" in await note.dispatch(comments=True)
+    note.add_comment(old["id"], "user", "翻到老的了")
+    hers = note.add_comment(today["id"], "user", "猪猪主人")
+    note.add_comment(today["id"], "ai", "只拱你一个", reply_to=hers["id"])
+    typo = note.add_comment(today["id"], "user", "打措字")
+    note.delete_comment(today["id"], typo["id"])
 
     out = await note.dispatch(comments=True)
-    assert "翻到老的了" in out and "🆕" in out and "1 条新的" in out
-    assert "我的回复不该出现" not in out and "打措字" not in out
-    assert f"[id={old['id']}]" in out and hers["id"] in out
-    assert "🆕" not in await note.dispatch(comments=True)      # 看过一次就不再标新
+    assert "猪猪主人" in out and "只拱你一个" in out and "1 条新的" in out
+    assert out.index("猪猪主人") < out.index("只拱你一个")        # 按时间，一来一回
+    assert "翻到老的了" not in out and "打措字" not in out
+    assert "新的" not in await note.dispatch(comments=True)       # 看过一次就不再标新
+
+    older = await note.dispatch(comments=True, date="2026-10-01")
+    assert "翻到老的了" in older and "猪猪主人" not in older
+    assert "没有小记" in await note.dispatch(comments=True, date="2026-09-01")
+    with pytest.raises(ToolInputError):
+        await note.dispatch(comments=True, date="10.1")
 
 
 @pytest.mark.asyncio

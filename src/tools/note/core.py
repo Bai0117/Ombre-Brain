@@ -346,29 +346,28 @@ def _month_text(month: str) -> str:
     )
 
 
-def _comments_text(limit: int = 15) -> str:
-    """她的评论：不管评在哪天的小记下面，从新到旧。没看过的带 🆕，看完即算看过。"""
-    notes = load_notes()
-    pairs = [
-        (n, c) for n in notes for c in n["comments"]
-        if c.get("author") == "user" and not is_deleted(c)
-    ]
-    if not pairs:
-        return "她还没评论过小记。"
-    pairs.sort(key=lambda nc: str(nc[1].get("created") or ""), reverse=True)
-    shown = pairs[:limit]
-    unseen = sum(1 for _, c in shown if not c.get("seen"))
-    lines = []
-    for n, c in shown:
+def _comments_text(day: str) -> str:
+    """那一天的小记底下的评论：她的和我的按时间排，像一来一回的对话。
+
+    只看这一天，不跨天——在以前的小记下面留的话，由 breath 的「小记」段提醒一次。
+    """
+    notes = _ordered([n for n in load_notes() if n.get("date") == day])
+    if not notes:
+        return f"{day} 没有小记。"
+    blocks = []
+    unseen = 0
+    for n in notes:
+        live = [c for c in n["comments"] if not is_deleted(c)]
+        if not live:
+            continue
         first = " ".join(str(n.get("content", "")).split())[:30]
-        new = " 🆕" if not c.get("seen") else ""
-        lines.append(
-            f"[{c['id']}]{new} {_md(n.get('date', ''))} 的小记 [id={n['id']}]「{first}」下：\n"
-            f"  她：{c.get('content', '')}"
-        )
-    mark_seen("ai", {n["id"] for n, _ in shown})
-    head = f"=== 她的评论（最近 {len(shown)} 条" + (f"，{unseen} 条新的" if unseen else "") + "）==="
-    return head + "\n" + "\n".join(lines) + "\n\n回她：note(note_id=..., reply=\"...\", comment_id=...)。"
+        unseen += sum(1 for c in live if c.get("author") == "user" and not c.get("seen"))
+        blocks.append(f"小记 [id={n['id']}]「{first}」\n" + "\n".join(_comment_lines(n)))
+    if not blocks:
+        return f"{day} 的小记下面还没有评论。"
+    mark_seen("ai", {n["id"] for n in notes})
+    head = f"=== {day} 的评论" + (f"（她有 {unseen} 条新的）" if unseen else "") + " ==="
+    return head + "\n" + "\n\n".join(blocks) + "\n\n回她：note(note_id=..., reply=\"...\", comment_id=...)。"
 
 
 def _recent_text(limit: int = 7) -> str:
@@ -411,7 +410,10 @@ async def dispatch(
         if comment_id:
             raise ValueError("comment_id 只在回复时用，要和 reply、note_id 一起给")
         if comments:
-            return _comments_text()
+            day = str(date or "").strip() or _today().isoformat()
+            if not _DATE_RE.match(day):
+                raise ValueError("date 写成 YYYY-MM-DD，比如 2026-11-26")
+            return _comments_text(day)
         if note_id:
             note = next((n for n in load_notes() if n["id"] == note_id), None)
             if note is None:
