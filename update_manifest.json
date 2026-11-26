@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "32e6195ae8c8ecc606f2c5e19d3158ba683ae086636447ccf114ee32e2419aae",
-      "size": 664646
+      "sha256": "a520e82bd536cac61c418a5a09aee536e57b8f76ecf580b53503954f6585eab2",
+      "size": 664725
     },
     {
       "path": "frontend/favicon-64.png",
@@ -64,6 +64,11 @@
       "path": "frontend/stickers/sticker-her-2.png",
       "sha256": "e4bc803d5f5578757531e5a8603c7437cacfd6bea6bb12c9358ed0d69d008c3a",
       "size": 111501
+    },
+    {
+      "path": "frontend/stickers/sticker-her-6.png",
+      "sha256": "aa781434f84c0a8593ff050a3afceadbff80b6d63c3603edddfa1caba524b6a1",
+      "size": 241402
     },
     {
       "path": "frontend/stickers/sticker-her-8.png",
