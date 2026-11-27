@@ -39,6 +39,11 @@
     `note(note_id, reply)` 评论；`comments=True` 两块板都算。她写了新的或改过的，
     无参 `breath()` 提醒一次。后台新增 `POST /api/notes`、
     `PATCH/DELETE /api/notes/{id}`，都只作用在她自己的板上。
+  - **圣诞**：只有两天限定——12.24 平安夜（小苹果）、12.25 圣诞，两块板都换成她单独画的那张，
+    不管选了几号（几号照样记下），心情小标签默认「平安夜」「圣诞快乐」；没画之前用颜色团 + 🍎 / 🎄 占位
+    （`NOTE_SPECIAL_DAYS`）。整个十二月 Dashboard 飘淡淡的雪（点不到，开了「减少动态效果」就不飘），
+    月历翻到十二月时标题两边挂她画的小装饰；雪花和装饰都等她画（`NOTES_DECO`），雪先用软白点。
+    `/dashboard#xmas` 提前看十二月的样子。`/static/` 多认 `sticker-day-<MMDD>.png`、`deco-<名字>.png`。
   - 公开工具由 20 个变为 21 个。
 
 ### 变更 / Changed

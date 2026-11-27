@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "d52a1a3a731669ffa77464682307a7548fb7d64ea5d8500e254ee851b6ece4c8",
-      "size": 664962
+      "sha256": "c05a3ecbce3dd602ce7ecf4ee3c2deba970d34e809f9a94f770df3c929ce5539",
+      "size": 670390
     },
     {
       "path": "frontend/favicon-64.png",
@@ -982,8 +982,8 @@
     },
     {
       "path": "src/web/dashboard.py",
-      "sha256": "827409e3fa094f3ed2994e9b8e7f4e34eba1c0ecf2e951ffb91ca1cf384d02a9",
-      "size": 8005
+      "sha256": "3b461dda175bec6128fa58d88f02ff30422ceb1c7205b89e09b82714c896d4df",
+      "size": 8239
     },
     {
       "path": "src/web/days.py",

@@ -1461,6 +1461,21 @@
   .note-sticker-big img { width:100%; height:100%; object-fit:contain; }
   .note-box-text { font-size:14px; line-height:1.85; white-space:pre-wrap; }
   .note-thread { padding:4px 4px 0; }
+  /* 十二月飘雪：在内容上面、弹层下面，点不到 */
+  #season-snow { position:fixed; inset:0; z-index:8999; pointer-events:none; overflow:hidden; }
+  #season-snow .snowflake { position:absolute; top:-30px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,255,255,.97) 0%, rgba(255,255,255,.75) 45%, rgba(255,255,255,0) 72%);
+    filter:drop-shadow(0 0 1.5px rgba(105,118,140,.45));   /* 浅色底上也看得见，像 EMMO 那种软软的雪 */
+    animation-name:seasonSnowFall, seasonSnowSway; animation-timing-function:linear, ease-in-out;
+    animation-iteration-count:infinite, infinite; animation-direction:normal, alternate; }
+  #season-snow .snowflake.img { border-radius:0; background:center/contain no-repeat; }
+  @keyframes seasonSnowFall { to { top:105vh; } }
+  @keyframes seasonSnowSway { from { margin-left:-14px; } to { margin-left:14px; } }
+  .notes-month-row { display:flex; align-items:center; justify-content:center; gap:6px; }
+  .notes-month-deco { height:42px; width:auto; }
+  .notes-month-deco.mirrored { transform:scaleX(-1); }
+  .note-glyph { font-size:1.6em; line-height:1; }
+  .note-sticker-big .note-glyph { font-size:54px; }
   .notes-board-toggle { display:flex; justify-content:center; gap:8px; margin:2px 0 14px; }
   .notes-board-toggle .filter-btn { position:relative; padding:6px 20px; }
   .notes-board-toggle .note-dot { position:absolute; top:2px; right:6px; width:7px; height:7px; border-radius:50%; background:#e5534b; }
@@ -3006,7 +3021,11 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
         <button class="btn-secondary" onclick="notesShiftMonth(-1)" style="padding:4px 10px;" title="上个月">‹</button>
         <div style="text-align:center;">
           <div id="notes-year" style="font-size:12px;color:var(--text-dim);"></div>
-          <div id="notes-month" style="font-size:20px;font-weight:700;"></div>
+          <div class="notes-month-row">
+            <img id="notes-month-deco-l" class="notes-month-deco" alt="" style="display:none" />
+            <div id="notes-month" style="font-size:20px;font-weight:700;"></div>
+            <img id="notes-month-deco-r" class="notes-month-deco" alt="" style="display:none" />
+          </div>
         </div>
         <button class="btn-secondary" onclick="notesShiftMonth(1)" style="padding:4px 10px;" title="下个月">›</button>
       </div>
@@ -6828,12 +6847,33 @@ var NOTE_STICKERS_BY_BOARD = {
     8: { src: '/static/sticker-his-8.png', label: '抱住了', tint: '#f9c5d6' }
   }
 };
-function _noteSticker(m, whose) {
+// 限定日：这两天不管贴几号，两块板都换成她单独画的那张（几号照样记下来）。
+// 没画之前用颜色团 + glyph 占位；画好了填 src（/static/sticker-day-1224.png 这种）。
+var NOTE_SPECIAL_DAYS = {
+  '12-24': { src: '', label: '平安夜', color: '#f08a7e', tint: '#f6b3aa', glyph: '🍎' },
+  '12-25': { src: '', label: '圣诞快乐', color: '#8cc5a0', tint: '#b9dcc5', glyph: '🎄' }
+};
+function _noteSpecial(day) { return day ? (NOTE_SPECIAL_DAYS[String(day).slice(5, 10)] || null) : null; }
+
+function _noteSticker(m, whose, day) {
+  var sp = _noteSpecial(day);
+  if (sp && Number(m || 0)) return { color: sp.color, src: sp.src || '', label: sp.label || '', tint: sp.tint || sp.color, glyph: sp.glyph || '' };
   var base = NOTE_STICKERS[m];
   if (!base) return null;
   var own = (NOTE_STICKERS_BY_BOARD[whose || 'ai'] || {})[m] || {};
-  return { color: base.color, src: own.src || '', label: own.label || '', tint: own.tint || base.color };
+  return { color: base.color, src: own.src || '', label: own.label || '', tint: own.tint || base.color, glyph: '' };
 }
+
+// 十二月：整个 Dashboard 飘雪；月历翻到十二月时标题两边挂装饰。都是她画的，没画之前雪用软白点、装饰空着。
+// 网址末尾加 #xmas（/dashboard#xmas）可以提前看十二月的样子（服务端会吃掉 ?参数，所以用 #）。
+var NOTES_DECO = {
+  snow: [],          // 她画的雪花：['/static/deco-snow-1.png', ...]
+  monthLeft: '',     // 月份标题左边的小装饰：'/static/deco-month-left.png'
+  monthRight: ''     // 右边的；只给左边就把左边镜像过来
+};
+function _seasonPreview() { try { return /(^|[#&])xmas($|&)/.test(location.hash.slice(1)) || location.hash === '#xmas'; } catch (e) { return false; } }
+window.addEventListener('hashchange', function() { if (_seasonPreview()) startSeasonSnow(); });
+function _isSnowSeason() { return _seasonPreview() || new Date().getMonth() === 11; }
 var _notes = { year: 0, month: 0, notes: [], selected: '', whose: 'ai', unseen: {} };
 
 // 当前这块板上的小记（他的 ai / 她的 user）
@@ -6861,6 +6901,44 @@ function _notesRenderChrome() {
   if (k) { tip.style.display = ''; tip.textContent = '主人回了你 ' + k + ' 条，带小红点的那天去看看。'; }
   else { tip.style.display = 'none'; }
 }
+
+function _notesRenderMonthDeco() {
+  var on = _notes.month === 12 && (NOTES_DECO.monthLeft || NOTES_DECO.monthRight);
+  var l = document.getElementById('notes-month-deco-l'), r = document.getElementById('notes-month-deco-r');
+  if (!l || !r) return;
+  var left = NOTES_DECO.monthLeft || NOTES_DECO.monthRight, right = NOTES_DECO.monthRight || NOTES_DECO.monthLeft;
+  l.style.display = r.style.display = on ? '' : 'none';
+  if (!on) return;
+  l.src = left; r.src = right;
+  r.classList.toggle('mirrored', !NOTES_DECO.monthRight);   // 只画了一边就镜像
+}
+
+// 飘雪：很淡，点不到（pointer-events:none），手机开了「减少动态效果」就不飘
+function startSeasonSnow() {
+  if (!_isSnowSeason() || document.getElementById('season-snow')) return;
+  try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+  var box = document.createElement('div');
+  box.id = 'season-snow';
+  box.setAttribute('aria-hidden', 'true');
+  var n = window.innerWidth < 600 ? 22 : 36;
+  for (var i = 0; i < n; i++) {
+    var f = document.createElement('div');
+    var size = 9 + Math.random() * 15;
+    var imgs = NOTES_DECO.snow || [];
+    f.className = 'snowflake' + (imgs.length ? ' img' : '');
+    if (imgs.length) f.style.backgroundImage = 'url(' + imgs[i % imgs.length] + ')';
+    if (imgs.length) size = 14 + Math.random() * 14;
+    f.style.width = f.style.height = size + 'px';
+    f.style.left = (Math.random() * 100) + 'vw';
+    f.style.opacity = (0.45 + Math.random() * 0.45).toFixed(2);
+    f.style.animationDuration = (10 + Math.random() * 12).toFixed(1) + 's, ' + (3 + Math.random() * 3).toFixed(1) + 's';
+    f.style.animationDelay = (-Math.random() * 20).toFixed(1) + 's, ' + (-Math.random() * 6).toFixed(1) + 's';
+    box.appendChild(f);
+  }
+  document.body.appendChild(box);
+}
+document.addEventListener('DOMContentLoaded', startSeasonSnow);
+if (document.readyState !== 'loading') startSeasonSnow();
 
 function _notesPad(n) { return (n < 10 ? '0' : '') + n; }
 function _notesMonthKey() { return _notes.year + '-' + _notesPad(_notes.month); }
@@ -6896,6 +6974,7 @@ function renderNotesMonth() {
   var names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('notes-year').textContent = _notes.year;
   document.getElementById('notes-month').textContent = names[_notes.month - 1];
+  _notesRenderMonthDeco();
   var byDay = {};
   _notesBoard().forEach(function(n) { (byDay[n.date] = byDay[n.date] || []).push(n); });
   var now = new Date();
@@ -6910,9 +6989,9 @@ function renderNotesMonth() {
     var cls = 'note-cell' + (ns.length ? ' has-note' : '') + (key === todayKey ? ' is-today' : '') + (key === _notes.selected ? ' selected' : '');
     if (!ns.length) { cells.push('<div class="' + cls + '">' + label + '</div>'); continue; }
     var mood = Number(ns[ns.length - 1].mood || 0);
-    var s = _noteSticker(mood, _notes.whose);
+    var s = _noteSticker(mood, _notes.whose, key);
     var unseen = ns.some(function(n) { return (n.comments || []).some(function(c) { return c.author === 'ai' && !c.seen; }); });
-    var face = s && s.src ? '<img src="' + escAttr(s.src) + '" alt="' + mood + '">' : label;
+    var face = s && s.src ? '<img src="' + escAttr(s.src) + '" alt="' + mood + '">' : (s && s.glyph ? '<span class="note-glyph">' + s.glyph + '</span>' : label);
     var bg = s ? (s.src ? 'transparent' : s.color) : 'var(--surface)';
     cells.push('<div class="' + cls + '" data-day="' + escAttr(key) + '" style="background:' + bg + ';" onclick="openNoteDay(this.dataset.day)" title="' + escAttr(key) + '">' +
       face + (unseen ? '<span class="note-dot"></span>' : '') + '</div>');
@@ -6948,14 +7027,15 @@ function _noteTagPill(text, tint) {
   return '<div class="note-tag-row"><span class="note-tag-pill" style="--tint:' + escAttr(tint || '#c9cbd6') + ';">' + esc(text) + '</span></div>';
 }
 
-function _noteBigSticker(mood, whose, tag, noLabel) {
+function _noteBigSticker(mood, whose, tag, noLabel, day) {
   var m = Number(mood || 0);
-  var s = _noteSticker(m, whose);
+  var s = _noteSticker(m, whose, day);
   if (!s) return '';
   var word = String(tag || '').trim() || s.label;
   var label = (!noLabel && word) ? _noteTagPill(word, s.tint) : '';
   if (s.src) return '<div class="note-sticker-big"><img src="' + escAttr(s.src) + '" alt="' + m + '"></div>' + label;
-  return '<div class="note-sticker-big" style="background:' + s.color + ';" title="团子 ' + m + '">' + m + '</div>' + label;
+  var face = s.glyph ? '<span class="note-glyph">' + s.glyph + '</span>' : String(m);
+  return '<div class="note-sticker-big" style="background:' + s.color + ';" title="团子 ' + m + '">' + face + '</div>' + label;
 }
 
 async function openNoteDay(day) {
@@ -6994,7 +7074,7 @@ async function openNoteDay(day) {
           '<div class="note-box-date"><div class="wd">' + wd + '</div><div class="md">' + esc(parts[1] + '.' + parts[2]) + '</div></div>' +
           '<div class="note-box-tools">' + esc(_noteTime(n.created)) + (n.edited ? ' · 改过' : '') + '</div>' +
         '</div>' +
-        _noteBigSticker(n.mood, n.author || 'ai', n.tag) +
+        _noteBigSticker(n.mood, n.author || 'ai', n.tag, false, n.date) +
         '<div class="note-box-text">' + esc(n.content) + '</div>' +
         ((n.author || 'ai') === 'user'
           ? '<div class="note-box-actions">' +
@@ -7168,11 +7248,12 @@ function noteRingPick(m) {
 }
 
 function _noteRenderWriteSticker() {
+  var day = document.getElementById('notes-write-date').value;
   document.getElementById('notes-write-sticker').innerHTML = _noteWrite.mood
-    ? _noteBigSticker(_noteWrite.mood, 'user', '', true)
+    ? _noteBigSticker(_noteWrite.mood, 'user', '', true, day)
     : '<div class="note-sticker-big" style="border:2px dashed var(--border);color:var(--text-dim);font-size:14px;font-weight:500;">贴一个</div>';
-  // 小标签：颜色跟着团子，没填的时候灰灰地提示这个团子的默认名字
-  var st = _noteWrite.mood ? _noteSticker(_noteWrite.mood, 'user') : null;
+  // 小标签：颜色跟着团子，没填的时候灰灰地提示这个团子的默认名字（限定日就是「平安夜」「圣诞快乐」）
+  var st = _noteWrite.mood ? _noteSticker(_noteWrite.mood, 'user', day) : null;
   document.getElementById('notes-write-tagwrap').style.setProperty('--tint', st ? st.tint : '#c9cbd6');
   var input = document.getElementById('notes-write-tag');
   input.placeholder = (st && st.label) ? st.label : '心情';
@@ -7198,6 +7279,7 @@ function noteWriteDateChanged() {
   if (!el.value) el.value = _notesTodayKey();
   if (el.value > _notesTodayKey()) el.value = _notesTodayKey();   // 不写明天
   _noteRenderWriteDate(el.value);
+  _noteRenderWriteSticker();   // 换到平安夜 / 圣诞，团子跟着换
 }
 
 function openNoteWrite(nid, mood) {
@@ -7209,8 +7291,8 @@ function openNoteWrite(nid, mood) {
   dateEl.max = _notesTodayKey();
   dateEl.value = day;
   _noteRenderWriteDate(day);
-  _noteRenderWriteSticker();
   document.getElementById('notes-write-text').value = n ? n.content : '';
+  _noteRenderWriteSticker();
   document.getElementById('notes-write-page').style.display = '';
   document.body.style.overflow = 'hidden';
   _notesSyncFab();

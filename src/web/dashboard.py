@@ -18,7 +18,9 @@ from starlette.responses import Response
 
 from . import _shared as sh
 
-_STICKER_RE = re.compile(r"^sticker-(her|his)-(10|[1-9])\.png$")
+# 她画的图：两套团子 sticker-(her|his)-<1~10>、限定日 sticker-day-<MMDD>（12.24 小苹果、12.25 圣诞）、
+# 季节装饰 deco-<名字>（雪花、月份标题两边的小装饰）。只认这些格式，拼不出别的路径。
+_STICKER_RE = re.compile(r"^(sticker-(her|his)-(10|[1-9])|sticker-day-(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])|deco-[a-z0-9]+(-[a-z0-9]+){0,3})\.png$")
 _ICON_ASSETS = ("icon.svg", "favicon.svg", "favicon-64.png", "apple-touch-icon.png")
 
 
@@ -119,8 +121,7 @@ def register(mcp) -> None:
             "title-font.woff2": "font/woff2",
             "title-font-OFL.txt": "text/plain; charset=utf-8",
         }
-        # 小记的团子：她画的 sticker-her-<1~10>.png、给他画的 sticker-his-<1~10>.png，
-        # 放在 frontend/stickers/。只认这个格式的名字，拼不出别的路径。
+        # 小记的团子和装饰图，都放在 frontend/stickers/（格式见 _STICKER_RE）。
         if _STICKER_RE.match(name):
             path = os.path.join(sh.repo_root, "frontend", "stickers", name)
             try:

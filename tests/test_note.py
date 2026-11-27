@@ -421,8 +421,13 @@ async def test_sticker_images_are_served_only_by_strict_name(tmp_path, monkeypat
     ok = await route(_Req(path_params={"name": "sticker-her-2.png"}))
     assert ok.status_code == 200 and ok.body == b"\x89PNG fake" and ok.media_type == "image/png"
     assert (await route(_Req(path_params={"name": "sticker-his-2.png"}))).status_code == 404   # 还没画
+    (tmp_path / "frontend" / "stickers" / "sticker-day-1225.png").write_bytes(b"\x89PNG xmas")
+    (tmp_path / "frontend" / "stickers" / "deco-snow-1.png").write_bytes(b"\x89PNG snow")
+    assert (await route(_Req(path_params={"name": "sticker-day-1225.png"}))).body == b"\x89PNG xmas"
+    assert (await route(_Req(path_params={"name": "deco-snow-1.png"}))).body == b"\x89PNG snow"
     for bad in ("sticker-her-11.png", "sticker-her-0.png", "sticker-her-2.png/../../secret.png",
-                "../secret.png", "sticker-cat-2.png", "sticker-her-2.PNG"):
+                "../secret.png", "sticker-cat-2.png", "sticker-her-2.PNG", "sticker-day-1332.png",
+                "deco-../secret.png", "deco-.png", "deco-snow_1.png", "deco-a-b-c-d-e.png"):
         assert (await route(_Req(path_params={"name": bad}))).status_code == 404
 
 
