@@ -2632,7 +2632,6 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   <div class="tab" data-tab="v3-debug"><span>2.4.0 Debug</span><span class="tab-en">Replay</span></div>
   -->
   <div class="tab-spacer"></div>
-  <div class="tab" data-tab="about"><span>关于</span><span class="tab-en">About</span></div>
 </div>
 
 <!-- embed-warn-banner: 向量化未配置时始终可见，配置后自动消失 -->
@@ -2921,14 +2920,6 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
 </div>
 
 <!-- ====== iter 1.7 §H: About / Author note ====== -->
-<div class="content" id="about-view" style="display:none">
-  <div style="max-width:680px;margin:0 auto;padding:20px 0;">
-    <div id="about-content" style="font-family:'Noto Serif SC',Georgia,serif;line-height:1.95;color:var(--text);">
-      <div style="text-align:center;color:var(--text-dim);padding:36px 0;font-size:13px;">加载中… / Loading…</div>
-    </div>
-  </div>
-</div>
-
 <!-- ====== Letters tab (iter 1.6 follow-up): 把原 letters.html 合并进来 ====== -->
 <div class="content" id="letters-view" style="display:none">
   <div style="max-width:920px;margin:0 auto;">
@@ -6050,7 +6041,6 @@ function activateDashboardTab(tab) {
     document.getElementById('shelf-view').style.display = target === 'shelf' ? '' : 'none';
     document.getElementById('album-view').style.display = target === 'album' ? '' : 'none';
     document.getElementById('dupes-view').style.display = target === 'dupes' ? '' : 'none';
-    document.getElementById('about-view').style.display = target === 'about' ? '' : 'none';
     if (target !== 'network' && _netRAF) { cancelAnimationFrame(_netRAF); _netRAF = null; }
     if (target === 'network') pending.push(loadNetwork());
     if (target === 'plan') pending.push(loadPlans());
@@ -6088,7 +6078,6 @@ function activateDashboardTab(tab) {
     if (target === 'shelf') pending.push(loadShelfView());
     if (target === 'album') pending.push(loadAlbumView());
     if (target === 'dupes') pending.push(loadDupesView());
-    if (target === 'about') pending.push(loadAbout());
     return Promise.allSettled(pending);
 }
 
@@ -10567,48 +10556,6 @@ async function planEdit(id) {
   } catch(e) { alert('编辑失败: ' + e.message); }
 }
 
-async function loadAbout() {
-  const el = document.getElementById('about-content');
-  el.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:24px 0;font-size:13px;">加载中… / Loading…</div>';
-  try {
-    const r = await fetch(BASE + '/api/author');
-    const d = await r.json();
-    // 复古掌机外壳里的「一封信」：米色注塑卡 + 像素标题 + 暖色衬线正文，与全局设计语言对齐
-    var html = '<div style="background:var(--surface);border-radius:var(--shell-radius);padding:34px 36px 30px;' +
-      'box-shadow:8px 8px 22px var(--shadow-dark-subtle), -7px -7px 16px var(--shadow-light), inset 0 1px 0 rgba(255,255,255,0.55);">';
-    html += '<div style="font-family:\'VT323\',monospace;font-size:46px;line-height:1;color:var(--accent);text-shadow:0 0 14px var(--accent-glow);letter-spacing:1px;">' + esc(d.title || '') + '</div>';
-    html += '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;letter-spacing:2px;color:var(--text-light);text-transform:uppercase;margin-top:6px;">AUTHOR · 一些</div>';
-    html += '<div style="height:1px;background:var(--border);margin:18px 0 24px;"></div>';
-    (d.sections || []).forEach(function(s) {
-      html += '<h3 style="font-family:\'Share Tech Mono\',monospace;font-size:14px;color:var(--accent);margin:22px 0 10px;font-weight:400;letter-spacing:1px;text-transform:uppercase;">' + esc(s.heading) + '</h3>';
-      html += '<div style="white-space:pre-wrap;color:var(--text);line-height:2.0;font-family:\'Noto Serif SC\',Georgia,serif;">' + esc(s.body) + '</div>';
-    });
-    if (d.signature) html += '<div style="margin-top:30px;text-align:right;color:var(--text-dim);font-family:\'Share Tech Mono\',monospace;font-size:14px;letter-spacing:1px;">' + esc(d.signature) + '</div>';
-    var _divider = '<div style="height:1px;background:var(--border);margin:26px 0;"></div>';
-    (d.contributors || []).forEach(function(c) {
-      html += _divider;
-      if (c.body) html += '<div style="white-space:pre-wrap;color:var(--text);line-height:2.0;font-family:\'Noto Serif SC\',Georgia,serif;text-align:center;">' + esc(c.body) + '</div>';
-      if (c.signature) html += '<div style="margin-top:10px;text-align:right;color:var(--text-dim);font-family:\'Share Tech Mono\',monospace;font-size:14px;letter-spacing:1px;">' + esc(c.signature) + '</div>';
-    });
-    if (d.support) {
-      html += _divider;
-      html += '<div style="white-space:pre-wrap;color:var(--text);line-height:2.0;font-family:\'Noto Serif SC\',Georgia,serif;text-align:center;">' + esc(d.support) + '</div>';
-    }
-    if (d.ifdian) {
-      html += '<div style="margin-top:24px;padding:22px;background:var(--surface-solid);border-radius:14px;text-align:center;' +
-        'box-shadow:inset 3px 3px 8px var(--shadow-dark-subtle), inset -3px -3px 6px var(--shadow-light);">' +
-        '<a href="' + escAttr(d.ifdian) + '" target="_blank" rel="noopener" style="display:inline-block;color:#fffdf5;text-decoration:none;font-size:14px;padding:11px 26px;border-radius:13px;' +
-        'background:linear-gradient(150deg, var(--accent-light), var(--accent));text-shadow:0 1px 1px rgba(120,90,20,0.35);' +
-        'box-shadow:5px 5px 13px var(--shadow-dark), -4px -4px 10px var(--shadow-light), inset 0 1px 0 rgba(255,255,255,0.35);">' +
-        _SV.coffee + ' 在爱发电支持我们 / Support on Afdian</a></div>';
-    }
-    html += '</div>';
-    el.innerHTML = html;
-    if (window.lucide) lucide.createIcons();
-  } catch(e) {
-    el.innerHTML = '<div style="color:var(--negative)">加载失败: ' + esc(e.message) + '</div>';
-  }
-}
 
 // Re-render Lucide icons whenever DOM is ready (covers static markup)
 window.addEventListener('DOMContentLoaded', function() {

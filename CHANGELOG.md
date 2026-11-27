@@ -48,6 +48,7 @@
 
 ### 变更 / Changed
 
+- **去掉「关于」标签**：里面是原作者的信和赞助入口，我们这份用不上。原作者的版权声明照旧留在 `LICENSE`（MIT 要求）；后端 `/api/author` 没动，只是没人再调。
 - **「我」的悬浮钮只在「记忆」页出现**：切到小记、日子等别的标签时藏起来，不再挡住格子。
 - **后台标题改成「Bai&Luar」**，用 Cormorant Garamond 斜体（SIL OFL 1.1，
   字体文件 `frontend/title-font.woff2` 随仓库自带，许可证在 `title-font-OFL.txt`，
