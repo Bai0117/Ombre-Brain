@@ -6858,12 +6858,14 @@ function _noteSticker(m, whose, day) {
   return { color: base.color, src: own.src || '', label: own.label || '', tint: own.tint || base.color, glyph: '' };
 }
 
-// 十二月：整个 Dashboard 飘雪；月历翻到十二月时标题两边挂装饰。都是她画的，没画之前雪用软白点、装饰空着。
+// 十二月：整个 Dashboard 飘雪。每个月的月历标题两边都可以挂她画的装饰，翻到哪个月就挂哪个月的。
+// 都是她画的，没画之前雪用软白点、装饰空着。
 // 网址末尾加 #xmas（/dashboard#xmas）可以提前看十二月的样子（服务端会吃掉 ?参数，所以用 #）。
 var NOTES_DECO = {
   snow: [],          // 她画的雪花：['/static/deco-snow-1.png', ...]
-  monthLeft: '',     // 月份标题左边的小装饰：'/static/deco-month-left.png'
-  monthRight: ''     // 右边的；只给左边就把左边镜像过来
+  // 月份标题装饰：月份号 → { left, right }。图放 frontend/stickers/deco-month-<两位月份>-left.png / -right.png
+  // 例：12: { left: '/static/deco-month-12-left.png', right: '' }。只给一边就镜像到另一边。
+  months: {}
 };
 function _seasonPreview() { try { return /(^|[#&])xmas($|&)/.test(location.hash.slice(1)) || location.hash === '#xmas'; } catch (e) { return false; } }
 window.addEventListener('hashchange', function() { if (_seasonPreview()) startSeasonSnow(); });
@@ -6897,14 +6899,15 @@ function _notesRenderChrome() {
 }
 
 function _notesRenderMonthDeco() {
-  var on = _notes.month === 12 && (NOTES_DECO.monthLeft || NOTES_DECO.monthRight);
+  var d = (NOTES_DECO.months || {})[_notes.month] || {};
+  var on = !!(d.left || d.right);
   var l = document.getElementById('notes-month-deco-l'), r = document.getElementById('notes-month-deco-r');
   if (!l || !r) return;
-  var left = NOTES_DECO.monthLeft || NOTES_DECO.monthRight, right = NOTES_DECO.monthRight || NOTES_DECO.monthLeft;
   l.style.display = r.style.display = on ? '' : 'none';
   if (!on) return;
-  l.src = left; r.src = right;
-  r.classList.toggle('mirrored', !NOTES_DECO.monthRight);   // 只画了一边就镜像
+  l.src = d.left || d.right; r.src = d.right || d.left;
+  l.classList.toggle('mirrored', !d.left);    // 只画了右边：左边镜像右边
+  r.classList.toggle('mirrored', !d.right);   // 只画了左边：右边镜像左边
 }
 
 // 飘雪：很淡，点不到（pointer-events:none），手机开了「减少动态效果」就不飘
