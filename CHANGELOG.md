@@ -48,6 +48,7 @@
 
 ### 变更 / Changed
 
+- **「我」的悬浮钮只在「记忆」页出现**：切到小记、日子等别的标签时藏起来，不再挡住格子。
 - **后台标题改成「Bai&Luar」**，用 Cormorant Garamond 斜体（SIL OFL 1.1，
   字体文件 `frontend/title-font.woff2` 随仓库自带，许可证在 `title-font-OFL.txt`，
   不依赖外网字体服务）。

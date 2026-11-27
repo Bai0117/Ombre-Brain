@@ -1873,6 +1873,8 @@
   }
 
   /* ====== Self / I — 悬浮按钮 & 面板 ====== */
+  /* 悬浮钮只在「记忆」页出现；别的标签（小记、日子……）它会挡住格子。还没切过标签时 data-tab 为空，当记忆页 */
+  body[data-tab]:not([data-tab="list"]):not([data-tab=""]) .self-fab { display:none !important; }
   .self-fab {
     position: fixed;
     bottom: 32px;
@@ -6029,6 +6031,7 @@ function activateDashboardTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     const target = tab.dataset.tab;
+    document.body.dataset.tab = target;   // 「我」的悬浮钮只在记忆页出现，别处挡路
     const pending = [];
     document.getElementById('list-view').style.display = target === 'list' ? '' : 'none';
     document.getElementById('breath-view').style.display = target === 'breath' ? '' : 'none';
