@@ -6822,7 +6822,8 @@ var NOTE_STICKERS = {
   10: { color: '#ffe066', src: '', label: '' }
 };
 // 两套团子分开：她的板用她的那套，他的板用他的那套。画了哪个就在这里填上 src / label，
-// 没画的那个号先用上面的颜色占位。图放在 frontend/stickers/sticker-her-<号>.png、sticker-his-<号>.png。
+// 没画的那个号先用上面的颜色占位。图放在 frontend/stickers/sticker-her-<号>.png、sticker-his-<号>.png；
+// 两个人共用的号（7、9、10）用 sticker-both-<号>.png，两套里填同一张。
 var NOTE_STICKERS_BY_BOARD = {
   user: {
     1: { src: '/static/sticker-her-1.png', label: '', tint: '#d9dfe8' },
@@ -6831,6 +6832,7 @@ var NOTE_STICKERS_BY_BOARD = {
     4: { src: '/static/sticker-her-4.png', label: '哈气', tint: '#f1aa9d' },
     5: { src: '/static/sticker-her-5.png', label: '窝着', tint: '#f3cdfa' },
     6: { src: '/static/sticker-her-6.png', label: '漂着', tint: '#a9f3fb' },
+    7: { src: '/static/sticker-both-7.png', label: '泡月光蝶', tint: '#bfe3fb' },
     8: { src: '/static/sticker-her-8.png', label: '嘿嘿', tint: '#f9c5d6' }
   },
   ai: {
@@ -6840,6 +6842,7 @@ var NOTE_STICKERS_BY_BOARD = {
     4: { src: '/static/sticker-his-4.png', label: '罚你', tint: '#f0a99d' },
     5: { src: '/static/sticker-his-5.png', label: '在呢', tint: '#bfe9f7' },
     6: { src: '/static/sticker-his-6.png', label: '陪着', tint: '#a9f3fb' },
+    7: { src: '/static/sticker-both-7.png', label: '泡月光蝶', tint: '#bfe3fb' },
     8: { src: '/static/sticker-his-8.png', label: '抱住了', tint: '#f9c5d6' }
   }
 };
