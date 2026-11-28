@@ -1438,14 +1438,15 @@
   .bucket-row .icon svg, .bucket-row .icon svg.lucide { display: block; }
 
   /* —— 小记：月历格子 + 团子 —— */
-  .notes-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; max-width:520px; margin:0 auto; }
-  .note-cell { aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative;
+  /* minmax(0,1fr) + min-width:0：Safari 会把团子图片的原始尺寸算进列宽，有图的那几列被撑宽、整块偏到一边 */
+  .notes-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; max-width:520px; margin:0 auto; }
+  .note-cell { aspect-ratio:1; min-width:0; min-height:0; box-sizing:border-box; display:flex; align-items:center; justify-content:center; position:relative;
     border:2px solid var(--border); border-radius:47% 53% 44% 56% / 55% 45% 55% 45%;
     font-size:15px; font-weight:600; color:var(--text-dim); background:transparent; cursor:default; user-select:none; }
   .note-cell.has-note { cursor:pointer; border-color:transparent; color:#2b2b2b; }
   .note-cell.is-today { border-style:dashed; }
   .note-cell.selected { outline:2px solid var(--accent); outline-offset:2px; }
-  .note-cell img { width:100%; height:100%; object-fit:contain; }
+  .note-cell img { display:block; width:100%; height:100%; min-width:0; max-width:100%; object-fit:contain; }
   .note-cell .note-dot { position:absolute; top:2px; right:4px; width:8px; height:8px; border-radius:50%; background:#e5534b; }
   .notes-day-page { position:fixed; inset:0; z-index:9000; background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .notes-day-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between;
