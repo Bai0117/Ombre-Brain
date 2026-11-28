@@ -1532,8 +1532,13 @@
   .note-box.is-target { box-shadow:0 0 0 3px var(--border-strong, var(--border)); }
   .notes-day-page { display:flex; flex-direction:column; }
   .notes-day-body { flex:1 0 auto; width:100%; box-sizing:border-box; }
-  .notes-compose { position:sticky; bottom:0; z-index:1; background:var(--bg);
-    padding:8px 18px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+  /* 输入框浮在内容上，背后一层渐隐毛玻璃（和「我们的」底栏一样），离 iOS 底下的小横条远一点 */
+  .notes-compose { position:sticky; bottom:0; z-index:1; background:transparent;
+    padding:22px 18px calc(env(safe-area-inset-bottom, 0px) + 24px); }
+  .notes-compose::before { content:''; position:absolute; left:0; right:0; top:-28px; bottom:0; z-index:-1; pointer-events:none;
+    background:linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 80%, transparent) 45%, transparent 100%);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    -webkit-mask-image:linear-gradient(to top, #000 55%, transparent 100%); mask-image:linear-gradient(to top, #000 55%, transparent 100%); }
   .notes-compose-row, .notes-compose-hint { max-width:560px; margin:0 auto; }
   .notes-compose-row { display:flex; align-items:flex-end; gap:10px; }
   .notes-compose-hint { font-size:11.5px; color:var(--text-dim); padding:0 4px 6px; }
@@ -2567,12 +2572,12 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
 .space-menu button svg { width:18px; height:18px; flex-shrink:0; }
 #ours-nav { display:none; }
 body[data-space="ours"] #ours-nav { display:flex; position:fixed; z-index:900; left:50%; transform:translateX(-50%);
-  bottom:calc(8px + env(safe-area-inset-bottom)); width:min(calc(100vw - 16px), 440px); justify-content:space-between; align-items:center;
+  bottom:calc(22px + env(safe-area-inset-bottom)); width:min(calc(100vw - 16px), 440px); justify-content:space-between; align-items:center;
   padding:6px 4px; background:transparent; }
 /* 底下一层渐隐的毛玻璃：内容滚到图标后面时是模糊的，不和图标打架 */
 #ours-nav-veil { display:none; }
 body[data-space="ours"] #ours-nav-veil { display:block; position:fixed; z-index:899; left:0; right:0; bottom:0; pointer-events:none;
-  height:calc(96px + env(safe-area-inset-bottom));
+  height:calc(112px + env(safe-area-inset-bottom));
   background:linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 80%, transparent) 45%, transparent 100%);
   backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   -webkit-mask-image:linear-gradient(to top, #000 55%, transparent 100%); mask-image:linear-gradient(to top, #000 55%, transparent 100%); }
@@ -2585,7 +2590,7 @@ body[data-space="ours"] #ours-nav-veil { display:block; position:fixed; z-index:
 #ours-nav button.on svg { stroke-width:2.4; }
 #ours-nav button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 #ours-nav .note-dot { position:absolute; top:8px; right:10px; width:7px; height:7px; border-radius:50%; background:#e5534b; }
-body[data-space="ours"] { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+body[data-space="ours"] { padding-bottom:calc(100px + env(safe-area-inset-bottom)); }
 body[data-space="ours"] .header { display:flex !important; align-items:center; }
 body[data-space="ours"] .header h1 { flex:1; }
 body[data-space="ours"] .header-meta,
@@ -2595,7 +2600,9 @@ body[data-space="ours"] .tabs,
 body[data-space="ours"] #status-banner,
 body[data-space="ours"] #embed-warn-banner,
 body[data-space="ours"] #empty-mem-banner,
-body[data-space="ours"] .header-actions > button:not(#space-switch) { display:none !important; }
+body[data-space="ours"] .header-actions > button:not(#space-switch):not(#btn-refresh) { display:none !important; }
+/* 「我们的」右上角：刷新在左、四格菜单在右 */
+body[data-space="ours"] #btn-refresh { order:-1; }
 body[data-space="ours"] .header-actions { margin-left:auto; }
 /* 给原作者的反馈按钮收起来（跟「关于」一样是原作者的东西），给切换菜单腾位置 */
 #btn-feedback { display:none !important; }
@@ -7184,10 +7191,9 @@ function _noteDayNotes() { return _notesBoard().filter(function(n) { return n.da
 function _noteComposeHint() {
   var hint = document.getElementById('notes-compose-hint');
   var ns = _noteDayNotes();
-  var target = ns.filter(function(n) { return n.id === _noteCompose.noteId; })[0];
   var text = '';
   if (_noteCompose.replyTo) text = '回复 ' + esc(_noteCompose.who);
-  else if (ns.length > 1 && target) text = '评论 ' + esc(_noteTime(target.created)) + ' 那条 · 点别的框换一条';
+  // 评论的是哪一条，看外面那圈框就知道，不再写一行字
   if (_noteCompose.replyTo) text += '<a href="javascript:void(0)" onclick="noteCancelReply()">取消</a>';
   hint.innerHTML = text;
   hint.style.display = text ? '' : 'none';
