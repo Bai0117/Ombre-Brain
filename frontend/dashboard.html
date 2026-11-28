@@ -2552,6 +2552,51 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
   text-transform: none !important;
   line-height: 1;
 }
+
+/* ── 两块：系统 / 我们的 ─────────────────────────────────────────────
+   「我们的」是一块清爽的页面：只有标题和底部一排图标（小记、日子、书架、相册、信、计划），
+   系统那一大块（统计、搜索、体检条、标签栏）都收起来。右上角的小菜单在两块之间切换。 */
+#space-switch { position:relative; }
+.space-menu { position:fixed; z-index:9600; min-width:168px; padding:6px; border-radius:18px;
+  background:var(--surface, #fff); box-shadow:0 10px 32px rgba(0,0,0,.22); display:none; }
+.space-menu.open { display:block; }
+.space-menu button { display:flex !important; align-items:center; gap:10px; width:100%; padding:11px 14px !important;
+  border:none !important; background:transparent !important; box-shadow:none !important; border-radius:12px !important;
+  font-size:15px !important; color:var(--text) !important; text-align:left; cursor:pointer; }
+.space-menu button.on { background:var(--g-low, rgba(127,127,127,.12)) !important; font-weight:700; }
+.space-menu button svg { width:18px; height:18px; flex-shrink:0; }
+#ours-nav { display:none; }
+body[data-space="ours"] #ours-nav { display:flex; position:fixed; z-index:900; left:50%; transform:translateX(-50%);
+  bottom:calc(10px + env(safe-area-inset-bottom)); width:min(calc(100vw - 24px), 520px); justify-content:space-around;
+  padding:7px 6px; border-radius:26px; background:var(--g-glass, rgba(255,255,255,.82)); backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px); box-shadow:0 6px 24px rgba(0,0,0,.16); }
+#ours-nav button { flex:1; display:flex !important; flex-direction:column; align-items:center; gap:3px; min-width:0 !important;
+  padding:6px 0 !important; border:none !important; background:transparent !important; box-shadow:none !important;
+  border-radius:16px !important; color:var(--text-dim) !important; font-size:11px !important; cursor:pointer; position:relative; }
+#ours-nav button svg { width:22px; height:22px; }
+#ours-nav button.on { color:var(--text) !important; font-weight:700; }
+#ours-nav button.on svg { stroke-width:2.3; }
+#ours-nav .note-dot { position:absolute; top:4px; right:calc(50% - 16px); width:7px; height:7px; border-radius:50%; background:#e5534b; }
+body[data-space="ours"] { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+body[data-space="ours"] .header { display:flex !important; align-items:center; }
+body[data-space="ours"] .header h1 { flex:1; }
+body[data-space="ours"] .header-meta,
+body[data-space="ours"] .search-bar,
+body[data-space="ours"] #version-badge,
+body[data-space="ours"] .tabs,
+body[data-space="ours"] #status-banner,
+body[data-space="ours"] #embed-warn-banner,
+body[data-space="ours"] #empty-mem-banner,
+body[data-space="ours"] .header-actions > button:not(#space-switch) { display:none !important; }
+body[data-space="ours"] .header-actions { margin-left:auto; }
+/* 给原作者的反馈按钮收起来（跟「关于」一样是原作者的东西），给切换菜单腾位置 */
+#btn-feedback { display:none !important; }
+body[data-space="system"] .tabs .tab[data-tab="notes"],
+body[data-space="system"] .tabs .tab[data-tab="days"],
+body[data-space="system"] .tabs .tab[data-tab="shelf"],
+body[data-space="system"] .tabs .tab[data-tab="album"],
+body[data-space="system"] .tabs .tab[data-tab="letters"],
+body[data-space="system"] .tabs .tab[data-tab="plan"] { display:none !important; }
 </style>
 </head>
 <body>
@@ -2605,9 +2650,10 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
     <button onclick="doSearch()" title="搜索"><i data-lucide="search"></i></button>
   </div>
   <div class="header-actions">
+    <button id="space-switch" onclick="toggleSpaceMenu(event)" title="切换：我们的 / 系统" aria-label="切换：我们的 / 系统" style="height:32px;padding:0 12px;display:inline-flex;align-items:center;"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
     <button id="btn-refresh" onclick="refreshPage()" title="刷新页面（添加到主屏幕后没有浏览器的刷新键）" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> 刷新</button>
     <button id="btn-restart" onclick="restartService()" title="重启服务；红点表示有设置等待重启生效" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><span class="restart-dot"></span><i data-lucide="power"></i> 重启</button>
-    <button onclick="openFeedback()" title="给作者反馈 / Feedback" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><i data-lucide="message-circle"></i> 反馈 Feedback</button>
+    <button id="btn-feedback" onclick="openFeedback()" title="给作者反馈 / Feedback" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><i data-lucide="message-circle"></i> 反馈 Feedback</button>
     <button onclick="doLogout()" title="退出登录 / Log out" style="height:32px;padding:0 12px;gap:5px;display:inline-flex;align-items:center;white-space:nowrap;font-size:12px;"><i data-lucide="log-out"></i> 退出 Exit</button>
   </div>
 </div>
@@ -12629,6 +12675,75 @@ async function initSelfFab() {
     }
   } catch (_) {}
 }
+</script>
+
+<!-- 「我们的」底部一排图标 -->
+<nav id="ours-nav" aria-label="我们的">
+  <button data-go="notes" onclick="goOurs('notes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4M2 10h4M2 14h4M2 18h4"/><path d="M21.4 5.6a2.1 2.1 0 1 0-3-3L13 8l-1 4 4-1Z"/></svg><span>小记</span></button>
+  <button data-go="days" onclick="goOurs('days')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M12 19s-3-1.8-3-3.6a1.6 1.6 0 0 1 3-.8 1.6 1.6 0 0 1 3 .8c0 1.8-3 3.6-3 3.6Z"/></svg><span>日子</span></button>
+  <button data-go="shelf" onclick="goOurs('shelf')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg><span>书架</span></button>
+  <button data-go="album" onclick="goOurs('album')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg><span>相册</span></button>
+  <button data-go="letters" onclick="goOurs('letters')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>信</span></button>
+  <button data-go="plan" onclick="goOurs('plan')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8M13 12h8M13 18h8"/></svg><span>计划</span></button>
+</nav>
+<div id="space-menu" class="space-menu" role="menu">
+  <button data-space="ours" onclick="setSpace('ours')" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg><span>我们的</span></button>
+  <button data-space="system" onclick="setSpace('system')" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></svg><span>系统</span></button>
+</div>
+
+<script>
+// ── 两块：我们的 / 系统 ──────────────────────────────────────────────
+// 打开先进「我们的」（停在上次看的那一页，默认小记）；网址末尾加 #system 直接进系统。
+var OURS_TABS = ['notes', 'days', 'shelf', 'album', 'letters', 'plan'];
+function _lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function _lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function _tabEl(name) { return document.querySelector('.tabs .tab[data-tab="' + name + '"]'); }
+function _syncOursNav(target) {
+  document.querySelectorAll('#ours-nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === target); });
+}
+function goOurs(name) {
+  var el = _tabEl(name); if (!el) return;
+  _lsSet('ob_ours_tab', name);
+  activateDashboardTab(el);
+  window.scrollTo(0, 0);
+}
+function setSpace(space) {
+  closeSpaceMenu();
+  document.body.dataset.space = space;
+  document.querySelectorAll('#space-menu button').forEach(function (b) { b.classList.toggle('on', b.dataset.space === space); });
+  if (space === 'ours') {
+    var last = _lsGet('ob_ours_tab');
+    goOurs(OURS_TABS.indexOf(last) >= 0 ? last : 'notes');
+  } else {
+    var cur = document.body.dataset.tab || '';
+    if (!cur || OURS_TABS.indexOf(cur) >= 0) { var el = _tabEl('list'); if (el) activateDashboardTab(el); }
+    window.scrollTo(0, 0);
+  }
+}
+function toggleSpaceMenu(ev) {
+  if (ev) ev.stopPropagation();
+  var m = document.getElementById('space-menu');
+  if (m.classList.contains('open')) { closeSpaceMenu(); return; }
+  var r = document.getElementById('space-switch').getBoundingClientRect();
+  m.style.top = (r.bottom + 8) + 'px';
+  m.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+  m.classList.add('open');
+}
+function closeSpaceMenu() { var m = document.getElementById('space-menu'); if (m) m.classList.remove('open'); }
+document.addEventListener('click', function (e) {
+  var m = document.getElementById('space-menu');
+  if (m && m.classList.contains('open') && !m.contains(e.target)) closeSpaceMenu();
+});
+// 切到哪一页，底下那排图标跟着亮
+(function () {
+  var orig = activateDashboardTab;
+  activateDashboardTab = function (tab) { var r = orig.apply(this, arguments); try { _syncOursNav(tab.dataset.tab); } catch (e) {} return r; };
+})();
+(function () {
+  var start = function () { setSpace(/(^|[#&])system($|&)/.test(location.hash.slice(1)) ? 'system' : 'ours'); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
+})();
 </script>
 
 </body>
