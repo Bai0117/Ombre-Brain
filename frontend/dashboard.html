@@ -1481,7 +1481,9 @@
   .notes-board-toggle .note-dot { position:absolute; top:2px; right:6px; width:7px; height:7px; border-radius:50%; background:#e5534b; }
   .notes-write-page { z-index:9001; }
   /* 圆钮在月历框里、格子底下；点开团子圈时原地浮到圈上面，+ 转成 × */
-  .notes-fab-slot { display:flex; justify-content:center; margin:22px 0 4px; height:62px; }
+  .notes-fab-slot { display:flex; justify-content:center; margin:40px 0 6px; height:62px; }
+  /* 小记的框底下留宽一点，不挤 */
+  #notes-view .config-section { padding-bottom:44px; }
   #notes-fab.notes-fab { position:relative; transform:none !important; z-index:1;
     width:62px !important; height:62px !important; min-width:0 !important; padding:0 !important; border-radius:50% !important;
     border:2.5px solid var(--text) !important; background:var(--bg) !important; color:var(--text) !important;
@@ -1493,7 +1495,9 @@
   .notes-ring-page.over-write { z-index:9004; }
   .notes-ring { position:relative; width:min(92vw, 420px); aspect-ratio:1; }
   .notes-ring-ask { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-weight:700; font-size:17px;
-    padding:2px 10px; background:linear-gradient(transparent 55%, var(--g-low, rgba(127,127,127,.15)) 55%); white-space:nowrap; }
+    text-align:center; white-space:nowrap; line-height:1.6; }
+  .notes-ring-ask .who { display:block; font-size:14px; font-weight:600; color:var(--text-dim); }
+  .notes-ring-ask .hl { padding:2px 10px; background:linear-gradient(transparent 55%, var(--g-low, rgba(127,127,127,.15)) 55%); }
   .note-ring-opt { position:absolute; width:19%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
     border-radius:47% 53% 44% 56% / 55% 45% 55% 45%; font-weight:700; font-size:16px; color:#2b2b2b; user-select:none;
     transform:translate(-50%,-50%) scale(0); animation:noteRingIn .36s cubic-bezier(.3,1.5,.5,1) forwards; }
@@ -3035,7 +3039,7 @@ button:has(> i[data-lucide]:only-child):not(.header button):not(.search-bar butt
 <!-- 小记·她的板：底部圆钮。点一下转成 ×，弹出团子圈选心情；选完进写一条 -->
 <div id="notes-ring-page" class="notes-ring-page" style="display:none" role="dialog" aria-modal="true" onclick="if(event.target===this||event.target.id==='notes-ring')closeNoteRing()">
   <div id="notes-ring" class="notes-ring">
-    <div class="notes-ring-ask">今天怎么样？</div>
+    <div class="notes-ring-ask"><span class="who">小蘑菇，</span><span class="hl">今天是哪一只？</span></div>
   </div>
 </div>
 
