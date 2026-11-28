@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "828b2f6849b627a21af024aa7d0647a391c428306e3688c0424126536c1bff34",
-      "size": 679708
+      "sha256": "c347fc94fd6deb842f499c496a2a1dc7018c955b8f0c65278a753875bc9e9b03",
+      "size": 681229
     },
     {
       "path": "frontend/favicon-64.png",
@@ -54,6 +54,46 @@
       "path": "frontend/onboarding.html",
       "sha256": "421dac5d9c4a7fd5093296891b092115a8f4e172deabf3212ad3a9700f5c32e9",
       "size": 10589
+    },
+    {
+      "path": "frontend/stickers/deco-snow-1.png",
+      "sha256": "082daa7612227e0db9d98885c72d7df700a3285ef8e460bb0b56d042db785179",
+      "size": 52823
+    },
+    {
+      "path": "frontend/stickers/deco-snow-2.png",
+      "sha256": "1c6167a23968ed0415466805bbfa1dd87b6d8b8091c582f79c466d44a19e579f",
+      "size": 63049
+    },
+    {
+      "path": "frontend/stickers/deco-snow-3.png",
+      "sha256": "ceacfefddf2d9bb4a4da5805a3b928827b26fb865b10fd97e136ccdf5d1dd7ae",
+      "size": 67459
+    },
+    {
+      "path": "frontend/stickers/deco-snow-4.png",
+      "sha256": "f87acc3e76c9e75511e75632d26e1e3c854a659e98833e81482eaa57ac8b3527",
+      "size": 73849
+    },
+    {
+      "path": "frontend/stickers/deco-snow-soft-1.png",
+      "sha256": "753b157a9abb0d64f8efd387a88be4cc287c91bdd37e5dad1e1c4872bb4054d4",
+      "size": 36296
+    },
+    {
+      "path": "frontend/stickers/deco-snow-soft-2.png",
+      "sha256": "85d5a7e2bb8d5f884f506397e63e5d9923b0f8f6cfe44046f5ce3ebbc90095cd",
+      "size": 47922
+    },
+    {
+      "path": "frontend/stickers/deco-snow-soft-3.png",
+      "sha256": "d542dc7e50018741236c4efb444b1f4c4b40c189f316276e106b42b7a7def4ef",
+      "size": 34236
+    },
+    {
+      "path": "frontend/stickers/deco-snow-soft-4.png",
+      "sha256": "6e0b8ffca00559fc098894396502f8cabfa91f7a10334bfa0b979b64b25211a4",
+      "size": 27382
     },
     {
       "path": "frontend/stickers/sticker-both-10.png",

@@ -1469,7 +1469,11 @@
     filter:drop-shadow(0 0 1.5px rgba(105,118,140,.45));   /* 浅色底上也看得见，像 EMMO 那种软软的雪 */
     animation-name:seasonSnowFall, seasonSnowSway; animation-timing-function:linear, ease-in-out;
     animation-iteration-count:infinite, infinite; animation-direction:normal, alternate; }
-  #season-snow .snowflake.img { border-radius:0; background:center/contain no-repeat; }
+  #season-snow .snowflake.img { border-radius:0; background:center/contain no-repeat; filter:drop-shadow(0 0 1px rgba(105,118,140,.35)); }
+  #season-snow .snowflake.spin { animation-name:seasonSnowFall, seasonSnowSway, seasonSnowSpin;
+    animation-timing-function:linear, ease-in-out, linear; animation-iteration-count:infinite, infinite, infinite;
+    animation-direction:normal, alternate, normal; }
+  @keyframes seasonSnowSpin { from { transform:rotate(0deg); } to { transform:rotate(var(--spin, 360deg)); } }
   @keyframes seasonSnowFall { to { top:105vh; } }
   @keyframes seasonSnowSway { from { margin-left:-14px; } to { margin-left:14px; } }
   .notes-month-row { display:flex; align-items:center; justify-content:center; gap:6px; }
@@ -6937,7 +6941,9 @@ function _noteSticker(m, whose, day) {
 // 都是她画的，没画之前雪用软白点、装饰空着。
 // 网址末尾加 #xmas（/dashboard#xmas）可以提前看十二月的样子（服务端会吃掉 ?参数，所以用 #）。
 var NOTES_DECO = {
-  snow: [],          // 她画的雪花：['/static/deco-snow-1.png', ...]
+  // 她画的雪：六角雪花（大一点、慢慢转）和软软的小雪团（小一点、不转）
+  snow: ['/static/deco-snow-1.png', '/static/deco-snow-2.png', '/static/deco-snow-3.png', '/static/deco-snow-4.png'],
+  snowSoft: ['/static/deco-snow-soft-1.png', '/static/deco-snow-soft-2.png', '/static/deco-snow-soft-3.png', '/static/deco-snow-soft-4.png'],
   // 月份标题装饰：月份号 → { left, right }。图放 frontend/stickers/deco-month-<两位月份>-left.png / -right.png
   // 例：12: { left: '/static/deco-month-12-left.png', right: '' }。只给一边就镜像到另一边。
   months: {}
@@ -6993,18 +6999,33 @@ function startSeasonSnow() {
   box.id = 'season-snow';
   box.setAttribute('aria-hidden', 'true');
   var n = window.innerWidth < 600 ? 22 : 36;
+  var flakes = NOTES_DECO.snow || [], soft = NOTES_DECO.snowSoft || [];
   for (var i = 0; i < n; i++) {
     var f = document.createElement('div');
+    // 一半多是雪花，剩下是小雪团；都没画的话退回软白点
+    var useFlake = flakes.length && (!soft.length || Math.random() < 0.6);
+    var pool = useFlake ? flakes : soft;
     var size = 9 + Math.random() * 15;
-    var imgs = NOTES_DECO.snow || [];
-    f.className = 'snowflake' + (imgs.length ? ' img' : '');
-    if (imgs.length) f.style.backgroundImage = 'url(' + imgs[i % imgs.length] + ')';
-    if (imgs.length) size = 14 + Math.random() * 14;
+    f.className = 'snowflake';
+    if (pool.length) {
+      f.className += ' img' + (useFlake ? ' spin' : '');
+      f.style.backgroundImage = 'url(' + pool[Math.floor(Math.random() * pool.length)] + ')';
+      size = useFlake ? 16 + Math.random() * 16 : 8 + Math.random() * 8;
+      f.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+    }
     f.style.width = f.style.height = size + 'px';
     f.style.left = (Math.random() * 100) + 'vw';
-    f.style.opacity = (0.45 + Math.random() * 0.45).toFixed(2);
-    f.style.animationDuration = (10 + Math.random() * 12).toFixed(1) + 's, ' + (3 + Math.random() * 3).toFixed(1) + 's';
-    f.style.animationDelay = (-Math.random() * 20).toFixed(1) + 's, ' + (-Math.random() * 6).toFixed(1) + 's';
+    f.style.opacity = (0.55 + Math.random() * 0.4).toFixed(2);
+    var fall = (10 + Math.random() * 12).toFixed(1) + 's', sway = (3 + Math.random() * 3).toFixed(1) + 's';
+    var d1 = (-Math.random() * 20).toFixed(1) + 's', d2 = (-Math.random() * 6).toFixed(1) + 's';
+    if (f.className.indexOf('spin') >= 0) {
+      f.style.animationDuration = fall + ', ' + sway + ', ' + (14 + Math.random() * 16).toFixed(1) + 's';
+      f.style.animationDelay = d1 + ', ' + d2 + ', ' + (-Math.random() * 20).toFixed(1) + 's';
+      if (Math.random() < 0.5) f.style.setProperty('--spin', '-360deg');
+    } else {
+      f.style.animationDuration = fall + ', ' + sway;
+      f.style.animationDelay = d1 + ', ' + d2;
+    }
     box.appendChild(f);
   }
   document.body.appendChild(box);
