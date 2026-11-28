@@ -12,8 +12,8 @@
     },
     {
       "path": "frontend/dashboard.html",
-      "sha256": "922f8c34d998b9d67fde4f958ddd127c36246f11a64b8ec2a17f73c3839f6c2f",
-      "size": 667229
+      "sha256": "58904730949099ca281bf2315ae0d32eb36b915476046a24dcb4973d34c497d5",
+      "size": 667395
     },
     {
       "path": "frontend/favicon-64.png",
@@ -57,8 +57,13 @@
     },
     {
       "path": "frontend/stickers/sticker-both-7.png",
-      "sha256": "345844e14aa6b9285a5499e8bee36d7acddd202f15bba7507ecb8a7b647b4f58",
-      "size": 191930
+      "sha256": "c67519e36b2d0af1736c58a8fbc7fe5192a81997b113f50b73c0daa8f91e5c25",
+      "size": 198265
+    },
+    {
+      "path": "frontend/stickers/sticker-both-9.png",
+      "sha256": "481687381fce42d693e78de1c84c00a3827f90623a4dbc8c2fd64e8272a7c6f5",
+      "size": 222430
     },
     {
       "path": "frontend/stickers/sticker-her-1.png",
@@ -67,13 +72,13 @@
     },
     {
       "path": "frontend/stickers/sticker-her-2.png",
-      "sha256": "e4bc803d5f5578757531e5a8603c7437cacfd6bea6bb12c9358ed0d69d008c3a",
-      "size": 111501
+      "sha256": "0657ed514805b0890976afa155ba0fc0c4adfea61faa7e153e40d7174b4b1568",
+      "size": 147853
     },
     {
       "path": "frontend/stickers/sticker-her-3.png",
-      "sha256": "5f9d72a0570d30ba1effe5a77793b4a67a3d6da4500634655b50ab026f3e91ba",
-      "size": 151317
+      "sha256": "e4bc803d5f5578757531e5a8603c7437cacfd6bea6bb12c9358ed0d69d008c3a",
+      "size": 111501
     },
     {
       "path": "frontend/stickers/sticker-her-4.png",
@@ -102,13 +107,13 @@
     },
     {
       "path": "frontend/stickers/sticker-his-2.png",
-      "sha256": "2dd554fa9d86448cd8b65c620ec8a5269f288583d782d84f38e6ebb42cda1d88",
-      "size": 90296
+      "sha256": "429fa5c499899d48c266a34d866592ca9118647ceaec28090e4688807f88dfd7",
+      "size": 189656
     },
     {
       "path": "frontend/stickers/sticker-his-3.png",
-      "sha256": "429fa5c499899d48c266a34d866592ca9118647ceaec28090e4688807f88dfd7",
-      "size": 189656
+      "sha256": "2dd554fa9d86448cd8b65c620ec8a5269f288583d782d84f38e6ebb42cda1d88",
+      "size": 90296
     },
     {
       "path": "frontend/stickers/sticker-his-4.png",
@@ -117,8 +122,8 @@
     },
     {
       "path": "frontend/stickers/sticker-his-5.png",
-      "sha256": "efe87ef20e30edefd4d20c704924fb562671349e33397937ac2dc6d570fa6b2e",
-      "size": 219651
+      "sha256": "83ca68ae0769c9c06c823b3277aa2d7a494cda819883d0bd412201bc5a869fb8",
+      "size": 230653
     },
     {
       "path": "frontend/stickers/sticker-his-6.png",
